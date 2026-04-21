@@ -1,16 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { PublicProgramsView } from '@/components/public-programs-view';
+import { AdminLogin } from '@/components/admin-login';
 import { Sidebar } from '@/components/sidebar';
 import { StatsCards } from '@/components/stats-cards';
 import { ProgramCard } from '@/components/program-card';
 import { ProgramDetailsModal } from '@/components/program-details-modal';
-import { RegistrationModal } from '@/components/registration-modal';
+import { PublicRegistrationModal } from '@/components/public-registration-modal';
 import { RegistrationsTable } from '@/components/registrations-table';
 import { AddProgramForm } from '@/components/add-program-form';
 import { BatchesManager } from '@/components/batches-manager';
 import { ReportsView } from '@/components/reports-view';
-import { MyRegistrations } from '@/components/my-registrations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -30,17 +31,29 @@ import {
   TrendingUp,
   Users,
   Calendar,
+  LogOut,
 } from 'lucide-react';
 import {
   mockPrograms,
   mockRegistrations,
   mockStats,
-  currentUser,
   categories,
 } from '@/lib/mock-data';
-import type { TrainingProgram, Batch, Registration } from '@/lib/types';
+import type { TrainingProgram, Batch, Registration, User } from '@/lib/types';
+
+// Admin user
+const adminUser: User = {
+  id: 'admin',
+  name: 'مدير النظام',
+  email: 'admin@company.com',
+  department: 'إدارة التدريب',
+  role: 'admin',
+};
 
 export default function TrainingManagementSystem() {
+  // View state: 'public' | 'login' | 'admin'
+  const [viewMode, setViewMode] = useState<'public' | 'login' | 'admin'>('public');
+  
   const [activeTab, setActiveTab] = useState('dashboard');
   const [programs, setPrograms] = useState(mockPrograms);
   const [registrations, setRegistrations] = useState(mockRegistrations);
@@ -65,6 +78,41 @@ export default function TrainingManagementSystem() {
     return matchesCategory && matchesSearch;
   });
 
+  // Handle public registration
+  const handlePublicRegister = (
+    registration: Omit<Registration, 'id' | 'status' | 'registeredAt' | 'approvedBy' | 'approvedAt'>
+  ) => {
+    const newRegistration: Registration = {
+      ...registration,
+      id: `reg-${Date.now()}`,
+      status: 'pending',
+      registeredAt: new Date().toISOString().split('T')[0],
+    };
+
+    setRegistrations((prev) => [...prev, newRegistration]);
+    setStats((prev) => ({
+      ...prev,
+      totalRegistrations: prev.totalRegistrations + 1,
+      pendingApprovals: prev.pendingApprovals + 1,
+    }));
+
+    // Update batch participants
+    setPrograms((prev) =>
+      prev.map((p) =>
+        p.id === registration.programId
+          ? {
+              ...p,
+              batches: p.batches.map((b) =>
+                b.id === registration.batchId
+                  ? { ...b, currentParticipants: b.currentParticipants + 1 }
+                  : b
+              ),
+            }
+          : p
+      )
+    );
+  };
+
   // Handlers
   const handleViewDetails = (program: TrainingProgram) => {
     setSelectedProgram(program);
@@ -78,57 +126,6 @@ export default function TrainingManagementSystem() {
     setIsRegistrationModalOpen(true);
   };
 
-  const handleConfirmRegistration = (
-    programId: string,
-    batchId: string,
-    notes: string
-  ) => {
-    const program = programs.find((p) => p.id === programId);
-    const batch = program?.batches.find((b) => b.id === batchId);
-
-    if (program && batch) {
-      const newRegistration: Registration = {
-        id: `reg-${Date.now()}`,
-        programId,
-        programTitle: program.title,
-        batchId,
-        batchName: batch.name,
-        userId: currentUser.id,
-        userName: currentUser.name,
-        userDepartment: currentUser.department,
-        status: 'pending',
-        registeredAt: new Date().toISOString().split('T')[0],
-      };
-
-      setRegistrations((prev) => [...prev, newRegistration]);
-      setStats((prev) => ({
-        ...prev,
-        totalRegistrations: prev.totalRegistrations + 1,
-        pendingApprovals: prev.pendingApprovals + 1,
-      }));
-
-      // Update batch participants
-      setPrograms((prev) =>
-        prev.map((p) =>
-          p.id === programId
-            ? {
-                ...p,
-                batches: p.batches.map((b) =>
-                  b.id === batchId
-                    ? { ...b, currentParticipants: b.currentParticipants + 1 }
-                    : b
-                ),
-              }
-            : p
-        )
-      );
-    }
-
-    setIsRegistrationModalOpen(false);
-    setSelectedProgram(null);
-    setSelectedBatch(null);
-  };
-
   const handleApproveRegistration = (id: string) => {
     setRegistrations((prev) =>
       prev.map((reg) =>
@@ -136,7 +133,7 @@ export default function TrainingManagementSystem() {
           ? {
               ...reg,
               status: 'approved',
-              approvedBy: currentUser.id,
+              approvedBy: adminUser.id,
               approvedAt: new Date().toISOString().split('T')[0],
             }
           : reg
@@ -221,25 +218,55 @@ export default function TrainingManagementSystem() {
     }
   };
 
-  // User's own registrations
-  const myRegistrations = registrations.filter(
-    (r) => r.userId === currentUser.id
-  );
+  const handleLogout = () => {
+    setViewMode('public');
+    setActiveTab('dashboard');
+  };
 
+  // Public view
+  if (viewMode === 'public') {
+    return (
+      <PublicProgramsView
+        programs={programs}
+        onRegister={handlePublicRegister}
+        onAdminLogin={() => setViewMode('login')}
+      />
+    );
+  }
+
+  // Admin login view
+  if (viewMode === 'login') {
+    return (
+      <AdminLogin
+        onLogin={() => setViewMode('admin')}
+      />
+    );
+  }
+
+  // Admin dashboard
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
         return (
           <div className="space-y-8">
             {/* Welcome Section */}
-            <div className="rounded-2xl bg-gradient-to-l from-primary/10 via-primary/5 to-transparent p-8">
-              <h1 className="text-3xl font-bold text-foreground">
-                مرحباً، {currentUser.name}!
-              </h1>
-              <p className="mt-2 text-muted-foreground">
-                مرحباً بك في نظام إدارة البرامج التدريبية. استعرض البرامج المتاحة
-                وسجّل فيما يناسبك.
-              </p>
+            <div className="flex items-center justify-between">
+              <div className="rounded-2xl bg-gradient-to-l from-primary/10 via-primary/5 to-transparent p-8 flex-1">
+                <h1 className="text-3xl font-bold text-foreground">
+                  مرحباً، {adminUser.name}
+                </h1>
+                <p className="mt-2 text-muted-foreground">
+                  لوحة إدارة البرامج التدريبية - يمكنك إدارة البرامج والتسجيلات من هنا
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="mr-4 gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                تسجيل الخروج
+              </Button>
             </div>
 
             {/* Stats */}
@@ -256,10 +283,9 @@ export default function TrainingManagementSystem() {
                     <BookOpen className="h-6 w-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">تصفح البرامج</p>
+                    <p className="font-medium text-foreground">إدارة البرامج</p>
                     <p className="text-sm text-muted-foreground">
-                      {programs.filter((p) => p.status === 'active').length} برنامج
-                      نشط
+                      {programs.filter((p) => p.status === 'active').length} برنامج نشط
                     </p>
                   </div>
                 </CardContent>
@@ -267,85 +293,74 @@ export default function TrainingManagementSystem() {
 
               <Card
                 className="cursor-pointer border-none shadow-sm transition-all hover:shadow-md"
-                onClick={() => setActiveTab('my-registrations')}
+                onClick={() => setActiveTab('registrations')}
+              >
+                <CardContent className="flex items-center gap-4 p-6">
+                  <div className="rounded-full bg-amber-500/10 p-3">
+                    <Calendar className="h-6 w-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">
+                      طلبات بانتظار الموافقة
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {stats.pendingApprovals} طلب
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card
+                className="cursor-pointer border-none shadow-sm transition-all hover:shadow-md"
+                onClick={() => setActiveTab('batches')}
               >
                 <CardContent className="flex items-center gap-4 p-6">
                   <div className="rounded-full bg-emerald-500/10 p-3">
                     <Users className="h-6 w-6 text-emerald-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">تسجيلاتي</p>
+                    <p className="font-medium text-foreground">إدارة الدفعات</p>
                     <p className="text-sm text-muted-foreground">
-                      {myRegistrations.length} تسجيل
+                      تنظيم الدفعات
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
-              {currentUser.role !== 'employee' && (
-                <>
-                  <Card
-                    className="cursor-pointer border-none shadow-sm transition-all hover:shadow-md"
-                    onClick={() => setActiveTab('registrations')}
-                  >
-                    <CardContent className="flex items-center gap-4 p-6">
-                      <div className="rounded-full bg-amber-500/10 p-3">
-                        <Calendar className="h-6 w-6 text-amber-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          طلبات بانتظار الموافقة
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {stats.pendingApprovals} طلب
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card
-                    className="cursor-pointer border-none shadow-sm transition-all hover:shadow-md"
-                    onClick={() => setActiveTab('reports')}
-                  >
-                    <CardContent className="flex items-center gap-4 p-6">
-                      <div className="rounded-full bg-violet-500/10 p-3">
-                        <TrendingUp className="h-6 w-6 text-violet-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">التقارير</p>
-                        <p className="text-sm text-muted-foreground">
-                          عرض الإحصائيات
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
+              <Card
+                className="cursor-pointer border-none shadow-sm transition-all hover:shadow-md"
+                onClick={() => setActiveTab('reports')}
+              >
+                <CardContent className="flex items-center gap-4 p-6">
+                  <div className="rounded-full bg-violet-500/10 p-3">
+                    <TrendingUp className="h-6 w-6 text-violet-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">التقارير</p>
+                    <p className="text-sm text-muted-foreground">
+                      عرض الإحصائيات
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            {/* Recent Programs */}
+            {/* Recent Registrations */}
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-foreground">
-                  أحدث البرامج التدريبية
+                  أحدث طلبات الترشيح
                 </h2>
-                <Button variant="ghost" onClick={() => setActiveTab('programs')}>
+                <Button variant="ghost" onClick={() => setActiveTab('registrations')}>
                   عرض الكل
                 </Button>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {programs
-                  .filter((p) => p.status === 'active')
-                  .slice(0, 3)
-                  .map((program) => (
-                    <ProgramCard
-                      key={program.id}
-                      program={program}
-                      onViewDetails={handleViewDetails}
-                      onRegister={() => handleRegister(program)}
-                    />
-                  ))}
-              </div>
+              <RegistrationsTable
+                registrations={registrations.slice(0, 5)}
+                programs={programs}
+                onApprove={handleApproveRegistration}
+                onReject={handleRejectRegistration}
+              />
             </div>
           </div>
         );
@@ -360,15 +375,13 @@ export default function TrainingManagementSystem() {
                   البرامج التدريبية
                 </h2>
                 <p className="text-muted-foreground">
-                  استعرض جميع البرامج التدريبية المتاحة وسجّل فيما يناسبك
+                  إدارة جميع البرامج التدريبية
                 </p>
               </div>
-              {currentUser.role === 'admin' && (
-                <Button onClick={() => setIsAddProgramOpen(true)}>
-                  <Plus className="ml-2 h-4 w-4" />
-                  إضافة برنامج
-                </Button>
-              )}
+              <Button onClick={() => setIsAddProgramOpen(true)}>
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة برنامج
+              </Button>
             </div>
 
             {/* Filters */}
@@ -426,6 +439,7 @@ export default function TrainingManagementSystem() {
                     program={program}
                     onViewDetails={handleViewDetails}
                     onRegister={() => handleRegister(program)}
+                    isAdmin
                   />
                 ))}
               </div>
@@ -433,27 +447,20 @@ export default function TrainingManagementSystem() {
           </div>
         );
 
-      case 'my-registrations':
-        return (
-          <MyRegistrations
-            registrations={myRegistrations}
-            programs={programs}
-          />
-        );
-
       case 'registrations':
         return (
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-foreground">
-                إدارة التسجيلات
+                إدارة طلبات الترشيح
               </h2>
               <p className="text-muted-foreground">
-                مراجعة واعتماد طلبات التسجيل في البرامج التدريبية
+                مراجعة واعتماد طلبات الترشيح للبرامج التدريبية - يمكنك تصدير قائمة المقبولين بصيغة Excel
               </p>
             </div>
             <RegistrationsTable
               registrations={registrations}
+              programs={programs}
               onApprove={handleApproveRegistration}
               onReject={handleRejectRegistration}
             />
@@ -508,7 +515,7 @@ export default function TrainingManagementSystem() {
   return (
     <div className="flex min-h-screen flex-row-reverse bg-background">
       <Sidebar
-        currentUser={currentUser}
+        currentUser={adminUser}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
@@ -528,7 +535,7 @@ export default function TrainingManagementSystem() {
         onRegister={handleRegister}
       />
 
-      <RegistrationModal
+      <PublicRegistrationModal
         program={selectedProgram}
         selectedBatch={selectedBatch}
         isOpen={isRegistrationModalOpen}
@@ -537,7 +544,12 @@ export default function TrainingManagementSystem() {
           setSelectedProgram(null);
           setSelectedBatch(null);
         }}
-        onConfirm={handleConfirmRegistration}
+        onConfirm={(reg) => {
+          handlePublicRegister(reg);
+          setIsRegistrationModalOpen(false);
+          setSelectedProgram(null);
+          setSelectedBatch(null);
+        }}
       />
 
       <AddProgramForm

@@ -17,9 +17,10 @@ interface ProgramCardProps {
   program: TrainingProgram;
   onViewDetails: (program: TrainingProgram) => void;
   onRegister?: (program: TrainingProgram) => void;
+  isAdmin?: boolean;
 }
 
-export function ProgramCard({ program, onViewDetails, onRegister }: ProgramCardProps) {
+export function ProgramCard({ program, onViewDetails, onRegister, isAdmin }: ProgramCardProps) {
   const upcomingBatches = program.batches.filter((b) => b.status === 'upcoming');
   const hasAvailableSlots = upcomingBatches.some(
     (b) => b.currentParticipants < b.maxParticipants
@@ -118,9 +119,9 @@ export function ProgramCard({ program, onViewDetails, onRegister }: ProgramCardP
           التفاصيل
           <ChevronLeft className="mr-1 h-4 w-4" />
         </Button>
-        {onRegister && hasAvailableSlots && program.status === 'active' && (
+        {!isAdmin && onRegister && hasAvailableSlots && program.status === 'active' && (
           <Button className="flex-1" onClick={() => onRegister(program)}>
-            تسجيل
+            طلب ترشيح
           </Button>
         )}
       </CardFooter>

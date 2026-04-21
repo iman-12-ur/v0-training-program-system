@@ -33,11 +33,17 @@ import {
   CheckCircle,
   XCircle,
   Eye,
+  Download,
+  FileSpreadsheet,
+  Mail,
+  Phone,
 } from 'lucide-react';
-import type { Registration } from '@/lib/types';
+import type { Registration, TrainingProgram } from '@/lib/types';
+import * as XLSX from 'xlsx';
 
 interface RegistrationsTableProps {
   registrations: Registration[];
+  programs?: TrainingProgram[];
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
   showActions?: boolean;
@@ -45,12 +51,14 @@ interface RegistrationsTableProps {
 
 export function RegistrationsTable({
   registrations,
+  programs = [],
   onApprove,
   onReject,
   showActions = true,
 }: RegistrationsTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [programFilter, setProgramFilter] = useState<string>('all');
 
   const getStatusBadge = (status: Registration['status']) => {
     switch (status) {
@@ -61,7 +69,7 @@ export function RegistrationsTable({
           </Badge>
         );
       case 'approved':
-        return <Badge className="bg-emerald-500">موافق عليه</Badge>;
+        return <Badge className="bg-emerald-500">مقبول</Badge>;
       case 'rejected':
         return <Badge variant="destructive">مرفوض</Badge>;
       case 'completed':
@@ -71,28 +79,94 @@ export function RegistrationsTable({
 
   const filteredRegistrations = registrations.filter((reg) => {
     const matchesSearch =
-      reg.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reg.programTitle.toLowerCase().includes(searchQuery.toLowerCase());
+      reg.visitorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reg.programTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reg.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reg.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
       statusFilter === 'all' || reg.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesProgram =
+      programFilter === 'all' || reg.programId === programFilter;
+    return matchesSearch && matchesStatus && matchesProgram;
   });
+
+  // Get approved registrations for export
+  const approvedRegistrations = filteredRegistrations.filter(
+    (reg) => reg.status === 'approved'
+  );
+
+  // Export to Excel
+  const handleExportExcel = () => {
+    const dataToExport = approvedRegistrations.map((reg) => ({
+      'الاسم': reg.visitorName,
+      'الرقم الوظيفي': reg.employeeId,
+      'القسم': reg.department,
+      'البريد الإلكتروني': reg.email,
+      'رقم الجوال': reg.phone || '-',
+      'البرنامج': reg.programTitle,
+      'الدفعة': reg.batchName,
+      'تاريخ التسجيل': reg.registeredAt,
+      'تاريخ الموافقة': reg.approvedAt || '-',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'المرشحين المقبولين');
+    
+    // Generate filename with date
+    const date = new Date().toLocaleDateString('ar-SA').replace(/\//g, '-');
+    XLSX.writeFile(wb, `المرشحين_المقبولين_${date}.xlsx`);
+  };
+
+  // Get unique programs for filter
+  const uniquePrograms = Array.from(
+    new Set(registrations.map((r) => r.programId))
+  ).map((id) => ({
+    id,
+    title: registrations.find((r) => r.programId === id)?.programTitle || '',
+  }));
 
   return (
     <Card className="border-none shadow-sm">
       <CardHeader className="pb-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle>التسجيلات</CardTitle>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>التسجيلات</CardTitle>
+            {showActions && approvedRegistrations.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={handleExportExcel}
+                className="gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                تصدير المقبولين ({approvedRegistrations.length})
+              </Button>
+            )}
+          </div>
+          
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative">
+            <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="بحث..."
+                placeholder="بحث بالاسم أو الرقم الوظيفي أو البريد..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pr-9 sm:w-64"
+                className="pr-9"
               />
             </div>
+            <Select value={programFilter} onValueChange={setProgramFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="البرنامج" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">جميع البرامج</SelectItem>
+                {uniquePrograms.map((prog) => (
+                  <SelectItem key={prog.id} value={prog.id}>
+                    {prog.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-40">
                 <Filter className="ml-2 h-4 w-4" />
@@ -101,7 +175,7 @@ export function RegistrationsTable({
               <SelectContent>
                 <SelectItem value="all">جميع الحالات</SelectItem>
                 <SelectItem value="pending">بانتظار الموافقة</SelectItem>
-                <SelectItem value="approved">موافق عليه</SelectItem>
+                <SelectItem value="approved">مقبول</SelectItem>
                 <SelectItem value="rejected">مرفوض</SelectItem>
                 <SelectItem value="completed">مكتمل</SelectItem>
               </SelectContent>
@@ -115,6 +189,8 @@ export function RegistrationsTable({
             <TableHeader>
               <TableRow>
                 <TableHead className="text-right">الموظف</TableHead>
+                <TableHead className="text-right">الرقم الوظيفي</TableHead>
+                <TableHead className="text-right">التواصل</TableHead>
                 <TableHead className="text-right">البرنامج</TableHead>
                 <TableHead className="text-right">الدفعة</TableHead>
                 <TableHead className="text-right">تاريخ التسجيل</TableHead>
@@ -128,7 +204,7 @@ export function RegistrationsTable({
               {filteredRegistrations.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={showActions ? 6 : 5}
+                    colSpan={showActions ? 8 : 7}
                     className="h-32 text-center text-muted-foreground"
                   >
                     لا توجد تسجيلات
@@ -139,10 +215,33 @@ export function RegistrationsTable({
                   <TableRow key={reg.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{reg.userName}</p>
+                        <p className="font-medium">{reg.visitorName}</p>
                         <p className="text-sm text-muted-foreground">
-                          {reg.userDepartment}
+                          {reg.department}
                         </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-sm">{reg.employeeId}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <a
+                          href={`mailto:${reg.email}`}
+                          className="flex items-center gap-1 text-sm text-primary hover:underline"
+                        >
+                          <Mail className="h-3 w-3" />
+                          {reg.email}
+                        </a>
+                        {reg.phone && (
+                          <a
+                            href={`tel:${reg.phone}`}
+                            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                          >
+                            <Phone className="h-3 w-3" />
+                            {reg.phone}
+                          </a>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">
@@ -160,6 +259,7 @@ export function RegistrationsTable({
                               variant="ghost"
                               className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
                               onClick={() => onApprove?.(reg.id)}
+                              title="قبول"
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
@@ -168,6 +268,7 @@ export function RegistrationsTable({
                               variant="ghost"
                               className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
                               onClick={() => onReject?.(reg.id)}
+                              title="رفض"
                             >
                               <XCircle className="h-4 w-4" />
                             </Button>
@@ -184,6 +285,10 @@ export function RegistrationsTable({
                                 <Eye className="ml-2 h-4 w-4" />
                                 عرض التفاصيل
                               </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Mail className="ml-2 h-4 w-4" />
+                                إرسال بريد
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}
@@ -194,6 +299,31 @@ export function RegistrationsTable({
               )}
             </TableBody>
           </Table>
+        </div>
+
+        {/* Summary */}
+        <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
+          <span>
+            الإجمالي: <strong className="text-foreground">{filteredRegistrations.length}</strong>
+          </span>
+          <span>
+            بانتظار الموافقة:{' '}
+            <strong className="text-amber-600">
+              {filteredRegistrations.filter((r) => r.status === 'pending').length}
+            </strong>
+          </span>
+          <span>
+            مقبول:{' '}
+            <strong className="text-emerald-600">
+              {filteredRegistrations.filter((r) => r.status === 'approved').length}
+            </strong>
+          </span>
+          <span>
+            مرفوض:{' '}
+            <strong className="text-red-600">
+              {filteredRegistrations.filter((r) => r.status === 'rejected').length}
+            </strong>
+          </span>
         </div>
       </CardContent>
     </Card>

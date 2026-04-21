@@ -36,25 +36,19 @@ const navItems: NavItem[] = [
     id: 'dashboard',
     label: 'لوحة التحكم',
     icon: <LayoutDashboard className="h-5 w-5" />,
-    roles: ['admin', 'supervisor', 'employee'],
+    roles: ['admin'],
   },
   {
     id: 'programs',
     label: 'البرامج التدريبية',
     icon: <BookOpen className="h-5 w-5" />,
-    roles: ['admin', 'supervisor', 'employee'],
-  },
-  {
-    id: 'my-registrations',
-    label: 'تسجيلاتي',
-    icon: <GraduationCap className="h-5 w-5" />,
-    roles: ['employee', 'supervisor', 'admin'],
+    roles: ['admin'],
   },
   {
     id: 'registrations',
-    label: 'إدارة التسجيلات',
+    label: 'طلبات الترشيح',
     icon: <ClipboardList className="h-5 w-5" />,
-    roles: ['admin', 'supervisor'],
+    roles: ['admin'],
   },
   {
     id: 'batches',
@@ -66,7 +60,7 @@ const navItems: NavItem[] = [
     id: 'reports',
     label: 'التقارير',
     icon: <BarChart3 className="h-5 w-5" />,
-    roles: ['admin', 'supervisor'],
+    roles: ['admin'],
   },
   {
     id: 'settings',

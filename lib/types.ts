@@ -43,13 +43,16 @@ export interface Registration {
   programTitle: string;
   batchId: string;
   batchName: string;
-  userId: string;
-  userName: string;
-  userDepartment: string;
+  visitorName: string;
+  employeeId: string;
+  department: string;
+  email: string;
+  phone?: string;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
   registeredAt: string;
   approvedBy?: string;
   approvedAt?: string;
+  notes?: string;
 }
 
 export interface DashboardStats {
