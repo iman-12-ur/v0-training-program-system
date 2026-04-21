@@ -1,0 +1,129 @@
+'use client';
+
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  User,
+  Users,
+  ChevronLeft,
+} from 'lucide-react';
+import type { TrainingProgram } from '@/lib/types';
+
+interface ProgramCardProps {
+  program: TrainingProgram;
+  onViewDetails: (program: TrainingProgram) => void;
+  onRegister?: (program: TrainingProgram) => void;
+}
+
+export function ProgramCard({ program, onViewDetails, onRegister }: ProgramCardProps) {
+  const upcomingBatches = program.batches.filter((b) => b.status === 'upcoming');
+  const hasAvailableSlots = upcomingBatches.some(
+    (b) => b.currentParticipants < b.maxParticipants
+  );
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'القيادة والإدارة':
+        return 'bg-blue-100 text-blue-700';
+      case 'إدارة المشاريع':
+        return 'bg-emerald-100 text-emerald-700';
+      case 'المهارات الشخصية':
+        return 'bg-violet-100 text-violet-700';
+      case 'تقنية المعلومات':
+        return 'bg-amber-100 text-amber-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  return (
+    <Card className="group flex flex-col overflow-hidden border-none shadow-sm transition-all hover:shadow-lg">
+      <CardHeader className="space-y-3 pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <Badge variant="secondary" className={getCategoryColor(program.category)}>
+            {program.category}
+          </Badge>
+          {program.status === 'active' && hasAvailableSlots && (
+            <Badge className="bg-emerald-500 hover:bg-emerald-600">متاح للتسجيل</Badge>
+          )}
+          {program.status === 'draft' && (
+            <Badge variant="outline" className="border-amber-500 text-amber-600">
+              مسودة
+            </Badge>
+          )}
+        </div>
+        <h3 className="text-xl font-bold text-foreground leading-tight">
+          {program.title}
+        </h3>
+      </CardHeader>
+
+      <CardContent className="flex-1 space-y-4 pb-4">
+        <p className="text-sm text-muted-foreground line-clamp-2">
+          {program.description}
+        </p>
+
+        <div className="grid gap-2 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>{program.duration}</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <User className="h-4 w-4" />
+            <span>{program.instructor}</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            <span>{program.location}</span>
+          </div>
+        </div>
+
+        {upcomingBatches.length > 0 && (
+          <div className="rounded-lg bg-muted/50 p-3">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">
+              الدفعات القادمة ({upcomingBatches.length})
+            </p>
+            <div className="space-y-2">
+              {upcomingBatches.slice(0, 2).map((batch) => (
+                <div
+                  key={batch.id}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-foreground">{batch.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" />
+                    <span>
+                      {batch.currentParticipants}/{batch.maxParticipants}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+
+      <CardFooter className="gap-2 border-t bg-muted/30 pt-4">
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={() => onViewDetails(program)}
+        >
+          التفاصيل
+          <ChevronLeft className="mr-1 h-4 w-4" />
+        </Button>
+        {onRegister && hasAvailableSlots && program.status === 'active' && (
+          <Button className="flex-1" onClick={() => onRegister(program)}>
+            تسجيل
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+}
