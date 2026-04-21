@@ -90,14 +90,48 @@ export function RegistrationsTable({
     return matchesSearch && matchesStatus && matchesProgram;
   });
 
-  // Get approved registrations for export
+  // Get approved registrations for export (filtered by selected program)
   const approvedRegistrations = filteredRegistrations.filter(
     (reg) => reg.status === 'approved'
   );
 
-  // Export to Excel
-  const handleExportExcel = () => {
-    const dataToExport = approvedRegistrations.map((reg) => ({
+  // Get approved registrations grouped by program for export
+  const approvedByProgram = registrations
+    .filter((reg) => reg.status === 'approved')
+    .reduce((acc, reg) => {
+      if (!acc[reg.programId]) {
+        acc[reg.programId] = {
+          programTitle: reg.programTitle,
+          registrations: [],
+        };
+      }
+      acc[reg.programId].registrations.push(reg);
+      return acc;
+    }, {} as Record<string, { programTitle: string; registrations: Registration[] }>);
+
+  // Export to Excel for selected program
+  const handleExportExcel = (programId?: string) => {
+    let dataToExport: Registration[];
+    let fileName: string;
+
+    if (programId && programId !== 'all') {
+      // Export for specific program
+      const programData = approvedByProgram[programId];
+      if (!programData || programData.registrations.length === 0) return;
+      
+      dataToExport = programData.registrations;
+      fileName = `المقبولين_${programData.programTitle}`;
+    } else if (programFilter !== 'all') {
+      // Export based on current filter
+      dataToExport = approvedRegistrations;
+      const programTitle = uniquePrograms.find(p => p.id === programFilter)?.title || '';
+      fileName = `المقبولين_${programTitle}`;
+    } else {
+      // Should not happen, but fallback
+      return;
+    }
+
+    const excelData = dataToExport.map((reg) => ({
       'الاسم': reg.visitorName,
       'الرقم الوظيفي': reg.employeeId,
       'القسم': reg.department,
@@ -109,13 +143,13 @@ export function RegistrationsTable({
       'تاريخ الموافقة': reg.approvedAt || '-',
     }));
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'المرشحين المقبولين');
     
     // Generate filename with date
     const date = new Date().toLocaleDateString('ar-SA').replace(/\//g, '-');
-    XLSX.writeFile(wb, `المرشحين_المقبولين_${date}.xlsx`);
+    XLSX.writeFile(wb, `${fileName}_${date}.xlsx`);
   };
 
   // Get unique programs for filter
@@ -131,16 +165,31 @@ export function RegistrationsTable({
       <CardHeader className="pb-4">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>التسجيلات</CardTitle>
-            {showActions && approvedRegistrations.length > 0 && (
-              <Button
-                variant="outline"
-                onClick={handleExportExcel}
-                className="gap-2"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                تصدير المقبولين ({approvedRegistrations.length})
-              </Button>
+            <CardTitle>طلبات الترشيح</CardTitle>
+            {showActions && Object.keys(approvedByProgram).length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    تصدير المقبولين حسب البرنامج
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  {Object.entries(approvedByProgram).map(([progId, data]) => (
+                    <DropdownMenuItem
+                      key={progId}
+                      onClick={() => handleExportExcel(progId)}
+                      className="flex justify-between"
+                    >
+                      <span className="truncate">{data.programTitle}</span>
+                      <Badge variant="secondary" className="mr-2">
+                        {data.registrations.length}
+                      </Badge>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
           
