@@ -10,8 +10,17 @@ import { ProgramDetailsModal } from '@/components/program-details-modal';
 import { PublicRegistrationModal } from '@/components/public-registration-modal';
 import { RegistrationsTable } from '@/components/registrations-table';
 import { AddProgramForm } from '@/components/add-program-form';
+import { EditProgramForm } from '@/components/edit-program-form';
 import { BatchesManager } from '@/components/batches-manager';
 import { ReportsView } from '@/components/reports-view';
+import { UsersManager } from '@/components/users-manager';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -39,7 +48,7 @@ import {
   mockStats,
   categories,
 } from '@/lib/mock-data';
-import type { TrainingProgram, Batch, Registration, User } from '@/lib/types';
+import type { TrainingProgram, Batch, Registration, User, AdminUser } from '@/lib/types';
 
 // Admin user
 const adminUser: User = {
@@ -67,6 +76,30 @@ export default function TrainingManagementSystem() {
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [isAddProgramOpen, setIsAddProgramOpen] = useState(false);
+  const [isEditProgramOpen, setIsEditProgramOpen] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<TrainingProgram | null>(null);
+  const [isDeleteProgramOpen, setIsDeleteProgramOpen] = useState(false);
+  const [deletingProgram, setDeletingProgram] = useState<TrainingProgram | null>(null);
+  
+  // Admin users state
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([
+    {
+      id: 'admin',
+      username: 'admin',
+      name: 'مدير النظام',
+      email: 'admin@company.com',
+      role: 'admin',
+      permissions: {
+        managePrograms: true,
+        manageBatches: true,
+        approveRegistrations: true,
+        viewReports: true,
+        manageUsers: true,
+      },
+      isActive: true,
+      createdAt: '2024-01-01',
+    },
+  ]);
 
   // Filter programs
   const filteredPrograms = programs.filter((program) => {
@@ -164,6 +197,39 @@ export default function TrainingManagementSystem() {
     setIsAddProgramOpen(false);
   };
 
+  const handleEditProgram = (program: TrainingProgram) => {
+    setEditingProgram(program);
+    setIsEditProgramOpen(true);
+  };
+
+  const handleUpdateProgram = (updatedProgram: TrainingProgram) => {
+    setPrograms((prev) =>
+      prev.map((p) => (p.id === updatedProgram.id ? updatedProgram : p))
+    );
+    setIsEditProgramOpen(false);
+    setEditingProgram(null);
+  };
+
+  const handleDeleteProgramClick = (program: TrainingProgram) => {
+    setDeletingProgram(program);
+    setIsDeleteProgramOpen(true);
+  };
+
+  const handleConfirmDeleteProgram = () => {
+    if (!deletingProgram) return;
+
+    setPrograms((prev) => prev.filter((p) => p.id !== deletingProgram.id));
+    setRegistrations((prev) =>
+      prev.filter((r) => r.programId !== deletingProgram.id)
+    );
+    setStats((prev) => ({
+      ...prev,
+      totalPrograms: prev.totalPrograms - 1,
+    }));
+    setIsDeleteProgramOpen(false);
+    setDeletingProgram(null);
+  };
+
   const handleAddBatch = (programId: string, batch: Omit<Batch, 'id'>) => {
     const newBatch: Batch = {
       ...batch,
@@ -254,6 +320,26 @@ export default function TrainingManagementSystem() {
   const handleLogout = () => {
     setViewMode('public');
     setActiveTab('dashboard');
+  };
+
+  // Admin users handlers
+  const handleAddAdminUser = (user: Omit<AdminUser, 'id' | 'createdAt'>) => {
+    const newUser: AdminUser = {
+      ...user,
+      id: `user-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+    setAdminUsers((prev) => [...prev, newUser]);
+  };
+
+  const handleUpdateAdminUser = (userId: string, updates: Partial<AdminUser>) => {
+    setAdminUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, ...updates } : u))
+    );
+  };
+
+  const handleDeleteAdminUser = (userId: string) => {
+    setAdminUsers((prev) => prev.filter((u) => u.id !== userId));
   };
 
   // Public view
@@ -472,6 +558,8 @@ export default function TrainingManagementSystem() {
                     program={program}
                     onViewDetails={handleViewDetails}
                     onRegister={() => handleRegister(program)}
+                    onEdit={handleEditProgram}
+                    onDelete={handleDeleteProgramClick}
                     isAdmin
                   />
                 ))}
@@ -526,19 +614,15 @@ export default function TrainingManagementSystem() {
             <div>
               <h2 className="text-2xl font-bold text-foreground">الإعدادات</h2>
               <p className="text-muted-foreground">
-                إدارة إعدادات النظام والتفضيلات
+                إدارة إعدادات النظام والمستخدمين والصلاحيات
               </p>
             </div>
-            <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle>إعدادات النظام</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  سيتم إضافة خيارات الإعدادات قريباً...
-                </p>
-              </CardContent>
-            </Card>
+            <UsersManager
+              users={adminUsers}
+              onAddUser={handleAddAdminUser}
+              onUpdateUser={handleUpdateAdminUser}
+              onDeleteUser={handleDeleteAdminUser}
+            />
           </div>
         );
 
@@ -592,6 +676,54 @@ export default function TrainingManagementSystem() {
         onClose={() => setIsAddProgramOpen(false)}
         onSubmit={handleAddProgram}
       />
+
+      <EditProgramForm
+        program={editingProgram}
+        isOpen={isEditProgramOpen}
+        onClose={() => {
+          setIsEditProgramOpen(false);
+          setEditingProgram(null);
+        }}
+        onSubmit={handleUpdateProgram}
+      />
+
+      {/* Delete Program Confirmation */}
+      <Dialog open={isDeleteProgramOpen} onOpenChange={setIsDeleteProgramOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تأكيد حذف البرنامج</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-muted-foreground">
+              هل أنت متأكد من حذف البرنامج{' '}
+              <span className="font-semibold text-foreground">
+                {deletingProgram?.title}
+              </span>
+              ؟
+            </p>
+            <p className="mt-2 text-sm text-red-600">
+              سيتم حذف جميع الدفعات والتسجيلات المرتبطة بهذا البرنامج. هذا الإجراء
+              لا يمكن التراجع عنه.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteProgramOpen(false);
+                setDeletingProgram(null);
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDeleteProgram}>
+              حذف البرنامج
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

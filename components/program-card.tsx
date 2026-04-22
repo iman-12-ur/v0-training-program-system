@@ -10,17 +10,28 @@ import {
   User,
   Users,
   ChevronLeft,
+  MoreVertical,
+  Edit,
+  Trash2,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { TrainingProgram } from '@/lib/types';
 
 interface ProgramCardProps {
   program: TrainingProgram;
   onViewDetails: (program: TrainingProgram) => void;
   onRegister?: (program: TrainingProgram) => void;
+  onEdit?: (program: TrainingProgram) => void;
+  onDelete?: (program: TrainingProgram) => void;
   isAdmin?: boolean;
 }
 
-export function ProgramCard({ program, onViewDetails, onRegister, isAdmin }: ProgramCardProps) {
+export function ProgramCard({ program, onViewDetails, onRegister, onEdit, onDelete, isAdmin }: ProgramCardProps) {
   const upcomingBatches = program.batches.filter((b) => b.status === 'upcoming');
   const hasAvailableSlots = upcomingBatches.some(
     (b) => b.currentParticipants < b.maxParticipants
@@ -45,16 +56,49 @@ export function ProgramCard({ program, onViewDetails, onRegister, isAdmin }: Pro
     <Card className="group flex flex-col overflow-hidden border-none shadow-sm transition-all hover:shadow-lg">
       <CardHeader className="space-y-3 pb-3">
         <div className="flex items-start justify-between gap-2">
-          <Badge variant="secondary" className={getCategoryColor(program.category)}>
-            {program.category}
-          </Badge>
-          {program.status === 'active' && hasAvailableSlots && (
-            <Badge className="bg-emerald-500 hover:bg-emerald-600">متاح للتسجيل</Badge>
-          )}
-          {program.status === 'draft' && (
-            <Badge variant="outline" className="border-amber-500 text-amber-600">
-              مسودة
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary" className={getCategoryColor(program.category)}>
+              {program.category}
             </Badge>
+            {program.status === 'active' && hasAvailableSlots && (
+              <Badge className="bg-emerald-500 hover:bg-emerald-600">متاح للتسجيل</Badge>
+            )}
+            {program.status === 'draft' && (
+              <Badge variant="outline" className="border-amber-500 text-amber-600">
+                مسودة
+              </Badge>
+            )}
+            {program.status === 'inactive' && (
+              <Badge variant="outline" className="border-red-500 text-red-600">
+                غير نشط
+              </Badge>
+            )}
+          </div>
+          {isAdmin && (onEdit || onDelete) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {onEdit && (
+                  <DropdownMenuItem onClick={() => onEdit(program)}>
+                    <Edit className="ml-2 h-4 w-4" />
+                    تعديل البرنامج
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <DropdownMenuItem
+                    className="text-red-600"
+                    onClick={() => onDelete(program)}
+                  >
+                    <Trash2 className="ml-2 h-4 w-4" />
+                    حذف البرنامج
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
         <h3 className="text-xl font-bold text-foreground leading-tight">

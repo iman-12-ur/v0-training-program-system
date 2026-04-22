@@ -63,3 +63,20 @@ export interface DashboardStats {
   completedTrainings: number;
   totalEmployees: number;
 }
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'supervisor';
+  permissions: {
+    managePrograms: boolean;
+    manageBatches: boolean;
+    approveRegistrations: boolean;
+    viewReports: boolean;
+    manageUsers: boolean;
+  };
+  isActive: boolean;
+  createdAt: string;
+}
