@@ -177,6 +177,39 @@ export default function TrainingManagementSystem() {
     );
   };
 
+  const handleUpdateBatch = (programId: string, batchId: string, updates: Partial<Batch>) => {
+    setPrograms((prev) =>
+      prev.map((p) =>
+        p.id === programId
+          ? {
+              ...p,
+              batches: p.batches.map((b) =>
+                b.id === batchId ? { ...b, ...updates } : b
+              ),
+            }
+          : p
+      )
+    );
+  };
+
+  const handleDeleteBatch = (programId: string, batchId: string) => {
+    setPrograms((prev) =>
+      prev.map((p) =>
+        p.id === programId
+          ? {
+              ...p,
+              batches: p.batches.filter((b) => b.id !== batchId),
+            }
+          : p
+      )
+    );
+
+    // Also remove registrations for this batch
+    setRegistrations((prev) =>
+      prev.filter((r) => !(r.programId === programId && r.batchId === batchId))
+    );
+  };
+
   const handleUpdateBatchStatus = (
     programId: string,
     batchId: string,
@@ -472,6 +505,8 @@ export default function TrainingManagementSystem() {
           <BatchesManager
             programs={programs}
             onAddBatch={handleAddBatch}
+            onUpdateBatch={handleUpdateBatch}
+            onDeleteBatch={handleDeleteBatch}
             onUpdateBatchStatus={handleUpdateBatchStatus}
           />
         );

@@ -49,6 +49,8 @@ import type { TrainingProgram, Batch } from '@/lib/types';
 interface BatchesManagerProps {
   programs: TrainingProgram[];
   onAddBatch: (programId: string, batch: Omit<Batch, 'id'>) => void;
+  onUpdateBatch: (programId: string, batchId: string, batch: Partial<Batch>) => void;
+  onDeleteBatch: (programId: string, batchId: string) => void;
   onUpdateBatchStatus: (
     programId: string,
     batchId: string,
@@ -59,10 +61,16 @@ interface BatchesManagerProps {
 export function BatchesManager({
   programs,
   onAddBatch,
+  onUpdateBatch,
+  onDeleteBatch,
   onUpdateBatchStatus,
 }: BatchesManagerProps) {
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
+  const [deletingBatch, setDeletingBatch] = useState<Batch | null>(null);
   const [newBatch, setNewBatch] = useState({
     name: '',
     startDate: '',
@@ -98,6 +106,38 @@ export function BatchesManager({
       endDate: '',
       maxParticipants: 20,
     });
+  };
+
+  const handleEditBatch = (batch: Batch) => {
+    setEditingBatch(batch);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingBatch || !selectedProgram) return;
+    
+    onUpdateBatch(selectedProgram, editingBatch.id, {
+      name: editingBatch.name,
+      startDate: editingBatch.startDate,
+      endDate: editingBatch.endDate,
+      maxParticipants: editingBatch.maxParticipants,
+    });
+    
+    setIsEditModalOpen(false);
+    setEditingBatch(null);
+  };
+
+  const handleDeleteBatch = (batch: Batch) => {
+    setDeletingBatch(batch);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingBatch || !selectedProgram) return;
+    
+    onDeleteBatch(selectedProgram, deletingBatch.id);
+    setIsDeleteDialogOpen(false);
+    setDeletingBatch(null);
   };
 
   const getBatchStatusBadge = (status: Batch['status']) => {
@@ -243,11 +283,14 @@ export function BatchesManager({
                                   إنهاء الدفعة
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditBatch(batch)}>
                                 <Edit className="ml-2 h-4 w-4" />
                                 تعديل
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem 
+                                className="text-red-600"
+                                onClick={() => handleDeleteBatch(batch)}
+                              >
                                 <Trash2 className="ml-2 h-4 w-4" />
                                 حذف
                               </DropdownMenuItem>
@@ -356,6 +399,129 @@ export function BatchesManager({
               }
             >
               إضافة الدفعة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Batch Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تعديل الدفعة</DialogTitle>
+          </DialogHeader>
+
+          {editingBatch && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-batch-name">اسم الدفعة</Label>
+                <Input
+                  id="edit-batch-name"
+                  value={editingBatch.name}
+                  onChange={(e) =>
+                    setEditingBatch((prev) =>
+                      prev ? { ...prev, name: e.target.value } : null
+                    )
+                  }
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-start-date">تاريخ البدء</Label>
+                  <Input
+                    id="edit-start-date"
+                    type="date"
+                    value={editingBatch.startDate}
+                    onChange={(e) =>
+                      setEditingBatch((prev) =>
+                        prev ? { ...prev, startDate: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-end-date">تاريخ الانتهاء</Label>
+                  <Input
+                    id="edit-end-date"
+                    type="date"
+                    value={editingBatch.endDate}
+                    onChange={(e) =>
+                      setEditingBatch((prev) =>
+                        prev ? { ...prev, endDate: e.target.value } : null
+                      )
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-max-participants">الحد الأقصى للمشاركين</Label>
+                <Input
+                  id="edit-max-participants"
+                  type="number"
+                  min="1"
+                  value={editingBatch.maxParticipants}
+                  onChange={(e) =>
+                    setEditingBatch((prev) =>
+                      prev
+                        ? { ...prev, maxParticipants: parseInt(e.target.value) || 20 }
+                        : null
+                    )
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsEditModalOpen(false);
+                setEditingBatch(null);
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button onClick={handleSaveEdit}>حفظ التغييرات</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تأكيد الحذف</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-muted-foreground">
+              هل أنت متأكد من حذف الدفعة{' '}
+              <span className="font-semibold text-foreground">
+                {deletingBatch?.name}
+              </span>
+              ؟
+            </p>
+            <p className="mt-2 text-sm text-red-600">
+              سيتم حذف جميع التسجيلات المرتبطة بهذه الدفعة. هذا الإجراء لا يمكن
+              التراجع عنه.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setDeletingBatch(null);
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              حذف الدفعة
             </Button>
           </DialogFooter>
         </DialogContent>
