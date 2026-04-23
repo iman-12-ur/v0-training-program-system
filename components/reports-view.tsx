@@ -33,12 +33,15 @@ interface ReportsViewProps {
 export function ReportsView({ programs, registrations, stats }: ReportsViewProps) {
   // Calculate data for charts
   const categoryData = programs.reduce((acc, program) => {
-    const existing = acc.find((item) => item.name === program.category);
-    if (existing) {
-      existing.count++;
-    } else {
-      acc.push({ name: program.category, count: 1 });
-    }
+    const categories = program.categories || [];
+    categories.forEach((category) => {
+      const existing = acc.find((item) => item.name === category);
+      if (existing) {
+        existing.count++;
+      } else {
+        acc.push({ name: category, count: 1 });
+      }
+    });
     return acc;
   }, [] as { name: string; count: number }[]);
 
@@ -155,24 +158,26 @@ export function ReportsView({ programs, registrations, stats }: ReportsViewProps
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={programRegistrations} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" />
+                  <XAxis type="number" reversed />
                   <YAxis
                     dataKey="name"
                     type="category"
                     width={100}
                     tick={{ fontSize: 12 }}
+                    orientation="right"
                   />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
+                      direction: 'rtl',
                     }}
                   />
                   <Bar
                     dataKey="registrations"
                     fill="#3b82f6"
-                    radius={[0, 4, 4, 0]}
+                    radius={[4, 0, 0, 4]}
                     name="التسجيلات"
                   />
                 </BarChart>
@@ -218,6 +223,7 @@ export function ReportsView({ programs, registrations, stats }: ReportsViewProps
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
+                      direction: 'rtl',
                     }}
                   />
                 </PieChart>

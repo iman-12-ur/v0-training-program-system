@@ -122,4 +122,61 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* RTL Support */
+  html[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+  }
+  
+  html[dir="rtl"] input,
+  html[dir="rtl"] textarea {
+    text-align: right;
+  }
+  
+  html[dir="rtl"] input[type="email"],
+  html[dir="rtl"] input[type="tel"],
+  html[dir="rtl"] input[type="number"] {
+    direction: ltr;
+    text-align: right;
+  }
+  
+  /* Fix icon positions for RTL */
+  html[dir="rtl"] .lucide {
+    transform: scaleX(1);
+  }
+  
+  /* Flip directional icons */
+  html[dir="rtl"] .lucide-chevron-left,
+  html[dir="rtl"] .lucide-chevron-right,
+  html[dir="rtl"] .lucide-arrow-left,
+  html[dir="rtl"] .lucide-arrow-right {
+    transform: scaleX(-1);
+  }
+  
+  /* Fix select and dropdown alignments */
+  html[dir="rtl"] [data-radix-popper-content-wrapper] {
+    direction: rtl;
+  }
+  
+  /* Tables RTL */
+  html[dir="rtl"] table {
+    direction: rtl;
+  }
+  
+  html[dir="rtl"] th,
+  html[dir="rtl"] td {
+    text-align: right;
+  }
+  
+  /* Dialog RTL */
+  html[dir="rtl"] [role="dialog"] {
+    direction: rtl;
+  }
+  
+  /* Sidebar RTL adjustments */
+  html[dir="rtl"] .sidebar {
+    border-left: 1px solid var(--border);
+    border-right: none;
+  }
 }
