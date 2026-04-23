@@ -77,18 +77,25 @@ export function RegistrationsTable({
     }
   };
 
-  const filteredRegistrations = registrations.filter((reg) => {
-    const matchesSearch =
-      reg.visitorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reg.programTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reg.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reg.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' || reg.status === statusFilter;
-    const matchesProgram =
-      programFilter === 'all' || reg.programId === programFilter;
-    return matchesSearch && matchesStatus && matchesProgram;
-  });
+  const filteredRegistrations = registrations
+    .filter((reg) => {
+      const matchesSearch =
+        reg.visitorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        reg.programTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        reg.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        reg.email.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === 'all' || reg.status === statusFilter;
+      const matchesProgram =
+        programFilter === 'all' || reg.programId === programFilter;
+      return matchesSearch && matchesStatus && matchesProgram;
+    })
+    .sort((a, b) => {
+      // Sort by registration date descending (newest first)
+      const dateA = new Date(a.registeredAt).getTime();
+      const dateB = new Date(b.registeredAt).getTime();
+      return dateB - dateA;
+    });
 
   // Get approved registrations for export (filtered by selected program)
   const approvedRegistrations = filteredRegistrations.filter(
