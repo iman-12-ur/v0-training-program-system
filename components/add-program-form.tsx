@@ -22,7 +22,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Image as ImageIcon } from 'lucide-react';
 import { categories, programTypes } from '@/lib/mock-data';
 
 interface AddProgramFormProps {
@@ -96,47 +96,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
     });
   };
 
-  const addObjective = () => {
-    setFormData((prev) => ({
-      ...prev,
-      objectives: [...prev.objectives, ''],
-    }));
-  };
-
-  const removeObjective = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      objectives: prev.objectives.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updateObjective = (index: number, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      objectives: prev.objectives.map((o, i) => (i === index ? value : o)),
-    }));
-  };
-
-  const addPrerequisite = () => {
-    setFormData((prev) => ({
-      ...prev,
-      prerequisites: [...prev.prerequisites, ''],
-    }));
-  };
-
-  const removePrerequisite = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      prerequisites: prev.prerequisites.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updatePrerequisite = (index: number, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      prerequisites: prev.prerequisites.map((p, i) => (i === index ? value : p)),
-    }));
-  };
+  
 
   const isValid =
     formData.title &&
@@ -146,7 +106,24 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
     formData.instructor &&
     formData.location;
 
-  const availableCategories = categories.filter((c) => c !== 'الكل');
+  const [availableCategories, setAvailableCategories] = useState(
+    categories.filter((c) => c !== 'الكل')
+  );
+  const [newCategory, setNewCategory] = useState('');
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+
+  const handleAddNewCategory = () => {
+    if (newCategory.trim() && !availableCategories.includes(newCategory.trim())) {
+      const categoryToAdd = newCategory.trim();
+      setAvailableCategories((prev) => [...prev, categoryToAdd]);
+      setFormData((prev) => ({
+        ...prev,
+        selectedCategories: [...prev.selectedCategories, categoryToAdd],
+      }));
+      setNewCategory('');
+      setShowNewCategoryInput(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -158,7 +135,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
         <ScrollArea className="max-h-[60vh]">
           <div className="space-y-6 p-6">
             {/* Basic Info */}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2" style={{ direction: 'rtl' }}>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="title">عنوان البرنامج *</Label>
                 <Input
@@ -189,42 +166,126 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
 
               {/* Categories Selection */}
               <div className="space-y-3 sm:col-span-2">
-                <Label>التصنيفات * (يمكن اختيار أكثر من تصنيف)</Label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center justify-between">
+                  <Label>التصنيفات * (يمكن اختيار أكثر من تصنيف)</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowNewCategoryInput(true)}
+                    className="gap-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    إضافة تصنيف جديد
+                  </Button>
+                </div>
+                
+                {showNewCategoryInput && (
+                  <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+                    <Input
+                      placeholder="اسم التصنيف الجديد"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddNewCategory();
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleAddNewCategory}
+                      disabled={!newCategory.trim()}
+                    >
+                      إضافة
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setShowNewCategoryInput(false);
+                        setNewCategory('');
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                
+                <div className="flex flex-wrap gap-2 flex-row-reverse justify-end">
                   {availableCategories.map((cat) => (
                     <div
                       key={cat}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                      className={`flex flex-row-reverse items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
                         formData.selectedCategories.includes(cat)
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border hover:border-primary/50'
                       }`}
                       onClick={() => handleCategoryToggle(cat)}
                     >
+                      <span className="text-sm">{cat}</span>
                       <Checkbox
                         checked={formData.selectedCategories.includes(cat)}
                         onCheckedChange={() => handleCategoryToggle(cat)}
                       />
-                      <span className="text-sm">{cat}</span>
                     </div>
                   ))}
                 </div>
                 {formData.selectedCategories.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <div className="flex flex-wrap flex-row-reverse justify-end gap-1 mt-2">
                     {formData.selectedCategories.map((cat) => (
-                      <Badge key={cat} variant="secondary" className="gap-1">
+                      <Badge key={cat} variant="secondary" className="gap-1 flex-row-reverse pr-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCategoryToggle(cat);
+                          }}
+                          className="rounded-full p-0.5 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                         {cat}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() => handleCategoryToggle(cat)}
-                        />
                       </Badge>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Program Type */}
+              {/* Target Audience */}
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="targetAudience">الفئة المستهدفة</Label>
+                <Textarea
+                  id="targetAudience"
+                  placeholder="مثال: المشرفين والمدراء، رؤساء الأقسام، الموظفين الجدد..."
+                  value={formData.targetAudience}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, targetAudience: e.target.value }))
+                  }
+                  rows={2}
+                />
+              </div>
+
+              {/* Row 1: Program Type and Instructor */}
+              <div className="space-y-2">
+                <Label htmlFor="instructor">المدرب *</Label>
+                <Input
+                  id="instructor"
+                  placeholder="اسم المدرب"
+                  value={formData.instructor}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      instructor: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="programType">نوع البرنامج</Label>
                 <Select
@@ -246,19 +307,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                 </Select>
               </div>
 
-              {/* Target Audience */}
-              <div className="space-y-2">
-                <Label htmlFor="targetAudience">الفئة المستهدفة</Label>
-                <Input
-                  id="targetAudience"
-                  placeholder="مثال: المشرفين والمدراء"
-                  value={formData.targetAudience}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, targetAudience: e.target.value }))
-                  }
-                />
-              </div>
-
+              {/* Row 2: Duration and Location */}
               <div className="space-y-2">
                 <Label htmlFor="duration">المدة *</Label>
                 <Input
@@ -271,26 +320,12 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="instructor">المدرب *</Label>
-                <Input
-                  id="instructor"
-                  placeholder="اسم المدرب"
-                  value={formData.instructor}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      instructor: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
+              {/* Location */}
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="location">الموقع *</Label>
                 <Input
                   id="location"
-                  placeholder="مثال: قاعة التدريب الرئيسية"
+                  placeholder="مثال: قاعة التدريب الرئيسية أو رابط الاجتماع"
                   value={formData.location}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, location: e.target.value }))
@@ -339,87 +374,59 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
             </div>
 
             {/* Objectives */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>أهداف البرنامج</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addObjective}
-                >
-                  <Plus className="ml-1 h-4 w-4" />
-                  إضافة هدف
-                </Button>
-              </div>
-              <div className="space-y-2">
-                {formData.objectives.map((obj, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      placeholder={`الهدف ${index + 1}`}
-                      value={obj}
-                      onChange={(e) => updateObjective(index, e.target.value)}
-                    />
-                    {formData.objectives.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeObjective(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-3" style={{ direction: 'rtl' }}>
+              <Label htmlFor="objectives">أهداف البرنامج</Label>
+              <Textarea
+                id="objectives"
+                placeholder="اكتب أهداف البرنامج (كل هدف في سطر جديد)
+مثال:
+- فهم أساسيات القيادة الفعالة
+- تطوير مهارات التواصل
+- بناء فرق عمل متماسك��"
+                value={formData.objectives.join('\n')}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    objectives: e.target.value.split('\n'),
+                  }))
+                }
+                rows={4}
+                className="text-right"
+                style={{ direction: 'rtl' }}
+              />
             </div>
 
             {/* Prerequisites */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>المتطلبات المسبقة</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addPrerequisite}
-                >
-                  <Plus className="ml-1 h-4 w-4" />
-                  إضافة متطلب
-                </Button>
-              </div>
-              <div className="space-y-2">
-                {formData.prerequisites.map((prereq, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      placeholder={`المتطلب ${index + 1}`}
-                      value={prereq}
-                      onChange={(e) => updatePrerequisite(index, e.target.value)}
-                    />
-                    {formData.prerequisites.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removePrerequisite(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-3" style={{ direction: 'rtl' }}>
+              <Label htmlFor="prerequisites">المتطلبات المسبقة</Label>
+              <Textarea
+                id="prerequisites"
+                placeholder="اكتب المتطلبات المسبقة (كل متطلب في سطر جديد)
+مثال:
+- خبرة لا تقل عن سنتين
+- موافقة المدير المباشر
+- إتمام الدورة التأسيسية"
+                value={formData.prerequisites.join('\n')}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    prerequisites: e.target.value.split('\n'),
+                  }))
+                }
+                rows={4}
+                className="text-right"
+                style={{ direction: 'rtl' }}
+              />
             </div>
           </div>
         </ScrollArea>
 
-        <DialogFooter className="border-t p-6 pt-4">
-          <Button variant="outline" onClick={onClose}>
-            إلغاء
-          </Button>
+        <DialogFooter className="border-t p-6 pt-4 flex-row-reverse gap-2">
           <Button onClick={handleSubmit} disabled={!isValid || isSubmitting}>
             {isSubmitting ? 'جاري الحفظ...' : 'حفظ البرنامج'}
+          </Button>
+          <Button variant="outline" onClick={onClose}>
+            إلغاء
           </Button>
         </DialogFooter>
       </DialogContent>

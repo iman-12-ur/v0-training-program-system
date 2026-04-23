@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Users, CheckCircle2, User, Building2, Mail, Phone, BadgeCheck, AlertTriangle } from 'lucide-react';
-import { departments, courts } from '@/lib/mock-data';
+
 import type { TrainingProgram, Batch, Registration } from '@/lib/types';
 
 interface PublicRegistrationModalProps {
@@ -96,16 +96,19 @@ export function PublicRegistrationModal({
     if (!formData.employeeId.trim()) {
       newErrors.employeeId = 'الرقم الوظيفي مطلوب';
     }
-    if (!formData.court) {
+    if (!formData.court.trim()) {
       newErrors.court = 'الدائرة/المحكمة مطلوبة';
     }
-    if (!formData.department) {
+    if (!formData.department.trim()) {
       newErrors.department = 'القسم مطلوب';
     }
     if (!formData.email.trim()) {
       newErrors.email = 'البريد الإلكتروني مطلوب';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'البريد الإلكتروني غير صحيح';
+    }
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'رقم الجوال مطلوب';
     }
     if (!batchId) {
       newErrors.batchId = 'يرجى اختيار الدفعة';
@@ -343,48 +346,34 @@ export function PublicRegistrationModal({
               </div>
             </div>
 
-            {/* Court Selection */}
+            {/* Court Input */}
             <div className="space-y-2">
               <Label htmlFor="court">الدائرة / المحكمة *</Label>
-              <Select
-                value={formData.court}
-                onValueChange={(value) => setFormData({ ...formData, court: value })}
-              >
-                <SelectTrigger id="court" className={errors.court ? 'border-destructive' : ''}>
-                  <Building2 className="ml-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="اختر الدائرة / المحكمة" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courts.map((court) => (
-                    <SelectItem key={court} value={court}>
-                      {court}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Building2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="court"
+                  placeholder="أدخل اسم الدائرة أو المحكمة"
+                  value={formData.court}
+                  onChange={(e) => setFormData({ ...formData, court: e.target.value })}
+                  className={`pr-9 ${errors.court ? 'border-destructive' : ''}`}
+                />
+              </div>
               {errors.court && (
                 <p className="text-xs text-destructive">{errors.court}</p>
               )}
             </div>
 
-            {/* Department Selection */}
+            {/* Department Input */}
             <div className="space-y-2">
-              <Label htmlFor="department">القسم / الإدارة *</Label>
-              <Select
+              <Label htmlFor="department">القسم *</Label>
+              <Input
+                id="department"
+                placeholder="أدخل اسم القسم"
                 value={formData.department}
-                onValueChange={(value) => setFormData({ ...formData, department: value })}
-              >
-                <SelectTrigger id="department" className={errors.department ? 'border-destructive' : ''}>
-                  <SelectValue placeholder="اختر القسم" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className={errors.department ? 'border-destructive' : ''}
+              />
               {errors.department && (
                 <p className="text-xs text-destructive">{errors.department}</p>
               )}
@@ -410,7 +399,7 @@ export function PublicRegistrationModal({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">رقم الجوال (اختياري)</Label>
+                <Label htmlFor="phone">رقم الجوال *</Label>
                 <div className="relative">
                   <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -419,9 +408,12 @@ export function PublicRegistrationModal({
                     placeholder="05xxxxxxxx"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="pr-9"
+                    className={`pr-9 ${errors.phone ? 'border-destructive' : ''}`}
                   />
                 </div>
+                {errors.phone && (
+                  <p className="text-xs text-destructive">{errors.phone}</p>
+                )}
               </div>
             </div>
           </div>

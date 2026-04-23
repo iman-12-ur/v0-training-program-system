@@ -342,6 +342,29 @@ export default function TrainingManagementSystem() {
     setAdminUsers((prev) => prev.filter((u) => u.id !== userId));
   };
 
+  const handleDeleteRegistration = (regId: string) => {
+    setRegistrations((prev) => prev.filter((r) => r.id !== regId));
+    setStats((prev) => ({
+      ...prev,
+      totalRegistrations: prev.totalRegistrations - 1,
+      pendingApprovals: prev.pendingApprovals > 0 ? prev.pendingApprovals - 1 : 0,
+    }));
+  };
+
+  const handleToggleProgramStatus = (program: TrainingProgram) => {
+    const newStatus = program.status === 'active' ? 'inactive' : 'active';
+    setPrograms((prev) =>
+      prev.map((p) =>
+        p.id === program.id ? { ...p, status: newStatus } : p
+      )
+    );
+  };
+
+  const handleAddBatchFromCard = (program: TrainingProgram) => {
+    setActiveTab('batches');
+    // The batches manager will handle showing the add form
+  };
+
   // Public view
   if (viewMode === 'public') {
     return (
@@ -481,6 +504,7 @@ export default function TrainingManagementSystem() {
                 programs={programs}
                 onApprove={handleApproveRegistration}
                 onReject={handleRejectRegistration}
+                onDelete={handleDeleteRegistration}
               />
             </div>
           </div>
@@ -562,6 +586,8 @@ export default function TrainingManagementSystem() {
                     onRegister={() => handleRegister(program)}
                     onEdit={handleEditProgram}
                     onDelete={handleDeleteProgramClick}
+                    onToggleStatus={handleToggleProgramStatus}
+                    onAddBatch={handleAddBatchFromCard}
                     isAdmin
                   />
                 ))}
@@ -586,6 +612,7 @@ export default function TrainingManagementSystem() {
               programs={programs}
               onApprove={handleApproveRegistration}
               onReject={handleRejectRegistration}
+              onDelete={handleDeleteRegistration}
             />
           </div>
         );
@@ -705,7 +732,7 @@ export default function TrainingManagementSystem() {
               ؟
             </p>
             <p className="mt-2 text-sm text-red-600">
-              سيتم حذف جميع الدفعات والتسجيلات المرتبطة بهذا البرنامج. هذا الإجراء
+              سيتم حذف جميع الدفعات والت��جيلات المرتبطة بهذا البرنامج. هذا الإجراء
               لا يمكن التراجع عنه.
             </p>
           </div>

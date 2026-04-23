@@ -37,6 +37,7 @@ import {
   FileSpreadsheet,
   Mail,
   Phone,
+  Trash2,
 } from 'lucide-react';
 import type { Registration, TrainingProgram } from '@/lib/types';
 import * as XLSX from 'xlsx';
@@ -46,6 +47,7 @@ interface RegistrationsTableProps {
   programs?: TrainingProgram[];
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
+  onDelete?: (id: string) => void;
   showActions?: boolean;
 }
 
@@ -54,6 +56,7 @@ export function RegistrationsTable({
   programs = [],
   onApprove,
   onReject,
+  onDelete,
   showActions = true,
 }: RegistrationsTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,18 +80,25 @@ export function RegistrationsTable({
     }
   };
 
-  const filteredRegistrations = registrations.filter((reg) => {
-    const matchesSearch =
-      reg.visitorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reg.programTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reg.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reg.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' || reg.status === statusFilter;
-    const matchesProgram =
-      programFilter === 'all' || reg.programId === programFilter;
-    return matchesSearch && matchesStatus && matchesProgram;
-  });
+  const filteredRegistrations = registrations
+    .filter((reg) => {
+      const matchesSearch =
+        reg.visitorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        reg.programTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        reg.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        reg.email.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === 'all' || reg.status === statusFilter;
+      const matchesProgram =
+        programFilter === 'all' || reg.programId === programFilter;
+      return matchesSearch && matchesStatus && matchesProgram;
+    })
+    .sort((a, b) => {
+      // Sort by registration date descending (newest first)
+      const dateA = new Date(a.registeredAt).getTime();
+      const dateB = new Date(b.registeredAt).getTime();
+      return dateB - dateA;
+    });
 
   // Get approved registrations for export (filtered by selected program)
   const approvedRegistrations = filteredRegistrations.filter(
@@ -326,6 +336,22 @@ export function RegistrationsTable({
                             >
                               <XCircle className="h-4 w-4" />
                             </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => onDelete?.(reg.id)}
+                                >
+                                  <Trash2 className="ml-2 h-4 w-4" />
+                                  حذف
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         ) : (
                           <DropdownMenu>
@@ -342,6 +368,13 @@ export function RegistrationsTable({
                               <DropdownMenuItem>
                                 <Mail className="ml-2 h-4 w-4" />
                                 إرسال بريد
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => onDelete?.(reg.id)}
+                              >
+                                <Trash2 className="ml-2 h-4 w-4" />
+                                حذف
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
