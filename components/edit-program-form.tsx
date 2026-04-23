@@ -181,7 +181,27 @@ export function EditProgramForm({
               )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2" style={{ direction: 'rtl' }}>
+              {/* Status */}
+              <div className="space-y-2">
+                <Label>حالة البرنامج</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: TrainingProgram['status']) =>
+                    setFormData((prev) => ({ ...prev, status: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">نشط</SelectItem>
+                    <SelectItem value="inactive">غير نشط</SelectItem>
+                    <SelectItem value="draft">مسودة</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Program Type */}
               <div className="space-y-2">
                 <Label>نوع البرنامج</Label>
@@ -203,26 +223,6 @@ export function EditProgramForm({
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Status */}
-              <div className="space-y-2">
-                <Label>حالة البرنامج</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: TrainingProgram['status']) =>
-                    setFormData((prev) => ({ ...prev, status: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">نشط</SelectItem>
-                    <SelectItem value="inactive">غير نشط</SelectItem>
-                    <SelectItem value="draft">مسودة</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             {/* Target Audience */}
@@ -238,7 +238,18 @@ export function EditProgramForm({
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2" style={{ direction: 'rtl' }}>
+              <div className="space-y-2">
+                <Label htmlFor="edit-instructor">المدرب</Label>
+                <Input
+                  id="edit-instructor"
+                  value={formData.instructor}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, instructor: e.target.value }))
+                  }
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="edit-duration">المدة</Label>
                 <Input
@@ -248,17 +259,6 @@ export function EditProgramForm({
                     setFormData((prev) => ({ ...prev, duration: e.target.value }))
                   }
                   placeholder="مثال: 16 ساعة"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-instructor">المدرب</Label>
-                <Input
-                  id="edit-instructor"
-                  value={formData.instructor}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, instructor: e.target.value }))
-                  }
                 />
               </div>
             </div>

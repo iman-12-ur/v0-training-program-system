@@ -158,7 +158,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
         <ScrollArea className="max-h-[60vh]">
           <div className="space-y-6 p-6">
             {/* Basic Info */}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2" style={{ direction: 'rtl' }}>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="title">عنوان البرنامج *</Label>
                 <Input
@@ -224,6 +224,19 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                 )}
               </div>
 
+              {/* Target Audience */}
+              <div className="space-y-2">
+                <Label htmlFor="targetAudience">الفئة المستهدفة</Label>
+                <Input
+                  id="targetAudience"
+                  placeholder="مثال: المشرفين والمدراء"
+                  value={formData.targetAudience}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, targetAudience: e.target.value }))
+                  }
+                />
+              </div>
+
               {/* Program Type */}
               <div className="space-y-2">
                 <Label htmlFor="programType">نوع البرنامج</Label>
@@ -246,15 +259,17 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                 </Select>
               </div>
 
-              {/* Target Audience */}
               <div className="space-y-2">
-                <Label htmlFor="targetAudience">الفئة المستهدفة</Label>
+                <Label htmlFor="instructor">المدرب *</Label>
                 <Input
-                  id="targetAudience"
-                  placeholder="مثال: المشرفين والمدراء"
-                  value={formData.targetAudience}
+                  id="instructor"
+                  placeholder="اسم المدرب"
+                  value={formData.instructor}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, targetAudience: e.target.value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      instructor: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -267,21 +282,6 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                   value={formData.duration}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, duration: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="instructor">المدرب *</Label>
-                <Input
-                  id="instructor"
-                  placeholder="اسم المدرب"
-                  value={formData.instructor}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      instructor: e.target.value,
-                    }))
                   }
                 />
               </div>
