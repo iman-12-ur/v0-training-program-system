@@ -28,6 +28,7 @@ export interface TrainingProgram {
   categories: string[];
   programType?: string;
   targetAudience?: string;
+  deliveryMode: 'in-person' | 'online' | 'hybrid';
   duration: string;
   instructor: string;
   location: string;

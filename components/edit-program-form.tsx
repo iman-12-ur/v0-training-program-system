@@ -45,6 +45,7 @@ export function EditProgramForm({
     selectedCategories: [] as string[],
     programType: '',
     targetAudience: '',
+    deliveryMode: 'in-person' as TrainingProgram['deliveryMode'],
     duration: '',
     instructor: '',
     location: '',
@@ -60,6 +61,7 @@ export function EditProgramForm({
         selectedCategories: program.categories || [],
         programType: program.programType || '',
         targetAudience: program.targetAudience || '',
+        deliveryMode: program.deliveryMode || 'in-person',
         duration: program.duration,
         instructor: program.instructor,
         location: program.location,
@@ -99,6 +101,7 @@ export function EditProgramForm({
       categories: formData.selectedCategories,
       programType: formData.programType,
       targetAudience: formData.targetAudience,
+      deliveryMode: formData.deliveryMode,
       duration: formData.duration,
       instructor: formData.instructor,
       location: formData.location,
@@ -295,6 +298,26 @@ export function EditProgramForm({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Delivery Mode */}
+            <div className="space-y-2">
+              <Label>طريقة التقديم</Label>
+              <Select
+                value={formData.deliveryMode}
+                onValueChange={(value: TrainingProgram['deliveryMode']) =>
+                  setFormData((prev) => ({ ...prev, deliveryMode: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر طريقة التقديم" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in-person">حضوري</SelectItem>
+                  <SelectItem value="online">عن بُعد</SelectItem>
+                  <SelectItem value="hybrid">مدمج (حضوري وعن بُعد)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Target Audience */}
