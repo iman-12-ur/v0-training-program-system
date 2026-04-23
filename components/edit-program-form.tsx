@@ -19,7 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { categories } from '@/lib/mock-data';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { X, Image as ImageIcon } from 'lucide-react';
+import { categories, programTypes } from '@/lib/mock-data';
 import type { TrainingProgram } from '@/lib/types';
 
 interface EditProgramFormProps {
@@ -38,10 +42,13 @@ export function EditProgramForm({
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
+    selectedCategories: [] as string[],
+    programType: '',
+    targetAudience: '',
     duration: '',
     instructor: '',
     location: '',
+    logo: '',
     status: 'active' as TrainingProgram['status'],
   });
 
@@ -50,14 +57,37 @@ export function EditProgramForm({
       setFormData({
         title: program.title,
         description: program.description,
-        category: program.category,
+        selectedCategories: program.categories || [],
+        programType: program.programType || '',
+        targetAudience: program.targetAudience || '',
         duration: program.duration,
         instructor: program.instructor,
         location: program.location,
+        logo: program.logo || '',
         status: program.status,
       });
     }
   }, [program]);
+
+  const handleCategoryToggle = (category: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedCategories: prev.selectedCategories.includes(category)
+        ? prev.selectedCategories.filter((c) => c !== category)
+        : [...prev.selectedCategories, category],
+    }));
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, logo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = () => {
     if (!program) return;
@@ -66,10 +96,13 @@ export function EditProgramForm({
       ...program,
       title: formData.title,
       description: formData.description,
-      category: formData.category,
+      categories: formData.selectedCategories,
+      programType: formData.programType,
+      targetAudience: formData.targetAudience,
       duration: formData.duration,
       instructor: formData.instructor,
       location: formData.location,
+      logo: formData.logo,
       status: formData.status,
     };
 
@@ -77,125 +110,218 @@ export function EditProgramForm({
     onClose();
   };
 
-  const programCategories = categories.filter((c) => c !== 'الكل');
+  const availableCategories = categories.filter((c) => c !== 'الكل');
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0">
+        <DialogHeader className="border-b p-6 pb-4">
           <DialogTitle>تعديل البرنامج التدريبي</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-title">اسم البرنامج</Label>
-            <Input
-              id="edit-title"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, title: e.target.value }))
-              }
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-description">وصف البرنامج</Label>
-            <Textarea
-              id="edit-description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, description: e.target.value }))
-              }
-              rows={3}
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
+        <ScrollArea className="max-h-[60vh]">
+          <div className="space-y-6 p-6">
             <div className="space-y-2">
-              <Label>التصنيف</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, category: value }))
+              <Label htmlFor="edit-title">اسم البرنامج</Label>
+              <Input
+                id="edit-title"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, title: e.target.value }))
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر التصنيف" />
-                </SelectTrigger>
-                <SelectContent>
-                  {programCategories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">وصف البرنامج</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, description: e.target.value }))
+                }
+                rows={3}
+              />
+            </div>
+
+            {/* Categories Selection */}
+            <div className="space-y-3">
+              <Label>التصنيفات (يمكن اختيار أكثر من تصنيف)</Label>
+              <div className="flex flex-wrap gap-2">
+                {availableCategories.map((cat) => (
+                  <div
+                    key={cat}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                      formData.selectedCategories.includes(cat)
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                    onClick={() => handleCategoryToggle(cat)}
+                  >
+                    <Checkbox
+                      checked={formData.selectedCategories.includes(cat)}
+                      onCheckedChange={() => handleCategoryToggle(cat)}
+                    />
+                    <span className="text-sm">{cat}</span>
+                  </div>
+                ))}
+              </div>
+              {formData.selectedCategories.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {formData.selectedCategories.map((cat) => (
+                    <Badge key={cat} variant="secondary" className="gap-1">
                       {cat}
-                    </SelectItem>
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => handleCategoryToggle(cat)}
+                      />
+                    </Badge>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label>حالة البرنامج</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: TrainingProgram['status']) =>
-                  setFormData((prev) => ({ ...prev, status: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">نشط</SelectItem>
-                  <SelectItem value="inactive">غير نشط</SelectItem>
-                  <SelectItem value="draft">مسودة</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Program Type */}
+              <div className="space-y-2">
+                <Label>نوع البرنامج</Label>
+                <Select
+                  value={formData.programType}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, programType: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر نوع البرنامج" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+              {/* Status */}
+              <div className="space-y-2">
+                <Label>حالة البرنامج</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: TrainingProgram['status']) =>
+                    setFormData((prev) => ({ ...prev, status: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">نشط</SelectItem>
+                    <SelectItem value="inactive">غير نشط</SelectItem>
+                    <SelectItem value="draft">مسودة</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Target Audience */}
             <div className="space-y-2">
-              <Label htmlFor="edit-duration">المدة</Label>
+              <Label htmlFor="edit-targetAudience">الفئة المستهدفة</Label>
               <Input
-                id="edit-duration"
-                value={formData.duration}
+                id="edit-targetAudience"
+                value={formData.targetAudience}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, duration: e.target.value }))
+                  setFormData((prev) => ({ ...prev, targetAudience: e.target.value }))
                 }
-                placeholder="مثال: 16 ساعة"
+                placeholder="مثال: المشرفين والمدراء"
               />
             </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-duration">المدة</Label>
+                <Input
+                  id="edit-duration"
+                  value={formData.duration}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, duration: e.target.value }))
+                  }
+                  placeholder="مثال: 16 ساعة"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-instructor">المدرب</Label>
+                <Input
+                  id="edit-instructor"
+                  value={formData.instructor}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, instructor: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="edit-instructor">المدرب</Label>
+              <Label htmlFor="edit-location">الموقع</Label>
               <Input
-                id="edit-instructor"
-                value={formData.instructor}
+                id="edit-location"
+                value={formData.location}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, instructor: e.target.value }))
+                  setFormData((prev) => ({ ...prev, location: e.target.value }))
                 }
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-location">الموقع</Label>
-            <Input
-              id="edit-location"
-              value={formData.location}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, location: e.target.value }))
-              }
-            />
+            {/* Logo Upload */}
+            <div className="space-y-2">
+              <Label>شعار البرنامج</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                يمكنك إضافة شعار للبرنامج مثل شعارات الجودة أو ISO
+              </p>
+              <div className="flex items-center gap-4">
+                {formData.logo ? (
+                  <div className="relative">
+                    <img
+                      src={formData.logo}
+                      alt="شعار البرنامج"
+                      className="h-20 w-20 rounded-lg object-contain border bg-white"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -left-2 h-6 w-6"
+                      onClick={() => setFormData((prev) => ({ ...prev, logo: '' }))}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50 transition-colors hover:border-primary hover:bg-muted">
+                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                    <span className="mt-1 text-xs text-muted-foreground">رفع شعار</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        </ScrollArea>
 
-        <DialogFooter>
+        <DialogFooter className="border-t p-6 pt-4">
           <Button variant="outline" onClick={onClose}>
             إلغاء
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!formData.title || !formData.category}
+            disabled={!formData.title || formData.selectedCategories.length === 0}
           >
             حفظ التغييرات
           </Button>

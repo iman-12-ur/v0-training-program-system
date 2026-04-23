@@ -25,11 +25,14 @@ export interface TrainingProgram {
   id: string;
   title: string;
   description: string;
-  category: string;
+  categories: string[];
+  programType?: string;
+  targetAudience?: string;
   duration: string;
   instructor: string;
   location: string;
   image?: string;
+  logo?: string;
   batches: Batch[];
   prerequisites?: string[];
   objectives?: string[];
@@ -45,6 +48,7 @@ export interface Registration {
   batchName: string;
   visitorName: string;
   employeeId: string;
+  court: string;
   department: string;
   email: string;
   phone?: string;

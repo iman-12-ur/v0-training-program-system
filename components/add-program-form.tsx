@@ -20,8 +20,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, X } from 'lucide-react';
-import { categories } from '@/lib/mock-data';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { categories, programTypes } from '@/lib/mock-data';
 
 interface AddProgramFormProps {
   isOpen: boolean;
@@ -33,20 +35,44 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
+    selectedCategories: [] as string[],
+    programType: '',
+    targetAudience: '',
     duration: '',
     instructor: '',
     location: '',
+    logo: '',
     objectives: [''],
     prerequisites: [''],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleCategoryToggle = (category: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedCategories: prev.selectedCategories.includes(category)
+        ? prev.selectedCategories.filter((c) => c !== category)
+        : [...prev.selectedCategories, category],
+    }));
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, logo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
     onSubmit({
       ...formData,
+      categories: formData.selectedCategories,
       id: `prog-${Date.now()}`,
       status: 'draft',
       createdAt: new Date().toISOString().split('T')[0],
@@ -58,10 +84,13 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
     setFormData({
       title: '',
       description: '',
-      category: '',
+      selectedCategories: [],
+      programType: '',
+      targetAudience: '',
       duration: '',
       instructor: '',
       location: '',
+      logo: '',
       objectives: [''],
       prerequisites: [''],
     });
@@ -112,10 +141,12 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
   const isValid =
     formData.title &&
     formData.description &&
-    formData.category &&
+    formData.selectedCategories.length > 0 &&
     formData.duration &&
     formData.instructor &&
     formData.location;
+
+  const availableCategories = categories.filter((c) => c !== 'الكل');
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -156,27 +187,76 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                 />
               </div>
 
+              {/* Categories Selection */}
+              <div className="space-y-3 sm:col-span-2">
+                <Label>التصنيفات * (يمكن اختيار أكثر من تصنيف)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {availableCategories.map((cat) => (
+                    <div
+                      key={cat}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                        formData.selectedCategories.includes(cat)
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => handleCategoryToggle(cat)}
+                    >
+                      <Checkbox
+                        checked={formData.selectedCategories.includes(cat)}
+                        onCheckedChange={() => handleCategoryToggle(cat)}
+                      />
+                      <span className="text-sm">{cat}</span>
+                    </div>
+                  ))}
+                </div>
+                {formData.selectedCategories.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {formData.selectedCategories.map((cat) => (
+                      <Badge key={cat} variant="secondary" className="gap-1">
+                        {cat}
+                        <X
+                          className="h-3 w-3 cursor-pointer"
+                          onClick={() => handleCategoryToggle(cat)}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Program Type */}
               <div className="space-y-2">
-                <Label htmlFor="category">التصنيف *</Label>
+                <Label htmlFor="programType">نوع البرنامج</Label>
                 <Select
-                  value={formData.category}
+                  value={formData.programType}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, category: value }))
+                    setFormData((prev) => ({ ...prev, programType: value }))
                   }
                 >
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="اختر التصنيف" />
+                  <SelectTrigger id="programType">
+                    <SelectValue placeholder="اختر نوع البرنامج" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories
-                      .filter((c) => c !== 'الكل')
-                      .map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
+                    {programTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Target Audience */}
+              <div className="space-y-2">
+                <Label htmlFor="targetAudience">الفئة المستهدفة</Label>
+                <Input
+                  id="targetAudience"
+                  placeholder="مثال: المشرفين والمدراء"
+                  value={formData.targetAudience}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, targetAudience: e.target.value }))
+                  }
+                />
               </div>
 
               <div className="space-y-2">
@@ -206,7 +286,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="location">الموقع *</Label>
                 <Input
                   id="location"
@@ -216,6 +296,45 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                     setFormData((prev) => ({ ...prev, location: e.target.value }))
                   }
                 />
+              </div>
+
+              {/* Logo Upload */}
+              <div className="space-y-2 sm:col-span-2">
+                <Label>شعار البرنامج (اختياري)</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  يمكنك إضافة شعار للبرنامج مثل شعارات الجودة أو ISO
+                </p>
+                <div className="flex items-center gap-4">
+                  {formData.logo ? (
+                    <div className="relative">
+                      <img
+                        src={formData.logo}
+                        alt="شعار البرنامج"
+                        className="h-20 w-20 rounded-lg object-contain border bg-white"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -left-2 h-6 w-6"
+                        onClick={() => setFormData((prev) => ({ ...prev, logo: '' }))}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50 transition-colors hover:border-primary hover:bg-muted">
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      <span className="mt-1 text-xs text-muted-foreground">رفع شعار</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
 

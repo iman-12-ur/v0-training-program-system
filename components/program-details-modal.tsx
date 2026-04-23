@@ -51,14 +51,35 @@ export function ProgramDetailsModal({
       <DialogContent className="max-w-2xl max-h-[90vh] p-0">
         <DialogHeader className="border-b p-6 pb-4">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <Badge variant="secondary" className="mb-2">
-                {program.category}
-              </Badge>
+            <div className="flex-1">
+              <div className="flex flex-wrap gap-2 mb-2">
+                {program.categories?.map((cat) => (
+                  <Badge key={cat} variant="secondary">
+                    {cat}
+                  </Badge>
+                ))}
+                {program.programType && (
+                  <Badge variant="outline" className="border-primary text-primary">
+                    {program.programType}
+                  </Badge>
+                )}
+              </div>
               <DialogTitle className="text-2xl font-bold">
                 {program.title}
               </DialogTitle>
+              {program.targetAudience && (
+                <p className="mt-2 text-sm text-primary">
+                  الفئة المستهدفة: {program.targetAudience}
+                </p>
+              )}
             </div>
+            {program.logo && (
+              <img
+                src={program.logo}
+                alt="شعار البرنامج"
+                className="h-16 w-16 rounded-lg object-contain border bg-white shrink-0"
+              />
+            )}
           </div>
         </DialogHeader>
 

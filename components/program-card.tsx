@@ -57,9 +57,11 @@ export function ProgramCard({ program, onViewDetails, onRegister, onEdit, onDele
       <CardHeader className="space-y-3 pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className={getCategoryColor(program.category)}>
-              {program.category}
-            </Badge>
+            {program.categories?.map((cat) => (
+              <Badge key={cat} variant="secondary" className={getCategoryColor(cat)}>
+                {cat}
+              </Badge>
+            ))}
             {program.status === 'active' && hasAvailableSlots && (
               <Badge className="bg-emerald-500 hover:bg-emerald-600">متاح للتسجيل</Badge>
             )}
@@ -107,9 +109,25 @@ export function ProgramCard({ program, onViewDetails, onRegister, onEdit, onDele
       </CardHeader>
 
       <CardContent className="flex-1 space-y-4 pb-4">
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {program.description}
-        </p>
+        <div className="flex items-start gap-3">
+          {program.logo && (
+            <img
+              src={program.logo}
+              alt="شعار البرنامج"
+              className="h-12 w-12 rounded-lg object-contain border bg-white shrink-0"
+            />
+          )}
+          <div className="flex-1">
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {program.description}
+            </p>
+            {program.targetAudience && (
+              <p className="mt-1 text-xs text-primary font-medium">
+                الفئة المستهدفة: {program.targetAudience}
+              </p>
+            )}
+          </div>
+        </div>
 
         <div className="grid gap-2 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">

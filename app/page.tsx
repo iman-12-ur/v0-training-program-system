@@ -104,7 +104,7 @@ export default function TrainingManagementSystem() {
   // Filter programs
   const filteredPrograms = programs.filter((program) => {
     const matchesCategory =
-      selectedCategory === 'الكل' || program.category === selectedCategory;
+      selectedCategory === 'الكل' || program.categories?.includes(selectedCategory);
     const matchesSearch =
       program.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       program.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -347,6 +347,7 @@ export default function TrainingManagementSystem() {
     return (
       <PublicProgramsView
         programs={programs}
+        registrations={registrations}
         onRegister={handlePublicRegister}
         onAdminLogin={() => setViewMode('login')}
       />
@@ -358,6 +359,7 @@ export default function TrainingManagementSystem() {
     return (
       <AdminLogin
         onLogin={() => setViewMode('admin')}
+        onBack={() => setViewMode('public')}
       />
     );
   }

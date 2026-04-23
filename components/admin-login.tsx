@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { GraduationCap, Lock, User, AlertCircle } from 'lucide-react';
+import { GraduationCap, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
 
 interface AdminLoginProps {
   onLogin: () => void;
+  onBack: () => void;
 }
 
-export function AdminLogin({ onLogin }: AdminLoginProps) {
+export function AdminLogin({ onLogin, onBack }: AdminLoginProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -36,7 +37,17 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md mb-4">
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className="gap-2"
+        >
+          <ArrowRight className="h-4 w-4" />
+          الرجوع إلى الصفحة الرئيسية
+        </Button>
+      </div>
       <Card className="w-full max-w-md border-none shadow-lg">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">

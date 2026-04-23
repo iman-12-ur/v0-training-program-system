@@ -21,12 +21,14 @@ import type { TrainingProgram, Batch, Registration } from '@/lib/types';
 
 interface PublicProgramsViewProps {
   programs: TrainingProgram[];
+  registrations: Registration[];
   onRegister: (registration: Omit<Registration, 'id' | 'status' | 'registeredAt' | 'approvedBy' | 'approvedAt'>) => void;
   onAdminLogin: () => void;
 }
 
 export function PublicProgramsView({
   programs,
+  registrations,
   onRegister,
   onAdminLogin,
 }: PublicProgramsViewProps) {
@@ -42,7 +44,7 @@ export function PublicProgramsView({
   
   const filteredPrograms = activePrograms.filter((program) => {
     const matchesCategory =
-      selectedCategory === 'الكل' || program.category === selectedCategory;
+      selectedCategory === 'الكل' || program.categories?.includes(selectedCategory);
     const matchesSearch =
       program.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       program.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -246,6 +248,7 @@ export function PublicProgramsView({
           setSelectedBatch(null);
         }}
         onConfirm={handleConfirmRegistration}
+        existingRegistrations={registrations}
       />
     </div>
   );

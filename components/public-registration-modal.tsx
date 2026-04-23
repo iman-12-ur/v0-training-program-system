@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,8 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Users, CheckCircle2, User, Building2, Mail, Phone, BadgeCheck } from 'lucide-react';
-import { departments } from '@/lib/mock-data';
+import { Calendar, Users, CheckCircle2, User, Building2, Mail, Phone, BadgeCheck, AlertTriangle } from 'lucide-react';
+import { departments, courts } from '@/lib/mock-data';
 import type { TrainingProgram, Batch, Registration } from '@/lib/types';
 
 interface PublicRegistrationModalProps {
@@ -29,6 +29,7 @@ interface PublicRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (registration: Omit<Registration, 'id' | 'status' | 'registeredAt' | 'approvedBy' | 'approvedAt'>) => void;
+  existingRegistrations: Registration[];
 }
 
 export function PublicRegistrationModal({
@@ -37,11 +38,13 @@ export function PublicRegistrationModal({
   isOpen,
   onClose,
   onConfirm,
+  existingRegistrations,
 }: PublicRegistrationModalProps) {
   const [batchId, setBatchId] = useState(selectedBatch?.id || '');
   const [formData, setFormData] = useState({
     visitorName: '',
     employeeId: '',
+    court: '',
     department: '',
     email: '',
     phone: '',
@@ -50,12 +53,39 @@ export function PublicRegistrationModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+
+  // Reset batch when selectedBatch changes
+  useEffect(() => {
+    if (selectedBatch) {
+      setBatchId(selectedBatch.id);
+    }
+  }, [selectedBatch]);
 
   if (!program) return null;
 
   const availableBatches = program.batches.filter(
     (b) => b.status === 'upcoming' && b.currentParticipants < b.maxParticipants
   );
+
+  // Check for duplicate registration
+  const checkDuplicateRegistration = (employeeId: string): string | null => {
+    if (!employeeId.trim()) return null;
+
+    // Check if employee is already registered in any batch of this program
+    const existingReg = existingRegistrations.find(
+      (reg) =>
+        reg.programId === program.id &&
+        reg.employeeId.toLowerCase() === employeeId.toLowerCase() &&
+        (reg.status === 'pending' || reg.status === 'approved')
+    );
+
+    if (existingReg) {
+      return `أنت مسجل مسبقاً في هذا البرنامج (${existingReg.batchName}). لا يمكن التسجيل مرتين في نفس البرنامج.`;
+    }
+
+    return null;
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -65,6 +95,9 @@ export function PublicRegistrationModal({
     }
     if (!formData.employeeId.trim()) {
       newErrors.employeeId = 'الرقم الوظيفي مطلوب';
+    }
+    if (!formData.court) {
+      newErrors.court = 'الدائرة/المحكمة مطلوبة';
     }
     if (!formData.department) {
       newErrors.department = 'القسم مطلوب';
@@ -78,8 +111,23 @@ export function PublicRegistrationModal({
       newErrors.batchId = 'يرجى اختيار الدفعة';
     }
 
+    // Check for duplicate registration
+    const duplicate = checkDuplicateRegistration(formData.employeeId);
+    if (duplicate) {
+      setDuplicateError(duplicate);
+      return false;
+    }
+
     setErrors(newErrors);
+    setDuplicateError(null);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleEmployeeIdChange = (value: string) => {
+    setFormData({ ...formData, employeeId: value });
+    // Check for duplicate on change
+    const duplicate = checkDuplicateRegistration(value);
+    setDuplicateError(duplicate);
   };
 
   const handleSubmit = async () => {
@@ -97,6 +145,7 @@ export function PublicRegistrationModal({
       batchName: batch?.name || '',
       visitorName: formData.visitorName,
       employeeId: formData.employeeId,
+      court: formData.court,
       department: formData.department,
       email: formData.email,
       phone: formData.phone,
@@ -112,12 +161,14 @@ export function PublicRegistrationModal({
     setFormData({
       visitorName: '',
       employeeId: '',
+      court: '',
       department: '',
       email: '',
       phone: '',
       notes: '',
     });
     setErrors({});
+    setDuplicateError(null);
     setIsSuccess(false);
     onClose();
   };
@@ -165,108 +216,22 @@ export function PublicRegistrationModal({
             <p className="mt-1 text-sm text-muted-foreground">
               {program.instructor} - {program.duration}
             </p>
+            {program.targetAudience && (
+              <p className="mt-1 text-xs text-primary">
+                الفئة المستهدفة: {program.targetAudience}
+              </p>
+            )}
           </div>
 
-          {/* Employee Information */}
-          <div className="space-y-4">
-            <h5 className="font-medium text-foreground flex items-center gap-2">
-              <User className="h-4 w-4 text-primary" />
-              بيانات الموظف
-            </h5>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="visitorName">الاسم الكامل *</Label>
-                <Input
-                  id="visitorName"
-                  placeholder="أدخل اسمك الكامل"
-                  value={formData.visitorName}
-                  onChange={(e) => setFormData({ ...formData, visitorName: e.target.value })}
-                  className={errors.visitorName ? 'border-destructive' : ''}
-                />
-                {errors.visitorName && (
-                  <p className="text-xs text-destructive">{errors.visitorName}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="employeeId">الرقم الوظيفي *</Label>
-                <div className="relative">
-                  <BadgeCheck className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="employeeId"
-                    placeholder="مثال: EMP-001"
-                    value={formData.employeeId}
-                    onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                    className={`pr-9 ${errors.employeeId ? 'border-destructive' : ''}`}
-                  />
-                </div>
-                {errors.employeeId && (
-                  <p className="text-xs text-destructive">{errors.employeeId}</p>
-                )}
-              </div>
+          {/* Duplicate Error Alert */}
+          {duplicateError && (
+            <div className="flex items-start gap-3 rounded-lg bg-destructive/10 border border-destructive/20 p-4">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <p className="text-sm text-destructive">{duplicateError}</p>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label htmlFor="department">القسم / الإدارة *</Label>
-              <Select
-                value={formData.department}
-                onValueChange={(value) => setFormData({ ...formData, department: value })}
-              >
-                <SelectTrigger id="department" className={errors.department ? 'border-destructive' : ''}>
-                  <Building2 className="ml-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="اختر القسم" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.department && (
-                <p className="text-xs text-destructive">{errors.department}</p>
-              )}
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني *</Label>
-                <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="example@company.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className={`pr-9 ${errors.email ? 'border-destructive' : ''}`}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">رقم الجوال (اختياري)</Label>
-                <div className="relative">
-                  <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="05xxxxxxxx"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="pr-9"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Batch Selection */}
+          {/* Batch Selection - Moved to top */}
           <div className="space-y-4">
             <h5 className="font-medium text-foreground flex items-center gap-2">
               <Calendar className="h-4 w-4 text-primary" />
@@ -338,6 +303,129 @@ export function PublicRegistrationModal({
             )}
           </div>
 
+          {/* Employee Information */}
+          <div className="space-y-4">
+            <h5 className="font-medium text-foreground flex items-center gap-2">
+              <User className="h-4 w-4 text-primary" />
+              بيانات الموظف
+            </h5>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="visitorName">الاسم الكامل *</Label>
+                <Input
+                  id="visitorName"
+                  placeholder="أدخل اسمك الكامل"
+                  value={formData.visitorName}
+                  onChange={(e) => setFormData({ ...formData, visitorName: e.target.value })}
+                  className={errors.visitorName ? 'border-destructive' : ''}
+                />
+                {errors.visitorName && (
+                  <p className="text-xs text-destructive">{errors.visitorName}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="employeeId">الرقم الوظيفي *</Label>
+                <div className="relative">
+                  <BadgeCheck className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="employeeId"
+                    placeholder="مثال: EMP-001"
+                    value={formData.employeeId}
+                    onChange={(e) => handleEmployeeIdChange(e.target.value)}
+                    className={`pr-9 ${errors.employeeId || duplicateError ? 'border-destructive' : ''}`}
+                  />
+                </div>
+                {errors.employeeId && (
+                  <p className="text-xs text-destructive">{errors.employeeId}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Court Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="court">الدائرة / المحكمة *</Label>
+              <Select
+                value={formData.court}
+                onValueChange={(value) => setFormData({ ...formData, court: value })}
+              >
+                <SelectTrigger id="court" className={errors.court ? 'border-destructive' : ''}>
+                  <Building2 className="ml-2 h-4 w-4 text-muted-foreground" />
+                  <SelectValue placeholder="اختر الدائرة / المحكمة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courts.map((court) => (
+                    <SelectItem key={court} value={court}>
+                      {court}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.court && (
+                <p className="text-xs text-destructive">{errors.court}</p>
+              )}
+            </div>
+
+            {/* Department Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="department">القسم / الإدارة *</Label>
+              <Select
+                value={formData.department}
+                onValueChange={(value) => setFormData({ ...formData, department: value })}
+              >
+                <SelectTrigger id="department" className={errors.department ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="اختر القسم" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.department && (
+                <p className="text-xs text-destructive">{errors.department}</p>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="email">البريد الإلكتروني *</Label>
+                <div className="relative">
+                  <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="example@company.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className={`pr-9 ${errors.email ? 'border-destructive' : ''}`}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-xs text-destructive">{errors.email}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">رقم الجوال (اختياري)</Label>
+                <div className="relative">
+                  <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="05xxxxxxxx"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="pr-9"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">ملاحظات إضافية (اختياري)</Label>
@@ -358,7 +446,7 @@ export function PublicRegistrationModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || availableBatches.length === 0}
+            disabled={isSubmitting || availableBatches.length === 0 || !!duplicateError}
           >
             {isSubmitting ? 'جاري تقديم الطلب...' : 'تقديم طلب الترشيح'}
           </Button>

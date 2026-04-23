@@ -134,6 +134,7 @@ export function RegistrationsTable({
     const excelData = dataToExport.map((reg) => ({
       'الاسم': reg.visitorName,
       'الرقم الوظيفي': reg.employeeId,
+      'الدائرة/المحكمة': reg.court || '-',
       'القسم': reg.department,
       'البريد الإلكتروني': reg.email,
       'رقم الجوال': reg.phone || '-',
@@ -239,6 +240,7 @@ export function RegistrationsTable({
               <TableRow>
                 <TableHead className="text-right">الموظف</TableHead>
                 <TableHead className="text-right">الرقم الوظيفي</TableHead>
+                <TableHead className="text-right">الدائرة/المحكمة</TableHead>
                 <TableHead className="text-right">التواصل</TableHead>
                 <TableHead className="text-right">البرنامج</TableHead>
                 <TableHead className="text-right">الدفعة</TableHead>
@@ -253,7 +255,7 @@ export function RegistrationsTable({
               {filteredRegistrations.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={showActions ? 8 : 7}
+                    colSpan={showActions ? 9 : 8}
                     className="h-32 text-center text-muted-foreground"
                   >
                     لا توجد تسجيلات
@@ -272,6 +274,9 @@ export function RegistrationsTable({
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">{reg.employeeId}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{reg.court || '-'}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
