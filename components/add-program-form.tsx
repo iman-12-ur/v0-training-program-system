@@ -190,34 +190,34 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
               {/* Categories Selection */}
               <div className="space-y-3 sm:col-span-2">
                 <Label>التصنيفات * (يمكن اختيار أكثر من تصنيف)</Label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 flex-row-reverse justify-end">
                   {availableCategories.map((cat) => (
                     <div
                       key={cat}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                      className={`flex flex-row-reverse items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
                         formData.selectedCategories.includes(cat)
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border hover:border-primary/50'
                       }`}
                       onClick={() => handleCategoryToggle(cat)}
                     >
+                      <span className="text-sm">{cat}</span>
                       <Checkbox
                         checked={formData.selectedCategories.includes(cat)}
                         onCheckedChange={() => handleCategoryToggle(cat)}
                       />
-                      <span className="text-sm">{cat}</span>
                     </div>
                   ))}
                 </div>
                 {formData.selectedCategories.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <div className="flex flex-wrap flex-row-reverse justify-end gap-1 mt-2">
                     {formData.selectedCategories.map((cat) => (
-                      <Badge key={cat} variant="secondary" className="gap-1">
-                        {cat}
+                      <Badge key={cat} variant="secondary" className="gap-1 flex-row-reverse">
                         <X
                           className="h-3 w-3 cursor-pointer"
                           onClick={() => handleCategoryToggle(cat)}
                         />
+                        {cat}
                       </Badge>
                     ))}
                   </div>
@@ -340,7 +340,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
 
             {/* Objectives */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-row-reverse items-center justify-between">
                 <Label>أهداف البرنامج</Label>
                 <Button
                   type="button"
@@ -348,8 +348,8 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                   size="sm"
                   onClick={addObjective}
                 >
-                  <Plus className="ml-1 h-4 w-4" />
                   إضافة هدف
+                  <Plus className="mr-1 h-4 w-4" />
                 </Button>
               </div>
               <div className="space-y-2">
@@ -377,7 +377,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
 
             {/* Prerequisites */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-row-reverse items-center justify-between">
                 <Label>المتطلبات المسبقة</Label>
                 <Button
                   type="button"
@@ -385,8 +385,8 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                   size="sm"
                   onClick={addPrerequisite}
                 >
-                  <Plus className="ml-1 h-4 w-4" />
                   إضافة متطلب
+                  <Plus className="mr-1 h-4 w-4" />
                 </Button>
               </div>
               <div className="space-y-2">
@@ -414,12 +414,12 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
           </div>
         </ScrollArea>
 
-        <DialogFooter className="border-t p-6 pt-4">
-          <Button variant="outline" onClick={onClose}>
-            إلغاء
-          </Button>
+        <DialogFooter className="border-t p-6 pt-4 flex-row-reverse gap-2">
           <Button onClick={handleSubmit} disabled={!isValid || isSubmitting}>
             {isSubmitting ? 'جاري الحفظ...' : 'حفظ البرنامج'}
+          </Button>
+          <Button variant="outline" onClick={onClose}>
+            إلغاء
           </Button>
         </DialogFooter>
       </DialogContent>
