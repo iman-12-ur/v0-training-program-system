@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Users, CheckCircle2, User, Building2, Mail, Phone, BadgeCheck, AlertTriangle } from 'lucide-react';
-import { departments } from '@/lib/mock-data';
+
 import type { TrainingProgram, Batch, Registration } from '@/lib/types';
 
 interface PublicRegistrationModalProps {
@@ -99,7 +99,7 @@ export function PublicRegistrationModal({
     if (!formData.court.trim()) {
       newErrors.court = 'الدائرة/المحكمة مطلوبة';
     }
-    if (!formData.department) {
+    if (!formData.department.trim()) {
       newErrors.department = 'القسم مطلوب';
     }
     if (!formData.email.trim()) {
@@ -364,24 +364,16 @@ export function PublicRegistrationModal({
               )}
             </div>
 
-            {/* Department Selection */}
+            {/* Department Input */}
             <div className="space-y-2">
               <Label htmlFor="department">القسم *</Label>
-              <Select
+              <Input
+                id="department"
+                placeholder="أدخل اسم القسم"
                 value={formData.department}
-                onValueChange={(value) => setFormData({ ...formData, department: value })}
-              >
-                <SelectTrigger id="department" className={errors.department ? 'border-destructive' : ''}>
-                  <SelectValue placeholder="اختر القسم" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className={errors.department ? 'border-destructive' : ''}
+              />
               {errors.department && (
                 <p className="text-xs text-destructive">{errors.department}</p>
               )}
