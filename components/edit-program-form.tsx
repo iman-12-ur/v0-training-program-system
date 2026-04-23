@@ -22,7 +22,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { X, Image as ImageIcon } from 'lucide-react';
+import { X, Image as ImageIcon, Plus } from 'lucide-react';
 import { categories, programTypes } from '@/lib/mock-data';
 import type { TrainingProgram } from '@/lib/types';
 
@@ -110,7 +110,24 @@ export function EditProgramForm({
     onClose();
   };
 
-  const availableCategories = categories.filter((c) => c !== 'الكل');
+  const [availableCategories, setAvailableCategories] = useState(
+    categories.filter((c) => c !== 'الكل')
+  );
+  const [newCategory, setNewCategory] = useState('');
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+
+  const handleAddNewCategory = () => {
+    if (newCategory.trim() && !availableCategories.includes(newCategory.trim())) {
+      const categoryToAdd = newCategory.trim();
+      setAvailableCategories((prev) => [...prev, categoryToAdd]);
+      setFormData((prev) => ({
+        ...prev,
+        selectedCategories: [...prev.selectedCategories, categoryToAdd],
+      }));
+      setNewCategory('');
+      setShowNewCategoryInput(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -146,7 +163,56 @@ export function EditProgramForm({
 
             {/* Categories Selection */}
             <div className="space-y-3">
-              <Label>التصنيفات (يمكن اختيار أكثر من تصنيف)</Label>
+              <div className="flex items-center justify-between">
+                <Label>التصنيفات (يمكن اختيار أكثر من تصنيف)</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowNewCategoryInput(true)}
+                  className="gap-1"
+                >
+                  <Plus className="h-4 w-4" />
+                  إضافة تصنيف جديد
+                </Button>
+              </div>
+              
+              {showNewCategoryInput && (
+                <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+                  <Input
+                    placeholder="اسم التصنيف الجديد"
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddNewCategory();
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddNewCategory}
+                    disabled={!newCategory.trim()}
+                  >
+                    إضافة
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setShowNewCategoryInput(false);
+                      setNewCategory('');
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              
               <div className="flex flex-wrap gap-2 flex-row-reverse justify-end">
                 {availableCategories.map((cat) => (
                   <div
