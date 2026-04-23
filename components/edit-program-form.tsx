@@ -235,11 +235,17 @@ export function EditProgramForm({
               {formData.selectedCategories.length > 0 && (
                 <div className="flex flex-wrap flex-row-reverse justify-end gap-1 mt-2">
                   {formData.selectedCategories.map((cat) => (
-                    <Badge key={cat} variant="secondary" className="gap-1 flex-row-reverse">
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => handleCategoryToggle(cat)}
-                      />
+                    <Badge key={cat} variant="secondary" className="gap-1 flex-row-reverse pr-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCategoryToggle(cat);
+                        }}
+                        className="rounded-full p-0.5 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                       {cat}
                     </Badge>
                   ))}
