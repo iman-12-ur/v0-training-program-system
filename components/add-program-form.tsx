@@ -22,7 +22,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Image as ImageIcon } from 'lucide-react';
 import { categories, programTypes } from '@/lib/mock-data';
 
 interface AddProgramFormProps {
@@ -96,47 +96,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
     });
   };
 
-  const addObjective = () => {
-    setFormData((prev) => ({
-      ...prev,
-      objectives: [...prev.objectives, ''],
-    }));
-  };
-
-  const removeObjective = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      objectives: prev.objectives.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updateObjective = (index: number, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      objectives: prev.objectives.map((o, i) => (i === index ? value : o)),
-    }));
-  };
-
-  const addPrerequisite = () => {
-    setFormData((prev) => ({
-      ...prev,
-      prerequisites: [...prev.prerequisites, ''],
-    }));
-  };
-
-  const removePrerequisite = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      prerequisites: prev.prerequisites.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updatePrerequisite = (index: number, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      prerequisites: prev.prerequisites.map((p, i) => (i === index ? value : p)),
-    }));
-  };
+  
 
   const isValid =
     formData.title &&
@@ -413,76 +373,36 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
 
             {/* Objectives */}
             <div className="space-y-3">
-              <div className="flex flex-row-reverse items-center justify-between">
-                <Label>أهداف البرنامج</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addObjective}
-                >
-                  إضافة هدف
-                  <Plus className="mr-1 h-4 w-4" />
-                </Button>
-              </div>
-              <div className="space-y-2">
-                {formData.objectives.map((obj, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      placeholder={`الهدف ${index + 1}`}
-                      value={obj}
-                      onChange={(e) => updateObjective(index, e.target.value)}
-                    />
-                    {formData.objectives.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeObjective(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <Label htmlFor="objectives">أهداف البرنامج</Label>
+              <Textarea
+                id="objectives"
+                placeholder="اكتب أهداف البرنامج (كل هدف في سطر جديد)&#10;مثال:&#10;- فهم أساسيات القيادة الفعالة&#10;- تطوير مهارات التواصل&#10;- بناء فرق عمل متماسكة"
+                value={formData.objectives.join('\n')}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    objectives: e.target.value.split('\n'),
+                  }))
+                }
+                rows={4}
+              />
             </div>
 
             {/* Prerequisites */}
             <div className="space-y-3">
-              <div className="flex flex-row-reverse items-center justify-between">
-                <Label>المتطلبات المسبقة</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addPrerequisite}
-                >
-                  إضافة متطلب
-                  <Plus className="mr-1 h-4 w-4" />
-                </Button>
-              </div>
-              <div className="space-y-2">
-                {formData.prerequisites.map((prereq, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      placeholder={`المتطلب ${index + 1}`}
-                      value={prereq}
-                      onChange={(e) => updatePrerequisite(index, e.target.value)}
-                    />
-                    {formData.prerequisites.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removePrerequisite(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <Label htmlFor="prerequisites">المتطلبات المسبقة</Label>
+              <Textarea
+                id="prerequisites"
+                placeholder="اكتب المتطلبات المسبقة (كل متطلب في سطر جديد)&#10;مثال:&#10;- خبرة لا تقل عن سنتين&#10;- موافقة المدير المباشر&#10;- إتمام الدورة التأسيسية"
+                value={formData.prerequisites.join('\n')}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    prerequisites: e.target.value.split('\n'),
+                  }))
+                }
+                rows={4}
+              />
             </div>
           </div>
         </ScrollArea>
