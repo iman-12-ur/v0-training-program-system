@@ -270,7 +270,22 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                 />
               </div>
 
-              {/* Program Type */}
+              {/* Row 1: Program Type and Instructor */}
+              <div className="space-y-2">
+                <Label htmlFor="instructor">المدرب *</Label>
+                <Input
+                  id="instructor"
+                  placeholder="اسم المدرب"
+                  value={formData.instructor}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      instructor: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="programType">نوع البرنامج</Label>
                 <Select
@@ -292,17 +307,15 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                 </Select>
               </div>
 
+              {/* Row 2: Duration and Location */}
               <div className="space-y-2">
-                <Label htmlFor="instructor">المدرب *</Label>
+                <Label htmlFor="location">الموقع *</Label>
                 <Input
-                  id="instructor"
-                  placeholder="اسم المدرب"
-                  value={formData.instructor}
+                  id="location"
+                  placeholder="مثال: قاعة التدريب الرئيسية"
+                  value={formData.location}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      instructor: e.target.value,
-                    }))
+                    setFormData((prev) => ({ ...prev, location: e.target.value }))
                   }
                 />
               </div>
@@ -315,18 +328,6 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                   value={formData.duration}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, duration: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="location">الموقع *</Label>
-                <Input
-                  id="location"
-                  placeholder="مثال: قاعة التدريب الرئيسية"
-                  value={formData.location}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, location: e.target.value }))
                   }
                 />
               </div>
