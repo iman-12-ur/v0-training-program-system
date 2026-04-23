@@ -373,11 +373,15 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
             </div>
 
             {/* Objectives */}
-            <div className="space-y-3">
+            <div className="space-y-3" style={{ direction: 'rtl' }}>
               <Label htmlFor="objectives">أهداف البرنامج</Label>
               <Textarea
                 id="objectives"
-                placeholder="اكتب أهداف البرنامج (كل هدف في سطر جديد)&#10;مثال:&#10;- فهم أساسيات القيادة الفعالة&#10;- تطوير مهارات التواصل&#10;- بناء فرق عمل متماسكة"
+                placeholder="اكتب أهداف البرنامج (كل هدف في سطر جديد)
+مثال:
+- فهم أساسيات القيادة الفعالة
+- تطوير مهارات التواصل
+- بناء فرق عمل متماسكة"
                 value={formData.objectives.join('\n')}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -386,15 +390,21 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                   }))
                 }
                 rows={4}
+                className="text-right"
+                style={{ direction: 'rtl' }}
               />
             </div>
 
             {/* Prerequisites */}
-            <div className="space-y-3">
+            <div className="space-y-3" style={{ direction: 'rtl' }}>
               <Label htmlFor="prerequisites">المتطلبات المسبقة</Label>
               <Textarea
                 id="prerequisites"
-                placeholder="اكتب المتطلبات المسبقة (كل متطلب في سطر جديد)&#10;مثال:&#10;- خبرة لا تقل عن سنتين&#10;- موافقة المدير المباشر&#10;- إتمام الدورة التأسيسية"
+                placeholder="اكتب المتطلبات المسبقة (كل متطلب في سطر جديد)
+مثال:
+- خبرة لا تقل عن سنتين
+- موافقة المدير المباشر
+- إتمام الدورة التأسيسية"
                 value={formData.prerequisites.join('\n')}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -403,6 +413,8 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                   }))
                 }
                 rows={4}
+                className="text-right"
+                style={{ direction: 'rtl' }}
               />
             </div>
           </div>
