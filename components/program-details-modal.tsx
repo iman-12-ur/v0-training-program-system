@@ -200,7 +200,7 @@ export function ProgramDetailsModal({
                             size="sm"
                             onClick={() => onRegister(program, batch)}
                           >
-                            تسجيل في هذه الدفعة
+                            تسجيل
                           </Button>
                         )}
                         {isFull && batch.status === 'upcoming' && (
