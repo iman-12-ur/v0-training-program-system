@@ -351,6 +351,20 @@ export default function TrainingManagementSystem() {
     }));
   };
 
+  const handleToggleProgramStatus = (program: TrainingProgram) => {
+    const newStatus = program.status === 'active' ? 'inactive' : 'active';
+    setPrograms((prev) =>
+      prev.map((p) =>
+        p.id === program.id ? { ...p, status: newStatus } : p
+      )
+    );
+  };
+
+  const handleAddBatchFromCard = (program: TrainingProgram) => {
+    setActiveTab('batches');
+    // The batches manager will handle showing the add form
+  };
+
   // Public view
   if (viewMode === 'public') {
     return (
@@ -572,6 +586,8 @@ export default function TrainingManagementSystem() {
                     onRegister={() => handleRegister(program)}
                     onEdit={handleEditProgram}
                     onDelete={handleDeleteProgramClick}
+                    onToggleStatus={handleToggleProgramStatus}
+                    onAddBatch={handleAddBatchFromCard}
                     isAdmin
                   />
                 ))}

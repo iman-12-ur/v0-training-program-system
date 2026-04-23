@@ -13,6 +13,9 @@ import {
   MoreVertical,
   Edit,
   Trash2,
+  CheckCircle,
+  XCircle,
+  PlusCircle,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -28,10 +31,21 @@ interface ProgramCardProps {
   onRegister?: (program: TrainingProgram) => void;
   onEdit?: (program: TrainingProgram) => void;
   onDelete?: (program: TrainingProgram) => void;
+  onToggleStatus?: (program: TrainingProgram) => void;
+  onAddBatch?: (program: TrainingProgram) => void;
   isAdmin?: boolean;
 }
 
-export function ProgramCard({ program, onViewDetails, onRegister, onEdit, onDelete, isAdmin }: ProgramCardProps) {
+export function ProgramCard({ 
+  program, 
+  onViewDetails, 
+  onRegister, 
+  onEdit, 
+  onDelete, 
+  onToggleStatus,
+  onAddBatch,
+  isAdmin 
+}: ProgramCardProps) {
   const upcomingBatches = program.batches.filter((b) => b.status === 'upcoming');
   const hasAvailableSlots = upcomingBatches.some(
     (b) => b.currentParticipants < b.maxParticipants
@@ -76,7 +90,7 @@ export function ProgramCard({ program, onViewDetails, onRegister, onEdit, onDele
               </Badge>
             )}
           </div>
-          {isAdmin && (onEdit || onDelete) && (
+          {isAdmin && (onEdit || onDelete || onToggleStatus || onAddBatch) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -88,6 +102,27 @@ export function ProgramCard({ program, onViewDetails, onRegister, onEdit, onDele
                   <DropdownMenuItem onClick={() => onEdit(program)}>
                     <Edit className="ml-2 h-4 w-4" />
                     تعديل البرنامج
+                  </DropdownMenuItem>
+                )}
+                {onToggleStatus && (
+                  <DropdownMenuItem onClick={() => onToggleStatus(program)}>
+                    {program.status === 'active' ? (
+                      <>
+                        <XCircle className="ml-2 h-4 w-4" />
+                        إيقاف البرنامج
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="ml-2 h-4 w-4 text-emerald-600" />
+                        تفعيل البرنامج
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                )}
+                {onAddBatch && (
+                  <DropdownMenuItem onClick={() => onAddBatch(program)}>
+                    <PlusCircle className="ml-2 h-4 w-4 text-primary" />
+                    إضافة دفعة جديدة
                   </DropdownMenuItem>
                 )}
                 {onDelete && (
