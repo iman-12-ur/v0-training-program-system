@@ -38,7 +38,6 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
     selectedCategories: [] as string[],
     programType: '',
     targetAudience: '',
-    deliveryMode: '' as 'in-person' | 'online' | 'hybrid' | '',
     duration: '',
     instructor: '',
     location: '',
@@ -74,7 +73,6 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
     onSubmit({
       ...formData,
       categories: formData.selectedCategories,
-      deliveryMode: formData.deliveryMode || 'in-person',
       id: `prog-${Date.now()}`,
       status: 'draft',
       createdAt: new Date().toISOString().split('T')[0],
@@ -89,7 +87,6 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
       selectedCategories: [],
       programType: '',
       targetAudience: '',
-      deliveryMode: '',
       duration: '',
       instructor: '',
       location: '',
@@ -310,7 +307,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                 </Select>
               </div>
 
-              {/* Row 2: Delivery Mode and Duration */}
+              {/* Row 2: Duration and Location */}
               <div className="space-y-2">
                 <Label htmlFor="duration">المدة *</Label>
                 <Input
@@ -323,26 +320,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="deliveryMode">طريقة التقديم *</Label>
-                <Select
-                  value={formData.deliveryMode}
-                  onValueChange={(value: 'in-person' | 'online' | 'hybrid') =>
-                    setFormData((prev) => ({ ...prev, deliveryMode: value }))
-                  }
-                >
-                  <SelectTrigger id="deliveryMode">
-                    <SelectValue placeholder="اختر طريقة التقديم" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in-person">حضوري</SelectItem>
-                    <SelectItem value="online">عن بُعد</SelectItem>
-                    <SelectItem value="hybrid">مدمج (حضوري وعن بُعد)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Row 3: Location */}
+              {/* Location */}
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="location">الموقع *</Label>
                 <Input
@@ -404,7 +382,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
 مثال:
 - فهم أساسيات القيادة الفعالة
 - تطوير مهارات التواصل
-- بناء فرق عمل متماسكة"
+- بناء فرق عمل متماسك��"
                 value={formData.objectives.join('\n')}
                 onChange={(e) =>
                   setFormData((prev) => ({
