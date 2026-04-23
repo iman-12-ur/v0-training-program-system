@@ -300,13 +300,14 @@ export function EditProgramForm({
             {/* Target Audience */}
             <div className="space-y-2">
               <Label htmlFor="edit-targetAudience">الفئة المستهدفة</Label>
-              <Input
+              <Textarea
                 id="edit-targetAudience"
                 value={formData.targetAudience}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, targetAudience: e.target.value }))
                 }
-                placeholder="مثال: المشرفين والمدراء"
+                placeholder="مثال: المشرفين والمدراء، رؤساء الأقسام، الموظفين الجدد..."
+                rows={2}
               />
             </div>
 

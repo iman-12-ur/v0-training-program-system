@@ -297,15 +297,16 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
               </div>
 
               {/* Target Audience */}
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="targetAudience">الفئة المستهدفة</Label>
-                <Input
+                <Textarea
                   id="targetAudience"
-                  placeholder="مثال: المشرفين والمدراء"
+                  placeholder="مثال: المشرفين والمدراء، رؤساء الأقسام، الموظفين الجدد..."
                   value={formData.targetAudience}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, targetAudience: e.target.value }))
                   }
+                  rows={2}
                 />
               </div>
 
