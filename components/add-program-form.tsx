@@ -401,7 +401,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
 
             {/* Topics */}
             <div className="space-y-3" style={{ direction: 'rtl' }}>
-              <Label htmlFor="topics">المحاور</Label>
+              <Label htmlFor="topics">محاور البرنامج</Label>
               <Textarea
                 id="topics"
                 placeholder="اكتب محاور البرنامج (كل محور في سطر جديد)
