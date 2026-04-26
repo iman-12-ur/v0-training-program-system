@@ -87,6 +87,22 @@ export function PublicRegistrationModal({
     return null;
   };
 
+  // Convert Arabic numbers to English numbers
+  const convertArabicToEnglish = (str: string): string => {
+    const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    let result = str;
+    arabicNumerals.forEach((arabic, index) => {
+      result = result.replace(new RegExp(arabic, 'g'), index.toString());
+    });
+    return result;
+  };
+
+  // Check if string contains only English numbers (and allowed characters)
+  const hasOnlyEnglishNumbers = (str: string): boolean => {
+    const arabicNumerals = /[٠-٩]/;
+    return !arabicNumerals.test(str);
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
@@ -95,6 +111,8 @@ export function PublicRegistrationModal({
     }
     if (!formData.employeeId.trim()) {
       newErrors.employeeId = 'الرقم الوظيفي مطلوب';
+    } else if (!hasOnlyEnglishNumbers(formData.employeeId)) {
+      newErrors.employeeId = 'الرقم الوظيفي يجب أن يحتوي على أرقام إنجليزية فقط';
     }
     if (!formData.court.trim()) {
       newErrors.court = 'الدائرة/المحكمة مطلوبة';
@@ -109,6 +127,8 @@ export function PublicRegistrationModal({
     }
     if (!formData.phone.trim()) {
       newErrors.phone = 'رقم الجوال مطلوب';
+    } else if (!hasOnlyEnglishNumbers(formData.phone)) {
+      newErrors.phone = 'رقم الجوال يجب أن يحتوي على أرقام إنجليزية فقط';
     }
     if (!batchId) {
       newErrors.batchId = 'يرجى اختيار الدفعة';
@@ -127,10 +147,18 @@ export function PublicRegistrationModal({
   };
 
   const handleEmployeeIdChange = (value: string) => {
-    setFormData({ ...formData, employeeId: value });
+    // Convert Arabic numbers to English
+    const convertedValue = convertArabicToEnglish(value);
+    setFormData({ ...formData, employeeId: convertedValue });
     // Check for duplicate on change
-    const duplicate = checkDuplicateRegistration(value);
+    const duplicate = checkDuplicateRegistration(convertedValue);
     setDuplicateError(duplicate);
+  };
+
+  const handlePhoneChange = (value: string) => {
+    // Convert Arabic numbers to English
+    const convertedValue = convertArabicToEnglish(value);
+    setFormData({ ...formData, phone: convertedValue });
   };
 
   const handleSubmit = async () => {
@@ -407,7 +435,7 @@ export function PublicRegistrationModal({
                     type="tel"
                     placeholder="05xxxxxxxx"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
                     className={`pr-9 ${errors.phone ? 'border-destructive' : ''}`}
                   />
                 </div>
