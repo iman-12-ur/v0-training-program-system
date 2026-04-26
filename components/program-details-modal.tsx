@@ -54,7 +54,7 @@ export function ProgramDetailsModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] p-0" style={{ direction: 'rtl' }}>
         <DialogHeader className="border-b p-6 pb-4">
-          <div className="flex items-start justify-between gap-4 flex-row-reverse">
+          <div className="flex items-start justify-between gap-4">
             {program.logo && (
               <img
                 src={program.logo}
@@ -62,11 +62,11 @@ export function ProgramDetailsModal({
                 className="h-16 w-16 rounded-lg object-contain border bg-white shrink-0"
               />
             )}
-            <div className="flex-1 text-right">
+            <div className="flex-1">
               <DialogTitle className="text-2xl font-bold mb-2">
                 {program.title}
               </DialogTitle>
-              <div className="flex flex-wrap gap-2 justify-end">
+              <div className="flex flex-wrap gap-2">
                 {program.categories?.map((cat) => (
                   <Badge key={cat} variant="secondary">
                     {cat}
