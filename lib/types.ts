@@ -36,6 +36,7 @@ export interface TrainingProgram {
   batches: Batch[];
   prerequisites?: string[];
   objectives?: string[];
+  topics?: string[];
   status: 'active' | 'inactive' | 'draft';
   createdAt: string;
 }
