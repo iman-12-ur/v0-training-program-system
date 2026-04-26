@@ -75,7 +75,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
       ...formData,
       categories: formData.selectedCategories,
       id: `prog-${Date.now()}`,
-      status: 'draft',
+      status: 'active',
       createdAt: new Date().toISOString().split('T')[0],
       batches: [],
       objectives: formData.objectives.filter((o) => o.trim()),
