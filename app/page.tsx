@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -67,6 +69,14 @@ export default function TrainingManagementSystem() {
   const [programs, setPrograms] = useState(mockPrograms);
   const [registrations, setRegistrations] = useState(mockRegistrations);
   const [stats, setStats] = useState(mockStats);
+  
+  // Welcome settings state
+  const [welcomeSettings, setWelcomeSettings] = useState({
+    title: 'مرحباً بك في بوابة التدريب',
+    description: 'استعرض البرامج التدريبية المتاحة وقدّم طلب ترشيحك للبرنامج المناسب. سيتم مراجعة طلبك وإبلاغك بالنتيجة عبر البريد الإلكتروني.',
+    adminWelcome: 'مرحباً،',
+    adminDescription: 'لوحة إدارة البرامج التدريبية - يمكنك إدارة البرامج والتسجيلات من هنا',
+  });
 
   // Programs state
   const [selectedCategory, setSelectedCategory] = useState('الكل');
@@ -373,6 +383,8 @@ export default function TrainingManagementSystem() {
         registrations={registrations}
         onRegister={handlePublicRegister}
         onAdminLogin={() => setViewMode('login')}
+        welcomeTitle={welcomeSettings.title}
+        welcomeDescription={welcomeSettings.description}
       />
     );
   }
@@ -397,10 +409,10 @@ export default function TrainingManagementSystem() {
             <div className="flex items-center justify-between">
               <div className="rounded-2xl bg-gradient-to-l from-primary/10 via-primary/5 to-transparent p-8 flex-1">
                 <h1 className="text-3xl font-bold text-foreground">
-                  مرحباً، {adminUser.name}
+                  {welcomeSettings.adminWelcome} {adminUser.name}
                 </h1>
                 <p className="mt-2 text-muted-foreground">
-                  لوحة إدارة البرامج التدريبية - يمكنك إدارة البرامج والتسجيلات من هنا
+                  {welcomeSettings.adminDescription}
                 </p>
               </div>
               <Button
@@ -646,6 +658,70 @@ export default function TrainingManagementSystem() {
                 إدارة إعدادات النظام والمستخدمين والصلاحيات
               </p>
             </div>
+            
+            {/* Welcome Settings */}
+            <Card className="border-none shadow-sm">
+              <CardHeader>
+                <CardTitle>إعدادات الترحيب</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="welcomeTitle">عنوان الترحيب (الصفحة العامة)</Label>
+                  <Input
+                    id="welcomeTitle"
+                    value={welcomeSettings.title}
+                    onChange={(e) =>
+                      setWelcomeSettings((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                    placeholder="مثال: مرحباً بك في بوابة التدريب"
+                    className="text-right"
+                    style={{ direction: 'rtl' }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="welcomeDesc">وصف الترحيب (الصفحة العامة)</Label>
+                  <Textarea
+                    id="welcomeDesc"
+                    value={welcomeSettings.description}
+                    onChange={(e) =>
+                      setWelcomeSettings((prev) => ({ ...prev, description: e.target.value }))
+                    }
+                    placeholder="وصف يظهر للزوار في الصفحة الرئيسية"
+                    rows={3}
+                    className="text-right"
+                    style={{ direction: 'rtl' }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="adminWelcome">عنوان ترحيب المدير</Label>
+                  <Input
+                    id="adminWelcome"
+                    value={welcomeSettings.adminWelcome}
+                    onChange={(e) =>
+                      setWelcomeSettings((prev) => ({ ...prev, adminWelcome: e.target.value }))
+                    }
+                    placeholder="مثال: مرحباً،"
+                    className="text-right"
+                    style={{ direction: 'rtl' }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="adminDesc">وصف لوحة التحكم</Label>
+                  <Textarea
+                    id="adminDesc"
+                    value={welcomeSettings.adminDescription}
+                    onChange={(e) =>
+                      setWelcomeSettings((prev) => ({ ...prev, adminDescription: e.target.value }))
+                    }
+                    placeholder="وصف يظهر في لوحة تحكم المدير"
+                    rows={2}
+                    className="text-right"
+                    style={{ direction: 'rtl' }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
             <UsersManager
               users={adminUsers}
               onAddUser={handleAddAdminUser}

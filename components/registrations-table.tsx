@@ -38,6 +38,9 @@ import {
   Mail,
   Phone,
   Trash2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import type { Registration, TrainingProgram } from '@/lib/types';
 import * as XLSX from 'xlsx';
@@ -62,6 +65,28 @@ export function RegistrationsTable({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [programFilter, setProgramFilter] = useState<string>('all');
+  const [sortField, setSortField] = useState<string>('registeredAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4 mr-1 opacity-50" />;
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="h-4 w-4 mr-1" />
+    ) : (
+      <ArrowDown className="h-4 w-4 mr-1" />
+    );
+  };
 
   const getStatusBadge = (status: Registration['status']) => {
     switch (status) {
@@ -94,10 +119,47 @@ export function RegistrationsTable({
       return matchesSearch && matchesStatus && matchesProgram;
     })
     .sort((a, b) => {
-      // Sort by registration date descending (newest first)
-      const dateA = new Date(a.registeredAt).getTime();
-      const dateB = new Date(b.registeredAt).getTime();
-      return dateB - dateA;
+      let valueA: string | number;
+      let valueB: string | number;
+      
+      switch (sortField) {
+        case 'visitorName':
+          valueA = a.visitorName.toLowerCase();
+          valueB = b.visitorName.toLowerCase();
+          break;
+        case 'employeeId':
+          valueA = a.employeeId;
+          valueB = b.employeeId;
+          break;
+        case 'court':
+          valueA = (a.court || '').toLowerCase();
+          valueB = (b.court || '').toLowerCase();
+          break;
+        case 'programTitle':
+          valueA = a.programTitle.toLowerCase();
+          valueB = b.programTitle.toLowerCase();
+          break;
+        case 'batchName':
+          valueA = a.batchName.toLowerCase();
+          valueB = b.batchName.toLowerCase();
+          break;
+        case 'registeredAt':
+          valueA = new Date(a.registeredAt).getTime();
+          valueB = new Date(b.registeredAt).getTime();
+          break;
+        case 'status':
+          const statusOrder = { pending: 0, approved: 1, rejected: 2, completed: 3 };
+          valueA = statusOrder[a.status];
+          valueB = statusOrder[b.status];
+          break;
+        default:
+          valueA = new Date(a.registeredAt).getTime();
+          valueB = new Date(b.registeredAt).getTime();
+      }
+      
+      if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
+      if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
     });
 
   // Get approved registrations for export (filtered by selected program)
@@ -248,14 +310,84 @@ export function RegistrationsTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">الموظف</TableHead>
-                <TableHead className="text-right">الرقم الوظيفي</TableHead>
-                <TableHead className="text-right">الدائرة/المحكمة</TableHead>
+                <TableHead className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 hover:bg-muted"
+                    onClick={() => handleSort('visitorName')}
+                  >
+                    الموظف
+                    {getSortIcon('visitorName')}
+                  </Button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 hover:bg-muted"
+                    onClick={() => handleSort('employeeId')}
+                  >
+                    الرقم الوظيفي
+                    {getSortIcon('employeeId')}
+                  </Button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 hover:bg-muted"
+                    onClick={() => handleSort('court')}
+                  >
+                    الدائرة/المحكمة
+                    {getSortIcon('court')}
+                  </Button>
+                </TableHead>
                 <TableHead className="text-right">التواصل</TableHead>
-                <TableHead className="text-right">البرنامج</TableHead>
-                <TableHead className="text-right">الدفعة</TableHead>
-                <TableHead className="text-right">تاريخ التسجيل</TableHead>
-                <TableHead className="text-right">الحالة</TableHead>
+                <TableHead className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 hover:bg-muted"
+                    onClick={() => handleSort('programTitle')}
+                  >
+                    البرنامج
+                    {getSortIcon('programTitle')}
+                  </Button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 hover:bg-muted"
+                    onClick={() => handleSort('batchName')}
+                  >
+                    الدفعة
+                    {getSortIcon('batchName')}
+                  </Button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 hover:bg-muted"
+                    onClick={() => handleSort('registeredAt')}
+                  >
+                    تاريخ التسجيل
+                    {getSortIcon('registeredAt')}
+                  </Button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 hover:bg-muted"
+                    onClick={() => handleSort('status')}
+                  >
+                    الحالة
+                    {getSortIcon('status')}
+                  </Button>
+                </TableHead>
                 {showActions && (
                   <TableHead className="text-right">الإجراءات</TableHead>
                 )}
@@ -394,7 +526,7 @@ export function RegistrationsTable({
             الإجمالي: <strong className="text-foreground">{filteredRegistrations.length}</strong>
           </span>
           <span>
-            بانتظار الموافقة:{' '}
+            ��انتظار الموافقة:{' '}
             <strong className="text-amber-600">
               {filteredRegistrations.filter((r) => r.status === 'pending').length}
             </strong>

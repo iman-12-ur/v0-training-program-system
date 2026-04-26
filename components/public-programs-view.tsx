@@ -24,6 +24,8 @@ interface PublicProgramsViewProps {
   registrations: Registration[];
   onRegister: (registration: Omit<Registration, 'id' | 'status' | 'registeredAt' | 'approvedBy' | 'approvedAt'>) => void;
   onAdminLogin: () => void;
+  welcomeTitle?: string;
+  welcomeDescription?: string;
 }
 
 export function PublicProgramsView({
@@ -31,6 +33,8 @@ export function PublicProgramsView({
   registrations,
   onRegister,
   onAdminLogin,
+  welcomeTitle = 'مرحباً بك في بوابة التدريب',
+  welcomeDescription = 'استعرض البرامج التدريبية المتاحة وقدّم طلب ترشيحك للبرنامج المناسب. سيتم مراجعة طلبك وإبلاغك بالنتيجة عبر البريد الإلكتروني.',
 }: PublicProgramsViewProps) {
   const [selectedCategory, setSelectedCategory] = useState('الكل');
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,11 +116,10 @@ export function PublicProgramsView({
         {/* Hero Section */}
         <div className="mb-8 rounded-2xl bg-gradient-to-l from-primary/10 via-primary/5 to-transparent p-8">
           <h2 className="text-3xl font-bold text-foreground">
-            مرحباً بك في بوابة التدريب
+            {welcomeTitle}
           </h2>
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            استعرض البرامج التدريبية المتاحة وقدّم طلب ترشيحك للبرنامج المناسب.
-            سيتم مراجعة طلبك وإبلاغك بالنتيجة عبر البريد الإلكتروني.
+            {welcomeDescription}
           </p>
         </div>
 

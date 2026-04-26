@@ -43,6 +43,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
     location: '',
     logo: '',
     objectives: [''],
+    topics: [''],
     prerequisites: [''],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,10 +75,11 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
       ...formData,
       categories: formData.selectedCategories,
       id: `prog-${Date.now()}`,
-      status: 'draft',
+      status: 'active',
       createdAt: new Date().toISOString().split('T')[0],
       batches: [],
       objectives: formData.objectives.filter((o) => o.trim()),
+      topics: formData.topics.filter((t) => t.trim()),
       prerequisites: formData.prerequisites.filter((p) => p.trim()),
     });
     setIsSubmitting(false);
@@ -92,6 +94,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
       location: '',
       logo: '',
       objectives: [''],
+      topics: [''],
       prerequisites: [''],
     });
   };
@@ -373,7 +376,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
               </div>
             </div>
 
-            {/* Objectives */}
+{/* Objectives */}
             <div className="space-y-3" style={{ direction: 'rtl' }}>
               <Label htmlFor="objectives">أهداف البرنامج</Label>
               <Textarea
@@ -382,12 +385,36 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
 مثال:
 - فهم أساسيات القيادة الفعالة
 - تطوير مهارات التواصل
-- بناء فرق عمل متماسك��"
+- بناء فرق عمل متماسكة"
                 value={formData.objectives.join('\n')}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
                     objectives: e.target.value.split('\n'),
+                  }))
+                }
+                rows={4}
+                className="text-right"
+                style={{ direction: 'rtl' }}
+              />
+            </div>
+
+            {/* Topics */}
+            <div className="space-y-3" style={{ direction: 'rtl' }}>
+              <Label htmlFor="topics">محاور البرنامج</Label>
+              <Textarea
+                id="topics"
+                placeholder="اكتب محاور البرنامج (كل محور في سطر جديد)
+مثال:
+- مفهوم القيادة وأنماطها
+- مهارات التأثير والإقناع
+- إدارة فرق العمل
+- حل المشكلات واتخاذ القرارات"
+                value={formData.topics.join('\n')}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    topics: e.target.value.split('\n'),
                   }))
                 }
                 rows={4}

@@ -17,6 +17,10 @@ import {
   Users,
   CheckCircle2,
   AlertCircle,
+  BookOpen,
+  Target,
+  Tag,
+  Briefcase,
 } from 'lucide-react';
 import type { TrainingProgram, Batch } from '@/lib/types';
 
@@ -48,11 +52,21 @@ export function ProgramDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0">
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0" style={{ direction: 'rtl' }}>
         <DialogHeader className="border-b p-6 pb-4">
           <div className="flex items-start justify-between gap-4">
+            {program.logo && (
+              <img
+                src={program.logo}
+                alt="شعار البرنامج"
+                className="h-16 w-16 rounded-lg object-contain border bg-white shrink-0"
+              />
+            )}
             <div className="flex-1">
-              <div className="flex flex-wrap gap-2 mb-2">
+              <DialogTitle className="text-2xl font-bold mb-2">
+                {program.title}
+              </DialogTitle>
+              <div className="flex flex-wrap gap-2">
                 {program.categories?.map((cat) => (
                   <Badge key={cat} variant="secondary">
                     {cat}
@@ -64,44 +78,46 @@ export function ProgramDetailsModal({
                   </Badge>
                 )}
               </div>
-              <DialogTitle className="text-2xl font-bold">
-                {program.title}
-              </DialogTitle>
-              {program.targetAudience && (
-                <p className="mt-2 text-sm text-primary">
-                  الفئة المستهدفة: {program.targetAudience}
-                </p>
-              )}
             </div>
-            {program.logo && (
-              <img
-                src={program.logo}
-                alt="شعار البرنامج"
-                className="h-16 w-16 rounded-lg object-contain border bg-white shrink-0"
-              />
-            )}
           </div>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh]">
-          <div className="space-y-6 p-6">
-            {/* Description */}
-            <div>
+          <div className="space-y-6 p-6" style={{ direction: 'rtl' }}>
+            
+            {/* 1. Description - وصف البرنامج */}
+            <div className="rounded-lg border p-4" style={{ direction: 'rtl' }}>
               <h4 className="mb-2 font-semibold text-foreground">وصف البرنامج</h4>
-              <p className="text-muted-foreground">{program.description}</p>
+              <p className="text-muted-foreground leading-relaxed">{program.description}</p>
             </div>
 
-            {/* Details Grid */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-4">
-                <div className="rounded-full bg-primary/10 p-2">
-                  <Clock className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">المدة</p>
-                  <p className="font-medium">{program.duration}</p>
-                </div>
+            {/* 2. Target Audience - الفئة المستهدفة */}
+            {program.targetAudience && (
+              <div className="rounded-lg border p-4 bg-primary/5" style={{ direction: 'rtl' }}>
+                <h4 className="mb-2 font-semibold text-foreground flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  الفئة المستهدفة
+                </h4>
+                <p className="text-muted-foreground">{program.targetAudience}</p>
               </div>
+            )}
+
+            {/* 3. Program Details Grid - تفاصيل البرنامج */}
+            <div className="grid gap-4 sm:grid-cols-2" style={{ direction: 'rtl' }}>
+              {/* نوع البرنامج */}
+              {program.programType && (
+                <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-4">
+                  <div className="rounded-full bg-primary/10 p-2">
+                    <Briefcase className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">نوع البرنامج</p>
+                    <p className="font-medium">{program.programType}</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* المدرب */}
               <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-4">
                 <div className="rounded-full bg-primary/10 p-2">
                   <User className="h-5 w-5 text-primary" />
@@ -111,7 +127,20 @@ export function ProgramDetailsModal({
                   <p className="font-medium">{program.instructor}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-4 sm:col-span-2">
+              
+              {/* المدة */}
+              <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-4">
+                <div className="rounded-full bg-primary/10 p-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">المدة</p>
+                  <p className="font-medium">{program.duration}</p>
+                </div>
+              </div>
+              
+              {/* الموقع */}
+              <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-4">
                 <div className="rounded-full bg-primary/10 p-2">
                   <MapPin className="h-5 w-5 text-primary" />
                 </div>
@@ -122,14 +151,15 @@ export function ProgramDetailsModal({
               </div>
             </div>
 
-            {/* Objectives */}
-            {program.objectives && program.objectives.length > 0 && (
-              <div>
-                <h4 className="mb-3 font-semibold text-foreground">
+            {/* 4. Objectives - أهداف البرنامج */}
+            {program.objectives && program.objectives.length > 0 && program.objectives.some(o => o.trim()) && (
+              <div className="rounded-lg border p-4 bg-emerald-50/50 border-emerald-200" style={{ direction: 'rtl' }}>
+                <h4 className="mb-3 font-semibold text-foreground flex items-center gap-2">
+                  <Target className="h-5 w-5 text-emerald-600" />
                   أهداف البرنامج
                 </h4>
-                <ul className="space-y-2">
-                  {program.objectives.map((obj, index) => (
+                <ul className="space-y-2 pr-2">
+                  {program.objectives.filter(o => o.trim()).map((obj, index) => (
                     <li
                       key={index}
                       className="flex items-start gap-2 text-muted-foreground"
@@ -142,14 +172,36 @@ export function ProgramDetailsModal({
               </div>
             )}
 
-            {/* Prerequisites */}
-            {program.prerequisites && program.prerequisites.length > 0 && (
-              <div>
-                <h4 className="mb-3 font-semibold text-foreground">
+            {/* 5. Topics - محاور البرنامج */}
+            {program.topics && program.topics.length > 0 && program.topics.some(t => t.trim()) && (
+              <div className="rounded-lg border p-4 bg-blue-50/50 border-blue-200" style={{ direction: 'rtl' }}>
+                <h4 className="mb-3 font-semibold text-foreground flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-blue-600" />
+                  محاور البرنامج
+                </h4>
+                <ul className="space-y-2 pr-2">
+                  {program.topics.filter(t => t.trim()).map((topic, index) => (
+                    <li
+                      key={index}
+                      className="flex items-start gap-2 text-muted-foreground"
+                    >
+                      <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                      <span>{topic}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* 6. Prerequisites - المتطلبات المسبقة */}
+            {program.prerequisites && program.prerequisites.length > 0 && program.prerequisites.some(p => p.trim()) && (
+              <div className="rounded-lg border p-4 border-amber-200 bg-amber-50/50" style={{ direction: 'rtl' }}>
+                <h4 className="mb-3 font-semibold text-foreground flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
                   المتطلبات المسبقة
                 </h4>
-                <ul className="space-y-2">
-                  {program.prerequisites.map((req, index) => (
+                <ul className="space-y-2 pr-2">
+                  {program.prerequisites.filter(p => p.trim()).map((req, index) => (
                     <li
                       key={index}
                       className="flex items-start gap-2 text-muted-foreground"
@@ -162,10 +214,13 @@ export function ProgramDetailsModal({
               </div>
             )}
 
-            {/* Batches */}
+            {/* 7. Batches - الدفعات */}
             {program.batches.length > 0 && (
-              <div>
-                <h4 className="mb-3 font-semibold text-foreground">الدفعات</h4>
+              <div className="rounded-lg border p-4" style={{ direction: 'rtl' }}>
+                <h4 className="mb-3 font-semibold text-foreground flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  الدفعات المتاحة
+                </h4>
                 <div className="space-y-3">
                   {program.batches.map((batch) => {
                     const isFull =

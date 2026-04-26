@@ -50,6 +50,7 @@ export function EditProgramForm({
     location: '',
     logo: '',
     objectives: [''] as string[],
+    topics: [''] as string[],
     prerequisites: [''] as string[],
     status: 'active' as TrainingProgram['status'],
   });
@@ -73,6 +74,7 @@ export function EditProgramForm({
         location: program.location,
         logo: program.logo || '',
         objectives: program.objectives?.length ? program.objectives : [''],
+        topics: program.topics?.length ? program.topics : [''],
         prerequisites: program.prerequisites?.length ? program.prerequisites : [''],
         status: program.status,
       });
@@ -127,6 +129,7 @@ export function EditProgramForm({
       location: formData.location,
       logo: formData.logo,
       objectives: formData.objectives.filter((o) => o.trim()),
+      topics: formData.topics.filter((t) => t.trim()),
       prerequisites: formData.prerequisites.filter((p) => p.trim()),
       status: formData.status,
     };
@@ -417,6 +420,30 @@ export function EditProgramForm({
                   setFormData((prev) => ({
                     ...prev,
                     objectives: e.target.value.split('\n'),
+                  }))
+                }
+                rows={4}
+                className="text-right"
+                style={{ direction: 'rtl' }}
+              />
+            </div>
+
+            {/* Topics */}
+            <div className="space-y-3" style={{ direction: 'rtl' }}>
+              <Label htmlFor="edit-topics">المحاور</Label>
+              <Textarea
+                id="edit-topics"
+                placeholder="اكتب محاور البرنامج (كل محور في سطر جديد)
+مثال:
+- مفهوم القيادة وأنماطها
+- مهارات التأثير والإقناع
+- إدارة فرق العمل
+- حل المشكلات واتخاذ القرارات"
+                value={formData.topics.join('\n')}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    topics: e.target.value.split('\n'),
                   }))
                 }
                 rows={4}
