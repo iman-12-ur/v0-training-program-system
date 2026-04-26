@@ -17,6 +17,8 @@ import {
   Users,
   CheckCircle2,
   AlertCircle,
+  BookOpen,
+  Target,
 } from 'lucide-react';
 import type { TrainingProgram, Batch } from '@/lib/types';
 
@@ -123,13 +125,14 @@ export function ProgramDetailsModal({
             </div>
 
             {/* Objectives */}
-            {program.objectives && program.objectives.length > 0 && (
-              <div>
-                <h4 className="mb-3 font-semibold text-foreground">
+            {program.objectives && program.objectives.length > 0 && program.objectives.some(o => o.trim()) && (
+              <div className="rounded-lg border p-4">
+                <h4 className="mb-3 font-semibold text-foreground flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
                   أهداف البرنامج
                 </h4>
-                <ul className="space-y-2">
-                  {program.objectives.map((obj, index) => (
+                <ul className="space-y-2 pr-2">
+                  {program.objectives.filter(o => o.trim()).map((obj, index) => (
                     <li
                       key={index}
                       className="flex items-start gap-2 text-muted-foreground"
@@ -142,14 +145,36 @@ export function ProgramDetailsModal({
               </div>
             )}
 
+            {/* Topics */}
+            {program.topics && program.topics.length > 0 && program.topics.some(t => t.trim()) && (
+              <div className="rounded-lg border p-4">
+                <h4 className="mb-3 font-semibold text-foreground flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  محاور البرنامج
+                </h4>
+                <ul className="space-y-2 pr-2">
+                  {program.topics.filter(t => t.trim()).map((topic, index) => (
+                    <li
+                      key={index}
+                      className="flex items-start gap-2 text-muted-foreground"
+                    >
+                      <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                      <span>{topic}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Prerequisites */}
-            {program.prerequisites && program.prerequisites.length > 0 && (
-              <div>
-                <h4 className="mb-3 font-semibold text-foreground">
+            {program.prerequisites && program.prerequisites.length > 0 && program.prerequisites.some(p => p.trim()) && (
+              <div className="rounded-lg border p-4 border-amber-200 bg-amber-50/50">
+                <h4 className="mb-3 font-semibold text-foreground flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
                   المتطلبات المسبقة
                 </h4>
-                <ul className="space-y-2">
-                  {program.prerequisites.map((req, index) => (
+                <ul className="space-y-2 pr-2">
+                  {program.prerequisites.filter(p => p.trim()).map((req, index) => (
                     <li
                       key={index}
                       className="flex items-start gap-2 text-muted-foreground"
