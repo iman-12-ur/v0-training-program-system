@@ -1,0 +1,57 @@
+@model Registration
+@{
+    ViewData["Title"] = "تم استلام طلبك";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow text-center">
+                <div class="card-body p-5">
+                    <div class="mb-4">
+                        <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <i class="bi bi-check-lg fs-1"></i>
+                        </div>
+                    </div>
+                    
+                    <h2 class="text-success mb-3">تم استلام طلبك بنجاح!</h2>
+                    <p class="text-muted mb-4">
+                        شكراً لك، تم تسجيل طلب ترشيحك وسيتم مراجعته من قبل الإدارة المختصة.
+                        سيتم إبلاغك بالنتيجة عبر البريد الإلكتروني.
+                    </p>
+
+                    <div class="bg-light rounded p-4 text-start mb-4">
+                        <h6 class="fw-bold mb-3">ملخص الطلب:</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <small class="text-muted">البرنامج:</small>
+                                <div class="fw-bold">@Model.TrainingProgram?.Title</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">الدفعة:</small>
+                                <div class="fw-bold">@Model.Batch?.Name</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">اسم الموظف:</small>
+                                <div class="fw-bold">@Model.EmployeeName</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">الرقم الوظيفي:</small>
+                                <div class="fw-bold">@Model.EmployeeId</div>
+                            </div>
+                            <div class="col-12">
+                                <small class="text-muted">رقم الطلب:</small>
+                                <div class="fw-bold text-primary">#@Model.Id</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <a asp-action="Index" class="btn btn-primary">
+                        <i class="bi bi-house me-1"></i>
+                        العودة للرئيسية
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

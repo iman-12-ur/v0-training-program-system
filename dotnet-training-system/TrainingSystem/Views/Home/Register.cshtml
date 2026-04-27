@@ -1,0 +1,137 @@
+@model RegistrationFormViewModel
+@{
+    ViewData["Title"] = "التسجيل في البرنامج";
+}
+
+<div class="container py-5">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">الرئيسية</a></li>
+            <li class="breadcrumb-item"><a asp-action="ProgramDetails" asp-route-id="@Model.Program?.Id">@Model.Program?.Title</a></li>
+            <li class="breadcrumb-item active">التسجيل</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-pencil-square me-2"></i>
+                        نموذج الترشيح
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Program Info -->
+                    <div class="alert alert-info d-flex align-items-center mb-4">
+                        <i class="bi bi-info-circle fs-4 me-3"></i>
+                        <div>
+                            <strong>البرنامج:</strong> @Model.Program?.Title
+                            <br>
+                            <small class="text-muted">المدرب: @Model.Program?.Instructor | المدة: @Model.Program?.Duration</small>
+                        </div>
+                    </div>
+
+                    <form asp-action="Register" method="post">
+                        <input type="hidden" asp-for="Registration.TrainingProgramId" />
+
+                        <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+                        <!-- Batch Selection -->
+                        <div class="mb-4">
+                            <label asp-for="Registration.BatchId" class="form-label fw-bold">
+                                <i class="bi bi-calendar3 text-primary me-1"></i>
+                                اختر الدفعة <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="Registration.BatchId" class="form-select form-select-lg">
+                                <option value="">-- اختر الدفعة --</option>
+                                @foreach (var batch in Model.AvailableBatches)
+                                {
+                                    <option value="@batch.Id">
+                                        @batch.Name - من @batch.StartDate.ToString("yyyy/MM/dd") إلى @batch.EndDate.ToString("yyyy/MM/dd") 
+                                        (@batch.AvailableSeats مقعد متاح)
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="Registration.BatchId" class="text-danger"></span>
+                        </div>
+
+                        <hr class="my-4">
+                        <h5 class="mb-3 text-muted">البيانات الشخصية</h5>
+
+                        <div class="row g-3">
+                            <!-- Employee Name -->
+                            <div class="col-md-6">
+                                <label asp-for="Registration.EmployeeName" class="form-label">
+                                    اسم الموظف <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Registration.EmployeeName" class="form-control" placeholder="الاسم الثلاثي">
+                                <span asp-validation-for="Registration.EmployeeName" class="text-danger"></span>
+                            </div>
+
+                            <!-- Employee ID -->
+                            <div class="col-md-6">
+                                <label asp-for="Registration.EmployeeId" class="form-label">
+                                    الرقم الوظيفي <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Registration.EmployeeId" class="form-control" placeholder="أدخل الرقم الوظيفي (أرقام إنجليزية)" dir="ltr">
+                                <span asp-validation-for="Registration.EmployeeId" class="text-danger"></span>
+                            </div>
+
+                            <!-- Court -->
+                            <div class="col-md-6">
+                                <label asp-for="Registration.Court" class="form-label">
+                                    الدائرة / المحكمة <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Registration.Court" class="form-control" placeholder="مثال: محكمة الدرجة الأولى">
+                                <span asp-validation-for="Registration.Court" class="text-danger"></span>
+                            </div>
+
+                            <!-- Department -->
+                            <div class="col-md-6">
+                                <label asp-for="Registration.Department" class="form-label">
+                                    القسم <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Registration.Department" class="form-control" placeholder="مثال: قسم الجلسات">
+                                <span asp-validation-for="Registration.Department" class="text-danger"></span>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="col-md-6">
+                                <label asp-for="Registration.Email" class="form-label">
+                                    البريد الإلكتروني <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Registration.Email" class="form-control" type="email" placeholder="example@sjc.gov.sa" dir="ltr">
+                                <span asp-validation-for="Registration.Email" class="text-danger"></span>
+                            </div>
+
+                            <!-- Phone -->
+                            <div class="col-md-6">
+                                <label asp-for="Registration.Phone" class="form-label">
+                                    رقم الجوال <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Registration.Phone" class="form-control" placeholder="05XXXXXXXX" dir="ltr">
+                                <span asp-validation-for="Registration.Phone" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary btn-lg flex-grow-1">
+                                <i class="bi bi-send me-2"></i>
+                                تقديم طلب الترشيح
+                            </button>
+                            <a asp-action="ProgramDetails" asp-route-id="@Model.Program?.Id" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-arrow-right me-1"></i>
+                                رجوع
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
