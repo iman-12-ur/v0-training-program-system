@@ -37,10 +37,6 @@ namespace TrainingSystem.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.HasMany(e => e.Registrations)
-                      .WithOne(r => r.Batch)
-                      .HasForeignKey(r => r.BatchId)
-                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Configure Registration
@@ -51,6 +47,17 @@ namespace TrainingSystem.Data
                 entity.Property(e => e.EmployeeId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Phone).IsRequired().HasMaxLength(20);
+                
+                // Fix cascade delete issue
+                entity.HasOne(e => e.TrainingProgram)
+                      .WithMany()
+                      .HasForeignKey(e => e.TrainingProgramId)
+                      .OnDelete(DeleteBehavior.NoAction);
+                      
+                entity.HasOne(e => e.Batch)
+                      .WithMany(b => b.Registrations)
+                      .HasForeignKey(e => e.BatchId)
+                      .OnDelete(DeleteBehavior.NoAction);
             });
 
             // Configure SystemSettings
