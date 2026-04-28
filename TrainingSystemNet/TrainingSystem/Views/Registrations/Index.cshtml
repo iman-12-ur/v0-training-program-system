@@ -1,0 +1,182 @@
+@model IEnumerable<Registration>
+@{
+    ViewData["Title"] = "طلبات الترشيح";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">
+        <i class="bi bi-person-lines-fill me-2 text-primary"></i> طلبات الترشيح
+    </h2>
+    <a asp-action="Export" class="btn btn-success">
+        <i class="bi bi-download me-2"></i> تصدير Excel
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">البحث</label>
+                <input type="text" name="search" class="form-control" placeholder="اسم أو رقم وظيفي أو بريد..." value="@ViewBag.Search" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">الحالة</label>
+                <select name="status" class="form-select">
+                    <option value="">جميع الحالات</option>
+                    <option value="Pending" selected="@(ViewBag.CurrentStatus == "Pending")">قيد المراجعة</option>
+                    <option value="Approved" selected="@(ViewBag.CurrentStatus == "Approved")">مقبول</option>
+                    <option value="Rejected" selected="@(ViewBag.CurrentStatus == "Rejected")">مرفوض</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-2"></i> بحث
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-x-circle me-2"></i> مسح
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>الموظف</th>
+                            <th>جهة العمل</th>
+                            <th>البرنامج / الدفعة</th>
+                            <th>التواصل</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                            <th style="width: 150px">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reg in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@reg.VisitorName</strong>
+                                    <br /><small class="text-muted">@reg.EmployeeId</small>
+                                </td>
+                                <td>
+                                    <small>@reg.Court</small>
+                                    <br /><small class="text-muted">@reg.Department</small>
+                                </td>
+                                <td>
+                                    <small>@reg.Batch?.TrainingProgram?.Title</small>
+                                    <br /><small class="text-muted">@reg.Batch?.Name</small>
+                                </td>
+                                <td>
+                                    <small><i class="bi bi-envelope me-1"></i> @reg.Email</small>
+                                    <br /><small><i class="bi bi-phone me-1"></i> @reg.Phone</small>
+                                </td>
+                                <td>
+                                    <small>@reg.RegisteredAt.ToString("yyyy/MM/dd")</small>
+                                    <br /><small class="text-muted">@reg.RegisteredAt.ToString("HH:mm")</small>
+                                </td>
+                                <td>
+                                    @switch (reg.Status)
+                                    {
+                                        case RegistrationStatus.Pending:
+                                            <span class="badge bg-warning">قيد المراجعة</span>
+                                            break;
+                                        case RegistrationStatus.Approved:
+                                            <span class="badge bg-success">مقبول</span>
+                                            break;
+                                        case RegistrationStatus.Rejected:
+                                            <span class="badge bg-danger">مرفوض</span>
+                                            break;
+                                        case RegistrationStatus.Completed:
+                                            <span class="badge bg-info">مكتمل</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (reg.Status == RegistrationStatus.Pending)
+                                    {
+                                        <form asp-action="Approve" asp-route-id="@reg.Id" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-success" title="قبول">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger" title="رفض"
+                                                data-bs-toggle="modal" data-bs-target="#rejectModal@(reg.Id)">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    }
+                                    <a asp-action="Details" asp-route-id="@reg.Id" class="btn btn-sm btn-outline-primary" title="تفاصيل">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
+                                            data-bs-toggle="modal" data-bs-target="#deleteModal@(reg.Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+
+                                    <!-- Reject Modal -->
+                                    <div class="modal fade" id="rejectModal@(reg.Id)" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form asp-action="Reject" asp-route-id="@reg.Id" method="post">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">رفض الطلب</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <label class="form-label">سبب الرفض (اختياري)</label>
+                                                        <textarea name="notes" class="form-control" rows="3" placeholder="أدخل سبب الرفض..."></textarea>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                        <button type="submit" class="btn btn-danger">رفض الطلب</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Delete Modal -->
+                                    <div class="modal fade" id="deleteModal@(reg.Id)" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">تأكيد الحذف</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    هل أنت متأكد من حذف طلب "@reg.VisitorName"؟
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                    <form asp-action="Delete" asp-route-id="@reg.Id" method="post" class="d-inline">
+                                                        <button type="submit" class="btn btn-danger">حذف</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 mb-3 d-block"></i>
+                لا توجد طلبات ترشيح
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,105 @@
+@model Registration
+@{
+    ViewData["Title"] = "التسجيل في البرنامج";
+    var program = ViewBag.Program as TrainingProgram;
+    var batch = ViewBag.Batch as Batch;
+}
+
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">البرامج التدريبية</a></li>
+        <li class="breadcrumb-item"><a asp-action="ProgramDetails" asp-route-id="@program?.Id">@program?.Title</a></li>
+        <li class="breadcrumb-item active">التسجيل</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-pencil-square me-2"></i>
+                    نموذج التسجيل
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <!-- Program & Batch Info -->
+                <div class="alert alert-info mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong><i class="bi bi-collection me-2"></i> البرنامج:</strong> @program?.Title
+                        </div>
+                        <div class="col-md-6">
+                            <strong><i class="bi bi-calendar3 me-2"></i> الدفعة:</strong> @batch?.Name
+                        </div>
+                    </div>
+                </div>
+
+                <form asp-action="Register" method="post">
+                    <input type="hidden" asp-for="BatchId" />
+                    
+                    <div asp-validation-summary="All" class="alert alert-danger" style="display: none;"></div>
+
+                    <div class="row g-3">
+                        <!-- Name -->
+                        <div class="col-md-6">
+                            <label asp-for="VisitorName" class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
+                            <input asp-for="VisitorName" class="form-control" placeholder="أدخل اسمك الكامل" />
+                            <span asp-validation-for="VisitorName" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Employee ID -->
+                        <div class="col-md-6">
+                            <label asp-for="EmployeeId" class="form-label">الرقم الوظيفي <span class="text-danger">*</span></label>
+                            <input asp-for="EmployeeId" class="form-control" placeholder="أدخل الرقم الوظيفي (أرقام إنجليزية)" />
+                            <span asp-validation-for="EmployeeId" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Court -->
+                        <div class="col-md-6">
+                            <label asp-for="Court" class="form-label">الدائرة/المحكمة <span class="text-danger">*</span></label>
+                            <input asp-for="Court" class="form-control" placeholder="أدخل اسم الدائرة أو المحكمة" />
+                            <span asp-validation-for="Court" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Department -->
+                        <div class="col-md-6">
+                            <label asp-for="Department" class="form-label">القسم <span class="text-danger">*</span></label>
+                            <input asp-for="Department" class="form-control" placeholder="أدخل اسم القسم" />
+                            <span asp-validation-for="Department" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="example@domain.com" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="col-md-6">
+                            <label asp-for="Phone" class="form-label">رقم الجوال <span class="text-danger">*</span></label>
+                            <input asp-for="Phone" class="form-control" placeholder="05xxxxxxxx (أرقام إنجليزية)" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-send me-2"></i> إرسال الطلب
+                        </button>
+                        <a asp-action="ProgramDetails" asp-route-id="@program?.Id" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-arrow-right me-2"></i> رجوع
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
