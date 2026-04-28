@@ -26,20 +26,21 @@ namespace TrainingSystem.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).IsRequired();
-                entity.HasMany(e => e.Batches)
-                      .WithOne(b => b.TrainingProgram)
-                      .HasForeignKey(b => b.TrainingProgramId)
-                      .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Configure Batch
+            // Configure Batch - علاقة مع البرنامج التدريبي
             builder.Entity<Batch>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                
+                entity.HasOne(e => e.TrainingProgram)
+                      .WithMany(p => p.Batches)
+                      .HasForeignKey(e => e.TrainingProgramId)
+                      .OnDelete(DeleteBehavior.Restrict); // تغيير من Cascade إلى Restrict
             });
 
-            // Configure Registration
+            // Configure Registration - علاقة مع الدفعة فقط
             builder.Entity<Registration>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -48,16 +49,11 @@ namespace TrainingSystem.Data
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Phone).IsRequired().HasMaxLength(20);
                 
-                // Fix cascade delete issue
-                entity.HasOne(e => e.TrainingProgram)
-                      .WithMany()
-                      .HasForeignKey(e => e.TrainingProgramId)
-                      .OnDelete(DeleteBehavior.NoAction);
-                      
+                // علاقة واحدة فقط مع Batch - لا توجد علاقة مباشرة مع TrainingProgram
                 entity.HasOne(e => e.Batch)
                       .WithMany(b => b.Registrations)
                       .HasForeignKey(e => e.BatchId)
-                      .OnDelete(DeleteBehavior.NoAction);
+                      .OnDelete(DeleteBehavior.Restrict); // استخدام Restrict بدلاً من Cascade
             });
 
             // Configure SystemSettings
