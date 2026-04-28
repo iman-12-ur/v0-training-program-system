@@ -1,0 +1,107 @@
+@model TrainingProgram
+@{
+    ViewData["Title"] = "تعديل البرنامج";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-pencil text-primary me-2"></i>تعديل البرنامج: @Model.Title</h2>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+        <form asp-action="Edit" method="post">
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="CreatedAt" />
+            
+            <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label asp-for="Title" class="form-label"></label>
+                    <input asp-for="Title" class="form-control" />
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="ProgramType" class="form-label"></label>
+                    <select asp-for="ProgramType" class="form-select">
+                        <option value="">اختر نوع البرنامج</option>
+                        <option value="تطوير مهني">تطوير مهني</option>
+                        <option value="شهادة معتمدة">شهادة معتمدة</option>
+                        <option value="ورشة عمل">ورشة عمل</option>
+                        <option value="دورة تدريبية">دورة تدريبية</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Categories" class="form-label"></label>
+                    <input asp-for="Categories" class="form-control" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="TargetAudience" class="form-label"></label>
+                    <input asp-for="TargetAudience" class="form-control" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Duration" class="form-label"></label>
+                    <input asp-for="Duration" class="form-control" />
+                    <span asp-validation-for="Duration" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Instructor" class="form-label"></label>
+                    <input asp-for="Instructor" class="form-control" />
+                    <span asp-validation-for="Instructor" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Location" class="form-label"></label>
+                    <input asp-for="Location" class="form-control" />
+                    <span asp-validation-for="Location" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<ProgramStatus>()"></select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Objectives" class="form-label"></label>
+                <textarea asp-for="Objectives" class="form-control" rows="4"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Topics" class="form-label"></label>
+                <textarea asp-for="Topics" class="form-control" rows="4"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Prerequisites" class="form-label"></label>
+                <textarea asp-for="Prerequisites" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-check-circle me-2"></i>حفظ التغييرات
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i>إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

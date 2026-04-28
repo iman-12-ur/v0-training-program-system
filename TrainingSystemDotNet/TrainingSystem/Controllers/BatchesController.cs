@@ -1,0 +1,120 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using TrainingSystem.Data;
+using TrainingSystem.Models;
+
+namespace TrainingSystem.Controllers
+{
+    [Authorize(Roles = "Admin")]
+    public class BatchesController : Controller
+    {
+        private readonly ApplicationDbContext _context;
+
+        public BatchesController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var batches = await _context.Batches
+                .Include(b => b.TrainingProgram)
+                .OrderByDescending(b => b.StartDate)
+                .ToListAsync();
+            return View(batches);
+        }
+
+        public async Task<IActionResult> Create(int? programId)
+        {
+            ViewBag.Programs = new SelectList(
+                await _context.TrainingPrograms.Where(p => p.Status == ProgramStatus.Active).ToListAsync(),
+                "Id", "Title", programId);
+            
+            return View(new Batch { TrainingProgramId = programId ?? 0 });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Batch batch)
+        {
+            if (ModelState.IsValid)
+            {
+                batch.Status = BatchStatus.Upcoming;
+                batch.CurrentParticipants = 0;
+                _context.Batches.Add(batch);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم إضافة الدفعة بنجاح";
+                return RedirectToAction(nameof(Index));
+            }
+
+            ViewBag.Programs = new SelectList(
+                await _context.TrainingPrograms.Where(p => p.Status == ProgramStatus.Active).ToListAsync(),
+                "Id", "Title", batch.TrainingProgramId);
+            return View(batch);
+        }
+
+        public async Task<IActionResult> Edit(int id)
+        {
+            var batch = await _context.Batches.FindAsync(id);
+            if (batch == null)
+            {
+                return NotFound();
+            }
+
+            ViewBag.Programs = new SelectList(
+                await _context.TrainingPrograms.ToListAsync(),
+                "Id", "Title", batch.TrainingProgramId);
+            return View(batch);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, Batch batch)
+        {
+            if (id != batch.Id)
+            {
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(batch);
+                    await _context.SaveChangesAsync();
+                    TempData["Success"] = "تم تحديث الدفعة بنجاح";
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!await _context.Batches.AnyAsync(e => e.Id == id))
+                    {
+                        return NotFound();
+                    }
+                    throw;
+                }
+                return RedirectToAction(nameof(Index));
+            }
+
+            ViewBag.Programs = new SelectList(
+                await _context.TrainingPrograms.ToListAsync(),
+                "Id", "Title", batch.TrainingProgramId);
+            return View(batch);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var batch = await _context.Batches.FindAsync(id);
+            if (batch != null)
+            {
+                _context.Batches.Remove(batch);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم حذف الدفعة بنجاح";
+            }
+            return RedirectToAction(nameof(Index));
+        }
+    }
+}

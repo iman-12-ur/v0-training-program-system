@@ -1,0 +1,118 @@
+@model Registration
+@{
+    ViewData["Title"] = "تفاصيل طلب الترشيح";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="mb-0"><i class="bi bi-person-vcard me-2"></i>تفاصيل طلب الترشيح</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">الاسم</h6>
+                        <p class="fw-bold">@Model.VisitorName</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">الرقم الوظيفي</h6>
+                        <p class="fw-bold" dir="ltr">@Model.EmployeeId</p>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">البريد الإلكتروني</h6>
+                        <p dir="ltr">@Model.Email</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">رقم الجوال</h6>
+                        <p dir="ltr">@Model.Phone</p>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">الدائرة/المحكمة</h6>
+                        <p>@Model.Court</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">القسم</h6>
+                        <p>@Model.Department</p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">البرنامج التدريبي</h6>
+                        <p class="fw-bold">@Model.Batch?.TrainingProgram?.Title</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">الدفعة</h6>
+                        <p>@Model.Batch?.Name</p>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">تاريخ التسجيل</h6>
+                        <p>@Model.RegisteredAt.ToString("yyyy/MM/dd hh:mm tt")</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">الحالة</h6>
+                        @switch (Model.Status)
+                        {
+                            case RegistrationStatus.Pending:
+                                <span class="badge bg-warning fs-6">قيد المراجعة</span>
+                                break;
+                            case RegistrationStatus.Approved:
+                                <span class="badge bg-success fs-6">مقبول</span>
+                                break;
+                            case RegistrationStatus.Rejected:
+                                <span class="badge bg-danger fs-6">مرفوض</span>
+                                break;
+                        }
+                    </div>
+                </div>
+
+                @if (Model.ApprovedBy != null)
+                {
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">تمت المراجعة بواسطة</h6>
+                            <p>@Model.ApprovedBy</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">تاريخ المراجعة</h6>
+                            <p>@Model.ApprovedAt?.ToString("yyyy/MM/dd hh:mm tt")</p>
+                        </div>
+                    </div>
+                }
+
+                <hr>
+
+                <div class="d-flex gap-2">
+                    @if (Model.Status == RegistrationStatus.Pending)
+                    {
+                        <form asp-action="Approve" asp-route-id="@Model.Id" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-2"></i>قبول الطلب
+                            </button>
+                        </form>
+                        <form asp-action="Reject" asp-route-id="@Model.Id" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-x-circle me-2"></i>رفض الطلب
+                            </button>
+                        </form>
+                    }
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-right me-1"></i>رجوع للقائمة
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

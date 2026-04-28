@@ -1,0 +1,18 @@
+@{
+    ViewData["Title"] = "خطأ";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6 text-center">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-5">
+                <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 5rem;"></i>
+                <h2 class="mt-4">حدث خطأ</h2>
+                <p class="text-muted">عذراً، حدث خطأ أثناء معالجة طلبك.</p>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+                    <i class="bi bi-house me-2"></i>العودة للرئيسية
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
