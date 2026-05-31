@@ -23,6 +23,11 @@
                 </div>
                 <ul class="nav flex-column p-3">
                     <li class="nav-item mb-2">
+                        <a class="nav-link text-white" asp-controller="Home" asp-action="Index">
+                            <i class="bi bi-house-door me-2"></i> الصفحة الرئيسية
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
                         <a class="nav-link text-white @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active bg-primary rounded" : "")" 
                            asp-controller="Admin" asp-action="Index">
                             <i class="bi bi-speedometer2 me-2"></i> لوحة التحكم
