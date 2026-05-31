@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   X,
+  Home,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,12 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  {
+    id: 'home',
+    label: 'الصفحة الرئيسية',
+    icon: <Home className="h-5 w-5" />,
+    roles: ['admin'],
+  },
   {
     id: 'dashboard',
     label: 'لوحة التحكم',
