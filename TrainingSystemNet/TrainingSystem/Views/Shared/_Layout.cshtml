@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - نظام التدريب</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("Supervisor") || User.IsInRole("Viewer")))
+    {
+        <!-- Admin Layout -->
+        <div class="d-flex">
+            <!-- Sidebar -->
+            <nav class="sidebar bg-dark text-white">
+                <div class="p-3 border-bottom border-secondary">
+                    <h5 class="mb-0">
+                        <i class="bi bi-mortarboard-fill me-2"></i>
+                        نظام التدريب
+                    </h5>
+                </div>
+                <ul class="nav flex-column p-3">
+                    <li class="nav-item mb-2">
+                        <a class="nav-link text-white" asp-controller="Home" asp-action="Index">
+                            <i class="bi bi-house-door me-2"></i> الصفحة الرئيسية
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link text-white @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active bg-primary rounded" : "")" 
+                           asp-controller="Admin" asp-action="Index">
+                            <i class="bi bi-speedometer2 me-2"></i> لوحة التحكم
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link text-white @(ViewContext.RouteData.Values["controller"]?.ToString() == "Programs" ? "active bg-primary rounded" : "")" 
+                           asp-controller="Programs" asp-action="Index">
+                            <i class="bi bi-collection me-2"></i> البرامج التدريبية
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link text-white @(ViewContext.RouteData.Values["controller"]?.ToString() == "Batches" ? "active bg-primary rounded" : "")" 
+                           asp-controller="Batches" asp-action="Index">
+                            <i class="bi bi-calendar3 me-2"></i> الدفعات
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link text-white @(ViewContext.RouteData.Values["controller"]?.ToString() == "Registrations" ? "active bg-primary rounded" : "")" 
+                           asp-controller="Registrations" asp-action="Index">
+                            <i class="bi bi-person-lines-fill me-2"></i> طلبات الترشيح
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link text-white @(ViewContext.RouteData.Values["controller"]?.ToString() == "Settings" ? "active bg-primary rounded" : "")" 
+                           asp-controller="Settings" asp-action="Index">
+                            <i class="bi bi-gear me-2"></i> الإعدادات
+                        </a>
+                    </li>
+                    @if (User.IsInRole("SuperAdmin"))
+                    {
+                        <li class="nav-item mb-2">
+                            <a class="nav-link text-white @(ViewContext.RouteData.Values["action"]?.ToString() == "Users" ? "active bg-primary rounded" : "")" 
+                               asp-controller="Settings" asp-action="Users">
+                                <i class="bi bi-people me-2"></i> المستخدمين
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link text-white @(ViewContext.RouteData.Values["action"]?.ToString() == "Permissions" ? "active bg-primary rounded" : "")" 
+                               asp-controller="Settings" asp-action="Permissions">
+                                <i class="bi bi-shield-check me-2"></i> الصلاحيات
+                            </a>
+                        </li>
+                    }
+                </ul>
+                <div class="mt-auto p-3 border-top border-secondary">
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        <button type="submit" class="btn btn-outline-light w-100">
+                            <i class="bi bi-box-arrow-right me-2"></i> تسجيل الخروج
+                        </button>
+                    </form>
+                </div>
+            </nav>
+            <!-- Main Content -->
+            <main class="main-content flex-grow-1">
+                <div class="container-fluid p-4">
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+                    @RenderBody()
+                </div>
+            </main>
+        </div>
+    }
+    else
+    {
+        <!-- Public Layout -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-mortarboard-fill text-primary me-2"></i>
+                    بوابة التدريب
+                </a>
+                <a class="btn btn-outline-primary" asp-controller="Account" asp-action="Login">
+                    <i class="bi bi-box-arrow-in-left me-2"></i> دخول المدير
+                </a>
+            </div>
+        </nav>
+        <main class="py-4">
+            <div class="container">
+                @RenderBody()
+            </div>
+        </main>
+        <footer class="bg-light py-4 mt-5">
+            <div class="container text-center text-muted">
+                <p class="mb-0">&copy; @DateTime.Now.Year نظام إدارة البرامج التدريبية</p>
+            </div>
+        </footer>
+    }
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

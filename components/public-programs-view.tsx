@@ -26,6 +26,7 @@ interface PublicProgramsViewProps {
   onAdminLogin: () => void;
   welcomeTitle?: string;
   welcomeDescription?: string;
+  isAdminView?: boolean;
 }
 
 export function PublicProgramsView({
@@ -35,6 +36,7 @@ export function PublicProgramsView({
   onAdminLogin,
   welcomeTitle = 'مرحباً بك في بوابة التدريب',
   welcomeDescription = 'استعرض البرامج التدريبية المتاحة وقدّم طلب ترشيحك للبرنامج المناسب. سيتم مراجعة طلبك وإبلاغك بالنتيجة عبر البريد الإلكتروني.',
+  isAdminView = false,
 }: PublicProgramsViewProps) {
   const [selectedCategory, setSelectedCategory] = useState('الكل');
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,9 +107,11 @@ export function PublicProgramsView({
                 <p className="text-xs text-muted-foreground">سجّل في البرامج المتاحة</p>
               </div>
             </div>
-            <Button variant="outline" onClick={onAdminLogin}>
-              دخول المدير
-            </Button>
+            {!isAdminView && (
+              <Button variant="outline" onClick={onAdminLogin}>
+                دخول المدير
+              </Button>
+            )}
           </div>
         </div>
       </header>

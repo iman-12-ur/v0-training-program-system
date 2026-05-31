@@ -1,0 +1,111 @@
+@model SystemSettings
+@{
+    ViewData["Title"] = "الإعدادات";
+    var users = ViewBag.Users as List<ApplicationUser>;
+}
+
+<div class="mb-4">
+    <h4 class="fw-bold mb-1">الإعدادات</h4>
+    <p class="text-muted mb-0">إدارة إعدادات النظام والمستخدمين</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <!-- Welcome Settings -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-house me-2"></i>
+                    إعدادات الترحيب
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="UpdateWelcome" method="post">
+                    <div class="mb-3">
+                        <label asp-for="WelcomeTitle" class="form-label">عنوان الترحيب (الصفحة الرئيسية)</label>
+                        <input asp-for="WelcomeTitle" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="WelcomeDescription" class="form-label">وصف الترحيب</label>
+                        <textarea asp-for="WelcomeDescription" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="AdminWelcome" class="form-label">ترحيب المدير</label>
+                        <input asp-for="AdminWelcome" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="AdminDescription" class="form-label">وصف لوحة التحكم</label>
+                        <textarea asp-for="AdminDescription" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="OrganizationName" class="form-label">اسم المنظمة</label>
+                        <input asp-for="OrganizationName" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>
+                        حفظ الإعدادات
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <!-- Users Management -->
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-people me-2"></i>
+                    إدارة المستخدمين
+                </h5>
+                <a asp-action="CreateUser" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i>
+                    إضافة مستخدم
+                </a>
+            </div>
+            <div class="card-body p-0">
+                @if (users?.Any() == true)
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var user in users)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-person"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">@user.FullName</h6>
+                                        <small class="text-muted">@user.UserName - @user.Email</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge @(user.IsActive ? "bg-success" : "bg-secondary")">
+                                        @(user.IsActive ? "نشط" : "غير نشط")
+                                    </span>
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-action="EditUser" asp-route-id="@user.Id" class="btn btn-outline-primary" title="تعديل">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post" class="d-inline"
+                                              onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم؟')">
+                                            <button type="submit" class="btn btn-outline-danger" title="حذف">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-4 text-muted">
+                        لا يوجد مستخدمين
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

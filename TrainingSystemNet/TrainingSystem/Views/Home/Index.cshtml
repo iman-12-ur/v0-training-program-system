@@ -1,0 +1,66 @@
+@model IEnumerable<TrainingProgram>
+@{
+    ViewData["Title"] = "البرامج التدريبية";
+}
+
+<!-- Hero Section -->
+<div class="bg-primary bg-gradient text-white rounded-4 p-5 mb-5">
+    <h1 class="display-5 fw-bold">@ViewBag.WelcomeTitle</h1>
+    <p class="lead mb-0">@ViewBag.WelcomeDescription</p>
+</div>
+
+<!-- Programs Grid -->
+<div class="row g-4">
+    @if (!Model.Any())
+    {
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle me-2"></i>
+                لا توجد برامج تدريبية متاحة حالياً
+            </div>
+        </div>
+    }
+    @foreach (var program in Model)
+    {
+        var upcomingBatches = program.Batches?.Where(b => b.Status == BatchStatus.Upcoming).ToList() ?? new List<Batch>();
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title fw-bold mb-0">@program.Title</h5>
+                        @if (!string.IsNullOrEmpty(program.ProgramType))
+                        {
+                            <span class="badge bg-primary">@program.ProgramType</span>
+                        }
+                    </div>
+                    <p class="card-text text-muted small">
+                        @(program.Description.Length > 100 ? program.Description.Substring(0, 100) + "..." : program.Description)
+                    </p>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="badge bg-light text-dark">
+                            <i class="bi bi-clock me-1"></i> @program.Duration
+                        </span>
+                        <span class="badge bg-light text-dark">
+                            <i class="bi bi-person me-1"></i> @program.Instructor
+                        </span>
+                        <span class="badge bg-light text-dark">
+                            <i class="bi bi-geo-alt me-1"></i> @program.Location
+                        </span>
+                    </div>
+                    @if (upcomingBatches.Any())
+                    {
+                        <div class="alert alert-success py-2 small mb-3">
+                            <i class="bi bi-calendar-check me-1"></i>
+                            @upcomingBatches.Count دفعة متاحة للتسجيل
+                        </div>
+                    }
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a asp-action="ProgramDetails" asp-route-id="@program.Id" class="btn btn-primary w-100">
+                        <i class="bi bi-eye me-2"></i> عرض التفاصيل
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

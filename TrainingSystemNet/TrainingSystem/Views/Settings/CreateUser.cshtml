@@ -1,0 +1,116 @@
+@model TrainingSystem.Controllers.CreateUserViewModel
+@using TrainingSystem.Models
+@{
+    ViewData["Title"] = "إضافة مستخدم جديد";
+    var allRoles = ViewBag.AllRoles as List<string>;
+}
+
+<div class="container py-4" dir="rtl">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>إضافة مستخدم جديد</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="CreateUser" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FullName" class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
+                                <input asp-for="FullName" class="form-control" placeholder="أدخل الاسم الكامل" />
+                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Username" class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
+                                <input asp-for="Username" class="form-control" placeholder="أدخل اسم المستخدم" />
+                                <span asp-validation-for="Username" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Email" class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
+                                <input asp-for="Email" type="email" class="form-control" placeholder="example@email.com" />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">رقم الهاتف</label>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="05xxxxxxxx" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Password" class="form-label">كلمة المرور <span class="text-danger">*</span></label>
+                                <input asp-for="Password" type="password" class="form-control" placeholder="أدخل كلمة المرور" />
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ConfirmPassword" class="form-label">تأكيد كلمة المرور <span class="text-danger">*</span></label>
+                                <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="أعد إدخال كلمة المرور" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Department" class="form-label">القسم</label>
+                                <input asp-for="Department" class="form-control" placeholder="أدخل اسم القسم" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Role" class="form-label">الدور <span class="text-danger">*</span></label>
+                                <select asp-for="Role" class="form-select">
+                                    @foreach (var role in allRoles ?? new List<string>())
+                                    {
+                                        <option value="@role">@SystemRoles.GetRoleDisplayName(role)</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="Role" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- وصف الصلاحيات -->
+                        <div class="alert alert-info mb-4" id="roleDescription">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <span id="roleDescText">اختر دوراً لعرض صلاحياته</span>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Users" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-right me-2"></i>رجوع
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-2"></i>حفظ المستخدم
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        var roleDescriptions = {
+            'SuperAdmin': 'كل الصلاحيات - إدارة المستخدمين والإعدادات والبرامج',
+            'Admin': 'إدارة البرامج التدريبية والدفعات والتسجيلات',
+            'Supervisor': 'عرض البرامج والموافقة على طلبات التسجيل',
+            'Viewer': 'عرض البرامج والتسجيلات فقط'
+        };
+
+        document.getElementById('Role').addEventListener('change', function() {
+            var desc = roleDescriptions[this.value] || '';
+            document.getElementById('roleDescText').textContent = desc;
+        });
+
+        // Trigger on page load
+        document.getElementById('Role').dispatchEvent(new Event('change'));
+    </script>
+}

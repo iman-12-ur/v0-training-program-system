@@ -402,6 +402,18 @@ export default function TrainingManagementSystem() {
   // Admin dashboard
   const renderContent = () => {
     switch (activeTab) {
+      case 'home':
+        return (
+          <PublicProgramsView
+            programs={programs}
+            registrations={registrations}
+            onRegister={handlePublicRegister}
+            onAdminLogin={() => setActiveTab('dashboard')}
+            welcomeTitle={welcomeSettings.title}
+            welcomeDescription={welcomeSettings.description}
+            isAdminView={true}
+          />
+        );
       case 'dashboard':
         return (
           <div className="space-y-8">
@@ -673,7 +685,7 @@ export default function TrainingManagementSystem() {
                     onChange={(e) =>
                       setWelcomeSettings((prev) => ({ ...prev, title: e.target.value }))
                     }
-                    placeholder="مثال: مرحباً بك في بوابة التدريب"
+                    placeholder="مثال: مرحباً بك في بوابة ��لتدريب"
                     className="text-right"
                     style={{ direction: 'rtl' }}
                   />

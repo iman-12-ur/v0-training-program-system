@@ -1,0 +1,141 @@
+@model TrainingProgram
+@{
+    ViewData["Title"] = "إضافة برنامج جديد";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">إضافة برنامج جديد</h4>
+        <p class="text-muted mb-0">أدخل بيانات البرنامج التدريبي</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-right me-1"></i>
+        رجوع
+    </a>
+</div>
+
+<form asp-action="Create" method="post" enctype="multipart/form-data">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        المعلومات الأساسية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="All" class="alert alert-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label">عنوان البرنامج <span class="text-danger">*</span></label>
+                        <input asp-for="Title" class="form-control" placeholder="أدخل عنوان البرنامج">
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label">وصف البرنامج <span class="text-danger">*</span></label>
+                        <textarea asp-for="Description" class="form-control" rows="4" placeholder="أدخل وصفاً تفصيلياً للبرنامج"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Categories" class="form-label">التصنيفات</label>
+                            <input asp-for="Categories" class="form-control" placeholder="مثال: القيادة والإدارة, تطوير الذات">
+                            <small class="text-muted">افصل بين التصنيفات بفاصلة</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="ProgramType" class="form-label">نوع البرنامج</label>
+                            <input asp-for="ProgramType" class="form-control" placeholder="مثال: تطوير مهني">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="TargetAudience" class="form-label">الفئة المستهدفة</label>
+                        <input asp-for="TargetAudience" class="form-control" placeholder="مثال: المشرفين والمدراء">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Instructor" class="form-label">المدرب <span class="text-danger">*</span></label>
+                            <input asp-for="Instructor" class="form-control" placeholder="اسم المدرب">
+                            <span asp-validation-for="Instructor" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Duration" class="form-label">المدة <span class="text-danger">*</span></label>
+                            <input asp-for="Duration" class="form-control" placeholder="مثال: 5 أيام">
+                            <span asp-validation-for="Duration" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Location" class="form-label">الموقع <span class="text-danger">*</span></label>
+                            <input asp-for="Location" class="form-control" placeholder="مثال: قاعة التدريب">
+                            <span asp-validation-for="Location" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check me-2"></i>
+                        تفاصيل البرنامج
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Objectives" class="form-label">أهداف البرنامج</label>
+                        <textarea asp-for="Objectives" class="form-control" rows="4" placeholder="أدخل كل هدف في سطر منفصل"></textarea>
+                        <small class="text-muted">أدخل كل هدف في سطر منفصل</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Topics" class="form-label">محاور البرنامج</label>
+                        <textarea asp-for="Topics" class="form-control" rows="4" placeholder="أدخل كل محور في سطر منفصل"></textarea>
+                        <small class="text-muted">أدخل كل محور في سطر منفصل</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Prerequisites" class="form-label">المتطلبات المسبقة</label>
+                        <textarea asp-for="Prerequisites" class="form-control" rows="3" placeholder="أدخل كل متطلب في سطر منفصل"></textarea>
+                        <small class="text-muted">أدخل كل متطلب في سطر منفصل</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-image me-2"></i>
+                        شعار البرنامج
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <input type="file" name="logoFile" class="form-control" accept="image/*">
+                        <small class="text-muted">الحجم الموصى به: 200x200 بكسل</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-primary w-100 btn-lg mb-2">
+                        <i class="bi bi-check-lg me-1"></i>
+                        حفظ البرنامج
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                        إلغاء
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
