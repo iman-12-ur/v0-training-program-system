@@ -1,0 +1,153 @@
+@using TrainingSystem.Models
+@{
+    ViewData["Title"] = "الصلاحيات";
+    var rolesWithPermissions = Model as Dictionary<string, List<string>>;
+}
+
+<div class="container py-4" dir="rtl">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">الصلاحيات</h2>
+            <p class="text-muted mb-0">مصفوفة صلاحيات الأدوار في النظام</p>
+        </div>
+        <a asp-action="Users" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-right me-2"></i>رجوع للمستخدمين
+        </a>
+    </div>
+
+    <!-- شرح الأدوار -->
+    <div class="row mb-4">
+        @foreach (var role in SystemRoles.AllRoles)
+        {
+            var cardClass = role switch
+            {
+                "SuperAdmin" => "border-danger",
+                "Admin" => "border-primary",
+                "Supervisor" => "border-info",
+                _ => "border-secondary"
+            };
+            var badgeClass = role switch
+            {
+                "SuperAdmin" => "bg-danger",
+                "Admin" => "bg-primary",
+                "Supervisor" => "bg-info",
+                _ => "bg-secondary"
+            };
+            <div class="col-md-3 mb-3">
+                <div class="card h-100 @cardClass">
+                    <div class="card-body text-center">
+                        <span class="badge @badgeClass mb-2">@SystemRoles.GetRoleDisplayName(role)</span>
+                        <p class="small text-muted mb-0">@SystemRoles.GetRoleDescription(role)</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- مصفوفة الصلاحيات -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>مصفوفة الصلاحيات</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الصلاحية</th>
+                            @foreach (var role in SystemRoles.AllRoles)
+                            {
+                                <th class="text-center">@SystemRoles.GetRoleDisplayName(role)</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var permissionGroups = new Dictionary<string, List<(string Key, string Name)>>
+                            {
+                                { "البرامج التدريبية", new List<(string, string)>
+                                    {
+                                        (Permissions.Programs_View, "عرض"),
+                                        (Permissions.Programs_Create, "إضافة"),
+                                        (Permissions.Programs_Edit, "تعديل"),
+                                        (Permissions.Programs_Delete, "حذف")
+                                    }
+                                },
+                                { "الدفعات", new List<(string, string)>
+                                    {
+                                        (Permissions.Batches_View, "عرض"),
+                                        (Permissions.Batches_Create, "إضافة"),
+                                        (Permissions.Batches_Edit, "تعديل"),
+                                        (Permissions.Batches_Delete, "حذف")
+                                    }
+                                },
+                                { "التسجيلات", new List<(string, string)>
+                                    {
+                                        (Permissions.Registrations_View, "عرض"),
+                                        (Permissions.Registrations_Approve, "موافقة"),
+                                        (Permissions.Registrations_Reject, "رفض"),
+                                        (Permissions.Registrations_Delete, "حذف"),
+                                        (Permissions.Registrations_Export, "تصدير")
+                                    }
+                                },
+                                { "المستخدمين", new List<(string, string)>
+                                    {
+                                        (Permissions.Users_View, "عرض"),
+                                        (Permissions.Users_Create, "إضافة"),
+                                        (Permissions.Users_Edit, "تعديل"),
+                                        (Permissions.Users_Delete, "حذف")
+                                    }
+                                },
+                                { "الإعدادات", new List<(string, string)>
+                                    {
+                                        (Permissions.Settings_View, "عرض"),
+                                        (Permissions.Settings_Edit, "تعديل")
+                                    }
+                                },
+                                { "التقارير", new List<(string, string)>
+                                    {
+                                        (Permissions.Reports_View, "عرض"),
+                                        (Permissions.Reports_Export, "تصدير")
+                                    }
+                                }
+                            };
+                        }
+
+                        @foreach (var group in permissionGroups)
+                        {
+                            <tr class="table-secondary">
+                                <td colspan="@(SystemRoles.AllRoles.Count + 1)" class="fw-bold">
+                                    <i class="bi bi-folder me-2"></i>@group.Key
+                                </td>
+                            </tr>
+                            @foreach (var perm in group.Value)
+                            {
+                                <tr>
+                                    <td class="pe-4">@perm.Name</td>
+                                    @foreach (var role in SystemRoles.AllRoles)
+                                    {
+                                        <td class="text-center">
+                                            @if (Permissions.HasPermission(role, perm.Key))
+                                            {
+                                                <i class="bi bi-check-circle-fill text-success"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-x-circle text-danger"></i>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-4">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>ملاحظة:</strong> الصلاحيات المعروضة هي الصلاحيات الافتراضية لكل دور. لتعديل صلاحيات مستخدم معين، قم بتغيير دوره من صفحة إدارة المستخدمين.
+    </div>
+</div>

@@ -73,13 +73,16 @@ using (var scope = app.Services.CreateScope())
         
         context.Database.Migrate();
         
-        // Create Admin role if not exists
-        if (!await roleManager.RoleExistsAsync("Admin"))
+        // Create all roles if not exists
+        foreach (var role in SystemRoles.AllRoles)
         {
-            await roleManager.CreateAsync(new IdentityRole("Admin"));
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
         }
         
-        // Create default admin user
+        // Create default SuperAdmin user
         var adminEmail = "admin@training.com";
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
         if (adminUser == null)
@@ -93,7 +96,7 @@ using (var scope = app.Services.CreateScope())
                 IsActive = true
             };
             await userManager.CreateAsync(adminUser, "Admin@123");
-            await userManager.AddToRoleAsync(adminUser, "Admin");
+            await userManager.AddToRoleAsync(adminUser, SystemRoles.SuperAdmin);
         }
         
         // Create default settings if not exists
