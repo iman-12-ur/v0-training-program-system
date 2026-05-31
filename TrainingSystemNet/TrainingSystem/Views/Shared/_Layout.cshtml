@@ -66,8 +66,8 @@
                             </a>
                         </li>
                         <li class="nav-item mb-2">
-                            <a class="nav-link text-white @(ViewContext.RouteData.Values["action"]?.ToString() == "Permissions" ? "active bg-primary rounded" : "")" 
-                               asp-controller="Settings" asp-action="Permissions">
+                            <a class="nav-link text-white @(ViewContext.RouteData.Values["action"]?.ToString() == "Permissions" || ViewContext.RouteData.Values["action"]?.ToString() == "PermissionsMatrix" ? "active bg-primary rounded" : "")" 
+                               asp-controller="Settings" asp-action="PermissionsMatrix">
                                 <i class="bi bi-shield-check me-2"></i> الصلاحيات
                             </a>
                         </li>

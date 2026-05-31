@@ -247,16 +247,16 @@ namespace TrainingSystem.Controllers
         // ==================== عرض الصلاحيات ====================
 
         [Authorize(Roles = "SuperAdmin")]
-        public IActionResult Permissions()
+        public IActionResult PermissionsMatrix()
         {
             var rolesWithPermissions = new Dictionary<string, List<string>>();
             
             foreach (var role in SystemRoles.AllRoles)
             {
-                rolesWithPermissions[role] = Permissions.RolePermissions.GetValueOrDefault(role, new List<string>());
+                rolesWithPermissions[role] = Models.Permissions.RolePermissions.GetValueOrDefault(role, new List<string>());
             }
 
-            return View(rolesWithPermissions);
+            return View("Permissions", rolesWithPermissions);
         }
     }
 

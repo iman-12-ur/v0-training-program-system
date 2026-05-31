@@ -22,7 +22,7 @@ namespace TrainingSystem.Models
         public string? AvatarUrl { get; set; }
 
         [Display(Name = "رقم الهاتف")]
-        public string? PhoneNumber { get; set; }
+        public new string? PhoneNumber { get; set; }
 
         [Display(Name = "القسم")]
         public string? Department { get; set; }
