@@ -7,7 +7,8 @@ using TrainingSystem.Models;
 
 namespace TrainingSystem.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    // السماح لجميع الأدوار بالعرض
+    [Authorize(Roles = "SuperAdmin,Admin,Supervisor,Viewer")]
     public class BatchesController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -17,6 +18,7 @@ namespace TrainingSystem.Controllers
             _context = context;
         }
 
+        // عرض الدفعات - متاح للجميع
         public async Task<IActionResult> Index()
         {
             var batches = await _context.Batches
@@ -28,6 +30,8 @@ namespace TrainingSystem.Controllers
             return View(batches);
         }
 
+        // إضافة دفعة - SuperAdmin و Admin فقط
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Create(int? programId = null)
         {
             ViewBag.Programs = new SelectList(
@@ -41,6 +45,7 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Create(Batch batch)
         {
             if (ModelState.IsValid)
@@ -64,6 +69,8 @@ namespace TrainingSystem.Controllers
             return View(batch);
         }
 
+        // تعديل دفعة - SuperAdmin و Admin فقط
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Edit(int id)
         {
             var batch = await _context.Batches.FindAsync(id);
@@ -83,6 +90,7 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Edit(int id, Batch batch)
         {
             if (id != batch.Id)
@@ -119,8 +127,10 @@ namespace TrainingSystem.Controllers
             return View(batch);
         }
 
+        // حذف دفعة - SuperAdmin و Admin فقط
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var batch = await _context.Batches.FindAsync(id);

@@ -6,7 +6,8 @@ using TrainingSystem.Models;
 
 namespace TrainingSystem.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    // السماح لجميع الأدوار بالعرض
+    [Authorize(Roles = "SuperAdmin,Admin,Supervisor,Viewer")]
     public class ProgramsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -16,6 +17,7 @@ namespace TrainingSystem.Controllers
             _context = context;
         }
 
+        // عرض البرامج - متاح للجميع
         public async Task<IActionResult> Index()
         {
             var programs = await _context.TrainingPrograms
@@ -26,6 +28,8 @@ namespace TrainingSystem.Controllers
             return View(programs);
         }
 
+        // إضافة برنامج - SuperAdmin و Admin فقط
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public IActionResult Create()
         {
             return View();
@@ -33,6 +37,7 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Create(TrainingProgram program)
         {
             if (ModelState.IsValid)
@@ -50,6 +55,8 @@ namespace TrainingSystem.Controllers
             return View(program);
         }
 
+        // تعديل برنامج - SuperAdmin و Admin فقط
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Edit(int id)
         {
             var program = await _context.TrainingPrograms.FindAsync(id);
@@ -63,6 +70,7 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Edit(int id, TrainingProgram program)
         {
             if (id != program.Id)
@@ -93,8 +101,10 @@ namespace TrainingSystem.Controllers
             return View(program);
         }
 
+        // حذف برنامج - SuperAdmin و Admin فقط
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var program = await _context.TrainingPrograms.FindAsync(id);
@@ -108,8 +118,10 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // تغيير حالة البرنامج - SuperAdmin و Admin فقط
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> ToggleStatus(int id)
         {
             var program = await _context.TrainingPrograms.FindAsync(id);
