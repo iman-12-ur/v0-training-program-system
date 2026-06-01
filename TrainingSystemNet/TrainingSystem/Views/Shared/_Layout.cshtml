@@ -8,6 +8,9 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Bootstrap 5 RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
@@ -69,6 +72,8 @@
 
                 @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
                 {
+                    <div class="nav-divider"></div>
+                    
                     <a href="@Url.Action("Index", "Settings")" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Settings" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
                         <i class="bi bi-gear"></i>
                         <span>الإعدادات</span>
@@ -113,16 +118,18 @@
         <main class="main-content">
             @if (TempData["Success"] != null)
             {
-                <div class="alert alert-success animate-slideIn">
-                    <i class="bi bi-check-circle-fill"></i>
+                <div class="alert alert-success alert-dismissible fade show animate-slideIn">
+                    <i class="bi bi-check-circle-fill me-2"></i>
                     <span>@TempData["Success"]</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             }
             @if (TempData["Error"] != null)
             {
-                <div class="alert alert-danger animate-slideIn">
-                    <i class="bi bi-exclamation-circle-fill"></i>
+                <div class="alert alert-danger alert-dismissible fade show animate-slideIn">
+                    <i class="bi bi-exclamation-circle-fill me-2"></i>
                     <span>@TempData["Error"]</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             }
             @RenderBody()
@@ -130,35 +137,24 @@
 
         <!-- Mobile Overlay -->
         <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-        <style>
-            .sidebar-overlay {
-                display: none;
-                position: fixed;
-                inset: 0;
-                background: rgba(0, 0, 0, 0.5);
-                backdrop-filter: blur(4px);
-                z-index: 999;
-            }
-            .sidebar-overlay.show {
-                display: block;
-            }
-        </style>
-
-        <script>
-            function toggleSidebar() {
-                const sidebar = document.getElementById('sidebar');
-                const overlay = document.getElementById('sidebarOverlay');
-                sidebar.classList.toggle('open');
-                overlay.classList.toggle('show');
-            }
-        </script>
     }
     else
     {
         <!-- Public Layout -->
         @RenderBody()
     }
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('show');
+        }
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
