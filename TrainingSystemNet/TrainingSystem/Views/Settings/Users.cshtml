@@ -4,189 +4,161 @@
     ViewData["Title"] = "إدارة المستخدمين";
 }
 
-<div class="container py-4" dir="rtl">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-1">إدارة المستخدمين</h2>
-            <p class="text-muted mb-0">إدارة المستخدمين والصلاحيات في النظام</p>
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">إدارة المستخدمين</h1>
+        <p class="page-subtitle">إدارة المستخدمين والصلاحيات في النظام</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("PermissionsMatrix")" class="btn btn-secondary">
+            <i class="bi bi-shield-check me-2"></i>
+            الصلاحيات
+        </a>
+        <a href="@Url.Action("CreateUser")" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>
+            إضافة مستخدم
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon primary">
+            <i class="bi bi-people"></i>
         </div>
-        <div>
-            <a asp-action="Permissions" class="btn btn-outline-primary me-2">
-                <i class="bi bi-shield-check"></i> الصلاحيات
-            </a>
-            <a asp-action="CreateUser" class="btn btn-primary">
-                <i class="bi bi-plus-lg"></i> إضافة مستخدم
-            </a>
+        <div class="stat-content">
+            <div class="stat-value">@Model.Count</div>
+            <div class="stat-label">إجمالي المستخدمين</div>
         </div>
     </div>
-
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show">
-            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <i class="bi bi-person-check"></i>
         </div>
-    }
-
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show">
-            <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    <!-- إحصائيات سريعة -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="mb-1">إجمالي المستخدمين</h6>
-                            <h3 class="mb-0">@Model.Count</h3>
-                        </div>
-                        <i class="bi bi-people fs-1 opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="mb-1">نشط</h6>
-                            <h3 class="mb-0">@Model.Count(u => u.User.IsActive)</h3>
-                        </div>
-                        <i class="bi bi-person-check fs-1 opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm bg-warning text-dark">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="mb-1">مديرين</h6>
-                            <h3 class="mb-0">@Model.Count(u => u.PrimaryRole == "SuperAdmin" || u.PrimaryRole == "Admin")</h3>
-                        </div>
-                        <i class="bi bi-person-gear fs-1 opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm bg-secondary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="mb-1">غير نشط</h6>
-                            <h3 class="mb-0">@Model.Count(u => !u.User.IsActive)</h3>
-                        </div>
-                        <i class="bi bi-person-x fs-1 opacity-50"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="stat-content">
+            <div class="stat-value">@Model.Count(u => u.User.IsActive)</div>
+            <div class="stat-label">نشط</div>
         </div>
     </div>
-
-    <!-- جدول المستخدمين -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white py-3">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>قائمة المستخدمين</h5>
-                </div>
-                <div class="col-auto">
-                    <input type="text" class="form-control" id="searchInput" placeholder="بحث...">
-                </div>
-            </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <i class="bi bi-person-gear"></i>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0" id="usersTable">
-                    <thead class="table-light">
+        <div class="stat-content">
+            <div class="stat-value">@Model.Count(u => u.PrimaryRole == "SuperAdmin" || u.PrimaryRole == "Admin")</div>
+            <div class="stat-label">مديرين</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon info">
+            <i class="bi bi-person-x"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@Model.Count(u => !u.User.IsActive)</div>
+            <div class="stat-label">غير نشط</div>
+        </div>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-people me-2"></i>
+            قائمة المستخدمين
+        </h3>
+        <div style="position: relative; width: 250px;">
+            <input type="text" class="form-control" id="searchInput" placeholder="بحث..." style="padding-right: 2.5rem;" />
+            <i class="bi bi-search" style="position: absolute; right: 0.875rem; top: 50%; transform: translateY(-50%); color: var(--muted-foreground);"></i>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-container">
+            <table class="table" id="usersTable">
+                <thead>
+                    <tr>
+                        <th>المستخدم</th>
+                        <th>اسم المستخدم</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>الدور</th>
+                        <th>الحالة</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th style="width: 150px;">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
                         <tr>
-                            <th>المستخدم</th>
-                            <th>اسم المستخدم</th>
-                            <th>البريد الإلكتروني</th>
-                            <th>الدور</th>
-                            <th>الحالة</th>
-                            <th>تاريخ الإنشاء</th>
-                            <th class="text-center">الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                                            @item.User.FullName.Substring(0, 1)
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold">@item.User.FullName</div>
-                                            @if (!string.IsNullOrEmpty(item.User.Department))
-                                            {
-                                                <small class="text-muted">@item.User.Department</small>
-                                            }
-                                        </div>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="user-avatar" style="width: 2.25rem; height: 2.25rem; font-size: 0.875rem;">
+                                        @item.User.FullName.Substring(0, 1)
                                     </div>
-                                </td>
-                                <td>@item.User.UserName</td>
-                                <td>@item.User.Email</td>
-                                <td>
-                                    @{
-                                        var badgeClass = item.PrimaryRole switch
+                                    <div>
+                                        <div style="font-weight: 600;">@item.User.FullName</div>
+                                        @if (!string.IsNullOrEmpty(item.User.Department))
                                         {
-                                            "SuperAdmin" => "bg-danger",
-                                            "Admin" => "bg-primary",
-                                            "Supervisor" => "bg-info",
-                                            _ => "bg-secondary"
-                                        };
-                                    }
-                                    <span class="badge @badgeClass">
-                                        @SystemRoles.GetRoleDisplayName(item.PrimaryRole)
-                                    </span>
-                                </td>
-                                <td>
-                                    @if (item.User.IsActive)
-                                    {
-                                        <span class="badge bg-success">نشط</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">غير نشط</span>
-                                    }
-                                </td>
-                                <td>@item.User.CreatedAt.ToString("yyyy-MM-dd")</td>
-                                <td class="text-center">
-                                    <div class="btn-group">
-                                        <a asp-action="EditUser" asp-route-id="@item.User.Id" class="btn btn-sm btn-outline-primary" title="تعديل">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <form asp-action="ToggleUserStatus" method="post" class="d-inline">
-                                            <input type="hidden" name="userId" value="@item.User.Id" />
-                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="@(item.User.IsActive ? "إيقاف" : "تفعيل")">
-                                                <i class="bi bi-@(item.User.IsActive ? "pause" : "play")"></i>
-                                            </button>
-                                        </form>
-                                        <form asp-action="DeleteUser" method="post" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم؟');">
-                                            <input type="hidden" name="userId" value="@item.User.Id" />
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
+                                            <small class="text-muted">@item.User.Department</small>
+                                        }
                                     </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                                </div>
+                            </td>
+                            <td>@item.User.UserName</td>
+                            <td>@item.User.Email</td>
+                            <td>
+                                @{
+                                    var badgeClass = item.PrimaryRole switch
+                                    {
+                                        "SuperAdmin" => "badge-danger",
+                                        "Admin" => "badge-primary",
+                                        "Supervisor" => "badge-info",
+                                        _ => "badge-secondary"
+                                    };
+                                }
+                                <span class="badge @badgeClass">
+                                    @SystemRoles.GetRoleDisplayName(item.PrimaryRole)
+                                </span>
+                            </td>
+                            <td>
+                                @if (item.User.IsActive)
+                                {
+                                    <span class="badge badge-success">نشط</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-secondary">غير نشط</span>
+                                }
+                            </td>
+                            <td>@item.User.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="@Url.Action("EditUser", new { id = item.User.Id })" class="btn btn-sm btn-outline-primary" title="تعديل">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="ToggleUserStatus" method="post" style="display: inline;">
+                                        <input type="hidden" name="userId" value="@item.User.Id" />
+                                        <button type="submit" class="btn btn-sm @(item.User.IsActive ? "btn-secondary" : "btn-success")" title="@(item.User.IsActive ? "إيقاف" : "تفعيل")">
+                                            <i class="bi bi-@(item.User.IsActive ? "pause" : "play")"></i>
+                                        </button>
+                                    </form>
+                                    <form asp-action="DeleteUser" method="post" style="display: inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم؟');">
+                                        <input type="hidden" name="userId" value="@item.User.Id" />
+                                        <button type="submit" class="btn btn-sm btn-danger" title="حذف">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

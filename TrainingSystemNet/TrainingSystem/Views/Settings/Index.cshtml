@@ -4,149 +4,101 @@
     var users = ViewBag.Users as List<ApplicationUser>;
 }
 
-<h2 class="fw-bold mb-4">
-    <i class="bi bi-gear me-2 text-primary"></i> الإعدادات
-</h2>
-
-<div class="row">
-    <!-- System Settings -->
-    <div class="col-lg-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent">
-                <h5 class="mb-0"><i class="bi bi-sliders text-primary me-2"></i> إعدادات النظام</h5>
-            </div>
-            <div class="card-body">
-                <form asp-action="UpdateSettings" method="post">
-                    <input type="hidden" asp-for="Id" />
-
-                    <div class="mb-3">
-                        <label asp-for="WelcomeTitle" class="form-label">عنوان الترحيب (الصفحة الرئيسية)</label>
-                        <input asp-for="WelcomeTitle" class="form-control" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="WelcomeDescription" class="form-label">وصف الترحيب</label>
-                        <textarea asp-for="WelcomeDescription" class="form-control" rows="2"></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="AdminWelcome" class="form-label">نص الترحيب (لوحة التحكم)</label>
-                        <input asp-for="AdminWelcome" class="form-control" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="AdminDescription" class="form-label">وصف لوحة التحكم</label>
-                        <textarea asp-for="AdminDescription" class="form-control" rows="2"></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-lg me-2"></i> حفظ الإعدادات
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Users Management -->
-    <div class="col-lg-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-people text-primary me-2"></i> إدارة المستخدمين</h5>
-                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                    <i class="bi bi-plus-lg me-1"></i> إضافة
-                </button>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th>المستخدم</th>
-                                <th>الحالة</th>
-                                <th>الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (users != null)
-                            {
-                                @foreach (var user in users)
-                                {
-                                    <tr>
-                                        <td>
-                                            <strong>@user.FullName</strong>
-                                            <br /><small class="text-muted">@user.UserName</small>
-                                        </td>
-                                        <td>
-                                            @if (user.IsActive)
-                                            {
-                                                <span class="badge bg-success">نشط</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-secondary">غير نشط</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            <form asp-action="ToggleUserStatus" asp-route-userId="@user.Id" method="post" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-outline-@(user.IsActive ? "warning" : "success")" 
-                                                        title="@(user.IsActive ? "إيقاف" : "تفعيل")">
-                                                    <i class="bi bi-@(user.IsActive ? "pause" : "play")"></i>
-                                                </button>
-                                            </form>
-                                            @if (user.UserName != "admin")
-                                            {
-                                                <form asp-action="DeleteUser" asp-route-userId="@user.Id" method="post" class="d-inline"
-                                                      onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم؟')">
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </form>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-title">الإعدادات</h1>
+    <p class="page-subtitle">إعدادات النظام العامة</p>
 </div>
 
-<!-- Add User Modal -->
-<div class="modal fade" id="addUserModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form asp-action="CreateUser" method="post">
-                <div class="modal-header">
-                    <h5 class="modal-title">إضافة مستخدم جديد</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+    <!-- System Settings -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="bi bi-sliders me-2"></i>
+                إعدادات النظام
+            </h3>
+        </div>
+        <div class="card-body">
+            <form asp-action="UpdateSettings" method="post">
+                <input type="hidden" asp-for="Id" />
+
+                <div class="form-group">
+                    <label asp-for="WelcomeTitle" class="form-label">عنوان الترحيب (الصفحة الرئيسية)</label>
+                    <input asp-for="WelcomeTitle" class="form-control" />
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
-                        <input type="text" name="fullName" class="form-control" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
-                        <input type="text" name="username" class="form-control" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">البريد الإلكتروني</label>
-                        <input type="email" name="email" class="form-control" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">كلمة المرور <span class="text-danger">*</span></label>
-                        <input type="password" name="password" class="form-control" required 
-                               placeholder="يجب أن تحتوي على حرف كبير وصغير ورقم" />
-                    </div>
+
+                <div class="form-group">
+                    <label asp-for="WelcomeDescription" class="form-label">وصف الترحيب</label>
+                    <textarea asp-for="WelcomeDescription" class="form-control" rows="2"></textarea>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-primary">إضافة المستخدم</button>
+
+                <div class="form-group">
+                    <label asp-for="AdminWelcome" class="form-label">نص الترحيب (لوحة التحكم)</label>
+                    <input asp-for="AdminWelcome" class="form-control" />
                 </div>
+
+                <div class="form-group">
+                    <label asp-for="AdminDescription" class="form-label">وصف لوحة التحكم</label>
+                    <textarea asp-for="AdminDescription" class="form-control" rows="2"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-2"></i>
+                    حفظ الإعدادات
+                </button>
             </form>
         </div>
     </div>
+
+    <!-- Quick Access -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="bi bi-lightning me-2"></i>
+                الوصول السريع
+            </h3>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; gap: 1rem;">
+                <a href="@Url.Action("Users")" class="stat-card" style="text-decoration: none;">
+                    <div class="stat-icon primary">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" style="font-size: 1rem;">إدارة المستخدمين</div>
+                        <div class="stat-label">إضافة وتعديل المستخدمين والصلاحيات</div>
+                    </div>
+                </a>
+                
+                <a href="@Url.Action("PermissionsMatrix")" class="stat-card" style="text-decoration: none;">
+                    <div class="stat-icon success">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" style="font-size: 1rem;">إدارة الصلاحيات</div>
+                        <div class="stat-label">عرض وتعديل صلاحيات الأدوار</div>
+                    </div>
+                </a>
+                
+                <a href="@Url.Action("Index", "Programs")" class="stat-card" style="text-decoration: none;">
+                    <div class="stat-icon warning">
+                        <i class="bi bi-book"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" style="font-size: 1rem;">البرامج التدريبية</div>
+                        <div class="stat-label">إدارة البرامج والدفعات</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    @@media (max-width: 1024px) {
+        div[style*="grid-template-columns: repeat(2, 1fr)"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>

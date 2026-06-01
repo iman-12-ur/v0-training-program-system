@@ -3,114 +3,132 @@
     ViewData["Title"] = "إضافة برنامج تدريبي";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold mb-0">
-        <i class="bi bi-plus-circle me-2 text-primary"></i> إضافة برنامج تدريبي
-    </h2>
-    <a asp-action="Index" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-right me-2"></i> رجوع
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">إضافة برنامج تدريبي</h1>
+        <p class="page-subtitle">أضف برنامج تدريبي جديد للنظام</p>
+    </div>
+    <a href="@Url.Action("Index")" class="btn btn-secondary">
+        <i class="bi bi-arrow-right me-2"></i>
+        رجوع
     </a>
 </div>
 
-<div class="card border-0 shadow-sm">
-    <div class="card-body p-4">
+<div class="card">
+    <div class="card-body">
         <form asp-action="Create" method="post">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-            <!-- Basic Info -->
-            <h5 class="fw-bold mb-3 pb-2 border-bottom">
-                <i class="bi bi-info-circle text-primary me-2"></i> المعلومات الأساسية
-            </h5>
-            
-            <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <label asp-for="Title" class="form-label">عنوان البرنامج <span class="text-danger">*</span></label>
-                    <input asp-for="Title" class="form-control" placeholder="أدخل عنوان البرنامج" />
-                    <span asp-validation-for="Title" class="text-danger small"></span>
+            <!-- Basic Info Section -->
+            <div class="mb-4">
+                <h3 style="font-size: 1rem; font-weight: 600; color: var(--foreground); padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+                    <i class="bi bi-info-circle text-primary me-2"></i>
+                    المعلومات الأساسية
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div class="form-group">
+                        <label asp-for="Title" class="form-label">عنوان البرنامج <span class="text-danger">*</span></label>
+                        <input asp-for="Title" class="form-control" placeholder="أدخل عنوان البرنامج" />
+                        <span asp-validation-for="Title" class="text-danger" style="font-size: 0.75rem;"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="ProgramType" class="form-label">نوع البرنامج</label>
+                        <select asp-for="ProgramType" class="form-control form-select">
+                            <option value="">اختر نوع البرنامج</option>
+                            <option value="دورة تدريبية">دورة تدريبية</option>
+                            <option value="ورشة عمل">ورشة عمل</option>
+                            <option value="شهادة معتمدة">شهادة معتمدة</option>
+                            <option value="تطوير مهني">تطوير مهني</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label asp-for="ProgramType" class="form-label">نوع البرنامج</label>
-                    <select asp-for="ProgramType" class="form-select">
-                        <option value="">اختر نوع البرنامج</option>
-                        <option value="دورة تدريبية">دورة تدريبية</option>
-                        <option value="ورشة عمل">ورشة عمل</option>
-                        <option value="شهادة معتمدة">شهادة معتمدة</option>
-                        <option value="تطوير مهني">تطوير مهني</option>
-                    </select>
-                </div>
-                <div class="col-12">
+                
+                <div class="form-group">
                     <label asp-for="Description" class="form-label">وصف البرنامج <span class="text-danger">*</span></label>
                     <textarea asp-for="Description" class="form-control" rows="3" placeholder="اكتب وصفاً تفصيلياً للبرنامج"></textarea>
-                    <span asp-validation-for="Description" class="text-danger small"></span>
+                    <span asp-validation-for="Description" class="text-danger" style="font-size: 0.75rem;"></span>
                 </div>
-                <div class="col-md-6">
-                    <label asp-for="Categories" class="form-label">التصنيفات</label>
-                    <input asp-for="Categories" class="form-control" placeholder="مثال: القيادة، الإدارة (افصل بفاصلة)" />
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="TargetAudience" class="form-label">الفئة المستهدفة</label>
-                    <input asp-for="TargetAudience" class="form-control" placeholder="مثال: المدراء والمشرفين" />
-                </div>
-            </div>
-
-            <!-- Program Details -->
-            <h5 class="fw-bold mb-3 pb-2 border-bottom">
-                <i class="bi bi-gear text-primary me-2"></i> تفاصيل البرنامج
-            </h5>
-            
-            <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <label asp-for="Duration" class="form-label">المدة <span class="text-danger">*</span></label>
-                    <input asp-for="Duration" class="form-control" placeholder="مثال: 5 أيام" />
-                    <span asp-validation-for="Duration" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Instructor" class="form-label">المدرب <span class="text-danger">*</span></label>
-                    <input asp-for="Instructor" class="form-control" placeholder="اسم المدرب" />
-                    <span asp-validation-for="Instructor" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Location" class="form-label">الموقع <span class="text-danger">*</span></label>
-                    <input asp-for="Location" class="form-control" placeholder="مثال: قاعة التدريب الرئيسية" />
-                    <span asp-validation-for="Location" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Logo" class="form-label">رابط الشعار (اختياري)</label>
-                    <input asp-for="Logo" class="form-control" placeholder="https://..." />
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div class="form-group">
+                        <label asp-for="Categories" class="form-label">التصنيفات</label>
+                        <input asp-for="Categories" class="form-control" placeholder="مثال: القيادة، الإدارة (افصل بفاصلة)" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="TargetAudience" class="form-label">الفئة المستهدفة</label>
+                        <input asp-for="TargetAudience" class="form-control" placeholder="مثال: المدراء والمشرفين" />
+                    </div>
                 </div>
             </div>
 
-            <!-- Objectives & Topics -->
-            <h5 class="fw-bold mb-3 pb-2 border-bottom">
-                <i class="bi bi-list-check text-primary me-2"></i> الأهداف والمحاور
-            </h5>
-            
-            <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <label asp-for="Objectives" class="form-label">أهداف البرنامج</label>
-                    <textarea asp-for="Objectives" class="form-control" rows="4" 
-                              placeholder="اكتب كل هدف في سطر جديد&#10;مثال:&#10;فهم أساسيات القيادة&#10;تطوير مهارات التواصل"></textarea>
+            <!-- Program Details Section -->
+            <div class="mb-4">
+                <h3 style="font-size: 1rem; font-weight: 600; color: var(--foreground); padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+                    <i class="bi bi-gear text-primary me-2"></i>
+                    تفاصيل البرنامج
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div class="form-group">
+                        <label asp-for="Duration" class="form-label">المدة <span class="text-danger">*</span></label>
+                        <input asp-for="Duration" class="form-control" placeholder="مثال: 5 أيام" />
+                        <span asp-validation-for="Duration" class="text-danger" style="font-size: 0.75rem;"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Instructor" class="form-label">المدرب <span class="text-danger">*</span></label>
+                        <input asp-for="Instructor" class="form-control" placeholder="اسم المدرب" />
+                        <span asp-validation-for="Instructor" class="text-danger" style="font-size: 0.75rem;"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Location" class="form-label">الموقع <span class="text-danger">*</span></label>
+                        <input asp-for="Location" class="form-control" placeholder="مثال: قاعة التدريب الرئيسية" />
+                        <span asp-validation-for="Location" class="text-danger" style="font-size: 0.75rem;"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Logo" class="form-label">رابط الشعار (اختياري)</label>
+                        <input asp-for="Logo" class="form-control" placeholder="https://..." />
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label asp-for="Topics" class="form-label">محاور البرنامج</label>
-                    <textarea asp-for="Topics" class="form-control" rows="4" 
-                              placeholder="اكتب كل محور في سطر جديد&#10;مثال:&#10;مفهوم القيادة&#10;مهارات التأثير"></textarea>
+            </div>
+
+            <!-- Objectives & Topics Section -->
+            <div class="mb-4">
+                <h3 style="font-size: 1rem; font-weight: 600; color: var(--foreground); padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+                    <i class="bi bi-list-check text-primary me-2"></i>
+                    الأهداف والمحاور
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div class="form-group">
+                        <label asp-for="Objectives" class="form-label">أهداف البرنامج</label>
+                        <textarea asp-for="Objectives" class="form-control" rows="4" 
+                                  placeholder="اكتب كل هدف في سطر جديد"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Topics" class="form-label">محاور البرنامج</label>
+                        <textarea asp-for="Topics" class="form-control" rows="4" 
+                                  placeholder="اكتب كل محور في سطر جديد"></textarea>
+                    </div>
                 </div>
-                <div class="col-12">
+                
+                <div class="form-group">
                     <label asp-for="Prerequisites" class="form-label">المتطلبات المسبقة</label>
                     <textarea asp-for="Prerequisites" class="form-control" rows="2" 
                               placeholder="اكتب كل متطلب في سطر جديد (اختياري)"></textarea>
                 </div>
             </div>
 
-            <hr class="my-4" />
-
-            <div class="d-flex gap-3">
+            <!-- Actions -->
+            <div style="border-top: 1px solid var(--border); padding-top: 1.5rem; display: flex; gap: 0.75rem;">
                 <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="bi bi-check-lg me-2"></i> حفظ البرنامج
+                    <i class="bi bi-check-lg me-2"></i>
+                    حفظ البرنامج
                 </button>
-                <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
-                    <i class="bi bi-x-lg me-2"></i> إلغاء
+                <a href="@Url.Action("Index")" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-lg me-2"></i>
+                    إلغاء
                 </a>
             </div>
         </form>
