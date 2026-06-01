@@ -7,7 +7,7 @@ using TrainingSystem.Models;
 namespace TrainingSystem.Controllers
 {
     // السماح لجميع الأدوار بالعرض
-    [Authorize(Roles = "SuperAdmin,Admin,Supervisor,Viewer")]
+    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
     public class ProgramsController : Controller
     {
         private readonly ApplicationDbContext _context;

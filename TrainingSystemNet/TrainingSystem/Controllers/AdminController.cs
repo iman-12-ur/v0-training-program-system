@@ -8,7 +8,7 @@ using TrainingSystem.Models;
 namespace TrainingSystem.Controllers
 {
     // السماح لجميع الأدوار بالدخول للوحة التحكم
-    [Authorize(Roles = "SuperAdmin,Admin,Supervisor,Viewer")]
+    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
     public class AdminController : Controller
     {
         private readonly ApplicationDbContext _context;

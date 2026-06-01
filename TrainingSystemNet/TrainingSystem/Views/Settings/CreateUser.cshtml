@@ -7,7 +7,7 @@
 
 <div class="container py-4" dir="rtl">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
+        <div class="col-lg-10">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-primary text-white py-3">
                     <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>إضافة مستخدم جديد</h5>
@@ -62,7 +62,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label asp-for="Role" class="form-label">الدور <span class="text-danger">*</span></label>
-                                <select asp-for="Role" class="form-select">
+                                <select asp-for="Role" class="form-select" id="roleSelect">
                                     @foreach (var role in allRoles ?? new List<string>())
                                     {
                                         <option value="@role">@SystemRoles.GetRoleDisplayName(role)</option>
@@ -77,6 +77,127 @@
                             <i class="bi bi-info-circle me-2"></i>
                             <span id="roleDescText">اختر دوراً لعرض صلاحياته</span>
                         </div>
+
+                        <!-- صلاحيات المشرف المخصصة -->
+                        <div id="supervisorPermissions" class="mb-4" style="display: none;">
+                            <div class="card bg-light">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="bi bi-shield-lock me-2"></i>صلاحيات المشرف المخصصة</h6>
+                                    <small class="text-muted">حدد الصلاحيات التي تريد منحها لهذا المشرف</small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <!-- البرامج التدريبية -->
+                                        <div class="col-md-4 mb-3">
+                                            <h6 class="text-primary"><i class="bi bi-collection me-2"></i>البرامج التدريبية</h6>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Programs.View" id="perm_programs_view" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_programs_view">عرض البرامج</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Programs.Create" id="perm_programs_create" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_programs_create">إضافة البرامج</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Programs.Edit" id="perm_programs_edit" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_programs_edit">تعديل البرامج</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Programs.Delete" id="perm_programs_delete" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_programs_delete">حذف البرامج</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- الدفعات -->
+                                        <div class="col-md-4 mb-3">
+                                            <h6 class="text-primary"><i class="bi bi-calendar3 me-2"></i>الدفعات</h6>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Batches.View" id="perm_batches_view" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_batches_view">عرض الدفعات</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Batches.Create" id="perm_batches_create" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_batches_create">إضافة الدفعات</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Batches.Edit" id="perm_batches_edit" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_batches_edit">تعديل الدفعات</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Batches.Delete" id="perm_batches_delete" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_batches_delete">حذف الدفعات</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- طلبات الترشيح -->
+                                        <div class="col-md-4 mb-3">
+                                            <h6 class="text-primary"><i class="bi bi-person-lines-fill me-2"></i>طلبات الترشيح</h6>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Registrations.View" id="perm_reg_view" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_reg_view">عرض الطلبات</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Registrations.Approve" id="perm_reg_approve" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_reg_approve">قبول الطلبات</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Registrations.Reject" id="perm_reg_reject" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_reg_reject">رفض الطلبات</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Registrations.Delete" id="perm_reg_delete" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_reg_delete">حذف الطلبات</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Registrations.Export" id="perm_reg_export" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_reg_export">تصدير الطلبات</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- التقارير -->
+                                        <div class="col-md-4 mb-3">
+                                            <h6 class="text-primary"><i class="bi bi-bar-chart me-2"></i>التقارير</h6>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Reports.View" id="perm_reports_view" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_reports_view">عرض التقارير</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Reports.Export" id="perm_reports_export" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_reports_export">تصدير التقارير</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- الإعدادات -->
+                                        <div class="col-md-4 mb-3">
+                                            <h6 class="text-primary"><i class="bi bi-gear me-2"></i>الإعدادات</h6>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Settings.View" id="perm_settings_view" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_settings_view">عرض الإعدادات</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-check" type="checkbox" value="Settings.Edit" id="perm_settings_edit" name="CustomPermissions">
+                                                <label class="form-check-label" for="perm_settings_edit">تعديل الإعدادات</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- أزرار سريعة -->
+                                    <div class="mt-3 pt-3 border-top">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAllPermissions()">
+                                            <i class="bi bi-check-all me-1"></i>تحديد الكل
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllPermissions()">
+                                            <i class="bi bi-x-lg me-1"></i>إلغاء الكل
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info btn-sm" onclick="selectViewOnly()">
+                                            <i class="bi bi-eye me-1"></i>عرض فقط
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="CustomPermissions" id="customPermissionsHidden" />
 
                         <hr />
 
@@ -100,17 +221,68 @@
     <script>
         var roleDescriptions = {
             'SuperAdmin': 'كل الصلاحيات - إدارة المستخدمين والإعدادات والبرامج',
-            'Admin': 'إدارة البرامج التدريبية والدفعات والتسجيلات',
-            'Supervisor': 'عرض البرامج والموافقة على طلبات التسجيل',
-            'Viewer': 'عرض البرامج والتسجيلات فقط'
+            'Admin': 'كل الصلاحيات - إدارة المستخدمين والإعدادات والبرامج',
+            'Supervisor': 'صلاحيات مخصصة يحددها المدير'
         };
 
-        document.getElementById('Role').addEventListener('change', function() {
-            var desc = roleDescriptions[this.value] || '';
-            document.getElementById('roleDescText').textContent = desc;
+        document.addEventListener('DOMContentLoaded', function() {
+            updatePermissionsSection();
         });
 
-        // Trigger on page load
-        document.getElementById('Role').dispatchEvent(new Event('change'));
+        document.getElementById('roleSelect').addEventListener('change', function() {
+            updatePermissionsSection();
+        });
+
+        function updatePermissionsSection() {
+            var role = document.getElementById('roleSelect').value;
+            var desc = roleDescriptions[role] || '';
+            document.getElementById('roleDescText').textContent = desc;
+            
+            var permSection = document.getElementById('supervisorPermissions');
+            if (role === 'Supervisor') {
+                permSection.style.display = 'block';
+            } else {
+                permSection.style.display = 'none';
+            }
+        }
+
+        function selectAllPermissions() {
+            document.querySelectorAll('.permission-check').forEach(function(cb) {
+                cb.checked = true;
+            });
+            updateHiddenField();
+        }
+
+        function clearAllPermissions() {
+            document.querySelectorAll('.permission-check').forEach(function(cb) {
+                cb.checked = false;
+            });
+            updateHiddenField();
+        }
+
+        function selectViewOnly() {
+            clearAllPermissions();
+            var viewPermissions = ['Programs.View', 'Batches.View', 'Registrations.View', 'Reports.View', 'Settings.View'];
+            viewPermissions.forEach(function(perm) {
+                var checkbox = document.querySelector('input[value="' + perm + '"]');
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+            updateHiddenField();
+        }
+
+        function updateHiddenField() {
+            var checked = [];
+            document.querySelectorAll('.permission-check:checked').forEach(function(cb) {
+                checked.push(cb.value);
+            });
+            document.getElementById('customPermissionsHidden').value = checked.join(',');
+        }
+
+        // تحديث الحقل المخفي عند أي تغيير
+        document.querySelectorAll('.permission-check').forEach(function(cb) {
+            cb.addEventListener('change', updateHiddenField);
+        });
     </script>
 }
