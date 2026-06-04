@@ -1,0 +1,85 @@
+@model List<TrainingSystem.Models.Batch>
+@{
+    ViewData["Title"] = "تقرير الدفعات";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">تقرير الدفعات</h1>
+        <p class="text-muted mb-0">عرض تفاصيل جميع الدفعات التدريبية</p>
+    </div>
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-right me-2"></i>العودة
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>اسم الدفعة</th>
+                        <th>البرنامج التدريبي</th>
+                        <th>تاريخ البداية</th>
+                        <th>تاريخ النهاية</th>
+                        <th class="text-center">السعة</th>
+                        <th class="text-center">المسجلين</th>
+                        <th class="text-center">مقبول</th>
+                        <th>نسبة الامتلاء</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var index = 1;
+                    }
+                    @foreach (var batch in Model)
+                    {
+                        var totalRegs = batch.Registrations?.Count ?? 0;
+                        var approvedRegs = batch.Registrations?.Count(r => r.Status == TrainingSystem.Models.RegistrationStatus.Approved) ?? 0;
+                        var fillPercent = batch.MaxParticipants > 0 ? (approvedRegs * 100.0 / batch.MaxParticipants) : 0;
+                        
+                        <tr>
+                            <td>@(index++)</td>
+                            <td><strong>@batch.Name</strong></td>
+                            <td>@batch.TrainingProgram?.Title</td>
+                            <td>@batch.StartDate.ToString("yyyy/MM/dd")</td>
+                            <td>@batch.EndDate.ToString("yyyy/MM/dd")</td>
+                            <td class="text-center">@batch.MaxParticipants</td>
+                            <td class="text-center">
+                                <span class="badge bg-primary">@totalRegs</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-success">@approvedRegs</span>
+                            </td>
+                            <td>
+                                <div class="progress" style="height: 20px; min-width: 100px;">
+                                    @{
+                                        var progressClass = fillPercent >= 90 ? "bg-danger" : fillPercent >= 70 ? "bg-warning" : "bg-success";
+                                    }
+                                    <div class="progress-bar @progressClass" style="width: @fillPercent%">
+                                        @fillPercent.ToString("0")%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                @if (batch.IsActive)
+                                {
+                                    <span class="badge bg-success">نشط</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">غير نشط</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
