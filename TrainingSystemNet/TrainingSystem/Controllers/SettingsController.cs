@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using TrainingSystem.Data;
 using TrainingSystem.Models;
 
@@ -207,7 +208,7 @@ namespace TrainingSystem.Controllers
                     await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
                 }
 
-                TempData["Success"] = "تم تحديث بيانات المستخدم بنجاح";
+                TempData["Success"] = "تم تحديث بيانات الم��تخدم بنجاح";
                 return RedirectToAction(nameof(Users));
             }
 

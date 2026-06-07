@@ -22,7 +22,7 @@ namespace TrainingSystem.Controllers
             var model = new ReportsViewModel
             {
                 TotalPrograms = await _context.TrainingPrograms.CountAsync(),
-                ActivePrograms = await _context.TrainingPrograms.CountAsync(p => p.IsActive),
+                ActivePrograms = await _context.TrainingPrograms.CountAsync(p => p.Status == ProgramStatus.Active),
                 TotalBatches = await _context.Batches.CountAsync(),
                 TotalRegistrations = await _context.Registrations.CountAsync(),
                 PendingRegistrations = await _context.Registrations.CountAsync(r => r.Status == RegistrationStatus.Pending),
@@ -165,7 +165,7 @@ namespace TrainingSystem.Controllers
                 foreach (var p in programs)
                 {
                     var totalRegs = p.Batches?.Sum(b => b.Registrations?.Count ?? 0) ?? 0;
-                    csv.AppendLine($"{p.Title},{p.Batches?.Count ?? 0},{totalRegs},{(p.IsActive ? "نشط" : "غير نشط")}");
+                    csv.AppendLine($"{p.Title},{p.Batches?.Count ?? 0},{totalRegs},{(p.Status == ProgramStatus.Active ? "نشط" : "غير نشط")}");
                 }
             }
 

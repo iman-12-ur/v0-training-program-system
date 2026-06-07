@@ -67,14 +67,17 @@
                                 </div>
                             </td>
                             <td>
-                                @if (batch.IsActive)
-                                {
-                                    <span class="badge bg-success">نشط</span>
+                                @{
+                                    var (batchBadge, batchText) = batch.Status switch
+                                    {
+                                        TrainingSystem.Models.BatchStatus.Upcoming => ("bg-info", "قادمة"),
+                                        TrainingSystem.Models.BatchStatus.InProgress => ("bg-primary", "جارية"),
+                                        TrainingSystem.Models.BatchStatus.Completed => ("bg-success", "مكتملة"),
+                                        TrainingSystem.Models.BatchStatus.Cancelled => ("bg-danger", "ملغاة"),
+                                        _ => ("bg-secondary", "غير معروف")
+                                    };
                                 }
-                                else
-                                {
-                                    <span class="badge bg-secondary">غير نشط</span>
-                                }
+                                <span class="badge @batchBadge">@batchText</span>
                             </td>
                         </tr>
                     }

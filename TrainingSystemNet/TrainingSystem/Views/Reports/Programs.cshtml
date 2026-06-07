@@ -70,7 +70,7 @@
                                 <span class="badge bg-warning">@pendingRegs</span>
                             </td>
                             <td>
-                                @if (program.IsActive)
+                                @if (program.Status == TrainingSystem.Models.ProgramStatus.Active)
                                 {
                                     <span class="badge bg-success">نشط</span>
                                 }
