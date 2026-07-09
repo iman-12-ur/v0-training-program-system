@@ -71,7 +71,8 @@ using (var scope = app.Services.CreateScope())
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         
-        context.Database.Migrate();
+        // إنشاء قاعدة البيانات والجداول تلقائياً من النماذج (بدون الحاجة لملفات Migration)
+        context.Database.EnsureCreated();
         
         // Create all roles if not exists
         foreach (var role in SystemRoles.AllRoles)
