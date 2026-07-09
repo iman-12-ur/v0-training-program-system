@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TrainingSystem.Models
 {
@@ -47,11 +48,32 @@ namespace TrainingSystem.Models
         [Display(Name = "المتطلبات المسبقة")]
         public string? Prerequisites { get; set; }
 
+        [Display(Name = "بداية فترة الترشيح")]
+        [DataType(DataType.Date)]
+        public DateTime? RegistrationStartDate { get; set; }
+
+        [Display(Name = "نهاية فترة الترشيح")]
+        [DataType(DataType.Date)]
+        public DateTime? RegistrationEndDate { get; set; }
+
         [Display(Name = "حالة البرنامج")]
         public ProgramStatus Status { get; set; } = ProgramStatus.Active;
 
         [Display(Name = "تاريخ الإنشاء")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // هل باب الترشيح مفتوح حالياً؟
+        [NotMapped]
+        public bool IsRegistrationOpen
+        {
+            get
+            {
+                var today = DateTime.Today;
+                if (RegistrationStartDate.HasValue && today < RegistrationStartDate.Value.Date) return false;
+                if (RegistrationEndDate.HasValue && today > RegistrationEndDate.Value.Date) return false;
+                return true;
+            }
+        }
 
         // Navigation property
         public virtual ICollection<Batch> Batches { get; set; } = new List<Batch>();

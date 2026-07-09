@@ -38,6 +38,7 @@ namespace TrainingSystem.Controllers
                 query = query.Where(r => 
                     r.VisitorName.Contains(search) || 
                     r.EmployeeId.Contains(search) ||
+                    r.JobTitle.Contains(search) ||
                     r.Email.Contains(search));
             }
 
@@ -157,10 +158,10 @@ namespace TrainingSystem.Controllers
                 .ToListAsync();
 
             // Generate CSV
-            var csv = "الاسم,الرقم الوظيفي,الدائرة,القسم,البريد,الجوال,البرنامج,الدفعة,الحالة,تاريخ التسجيل\n";
+            var csv = "الاسم,الرقم الوظيفي,المسمى الوظيفي,الدائرة,القسم,البريد,الهاتف,البرنامج,الدفعة,الحالة,تاريخ التسجيل\n";
             foreach (var r in registrations)
             {
-                csv += $"{r.VisitorName},{r.EmployeeId},{r.Court},{r.Department},{r.Email},{r.Phone},{r.Batch?.TrainingProgram?.Title},{r.Batch?.Name},{r.Status},{r.RegisteredAt:yyyy-MM-dd}\n";
+                csv += $"{r.VisitorName},{r.EmployeeId},{r.JobTitle},{r.Court},{r.Department},{r.Email},{r.Phone},{r.Batch?.TrainingProgram?.Title},{r.Batch?.Name},{r.Status},{r.RegisteredAt:yyyy-MM-dd}\n";
             }
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
