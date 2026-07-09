@@ -206,10 +206,11 @@ export function RegistrationsTable({
     const excelData = dataToExport.map((reg) => ({
       'الاسم': reg.visitorName,
       'الرقم الوظيفي': reg.employeeId,
+      'المسمى الوظيفي': reg.jobTitle || '-',
       'الدائرة/المحكمة': reg.court || '-',
       'القسم': reg.department,
       'البريد الإلكتروني': reg.email,
-      'رقم الجوال': reg.phone || '-',
+      'رقم الهاتف': reg.phone || '-',
       'البرنامج': reg.programTitle,
       'الدفعة': reg.batchName,
       'تاريخ التسجيل': reg.registeredAt,
@@ -416,6 +417,9 @@ export function RegistrationsTable({
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">{reg.employeeId}</span>
+                      {reg.jobTitle && (
+                        <p className="text-xs text-muted-foreground mt-1">{reg.jobTitle}</p>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">{reg.court || '-'}</span>
