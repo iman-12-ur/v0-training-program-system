@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, X, Image as ImageIcon, PencilLine, FileSpreadsheet, Upload, Download, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -323,8 +322,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
           </div>
         )}
 
-        <div className={inputMode === 'manual' ? 'flex-1 min-h-0 overflow-hidden' : 'hidden'}>
-        <ScrollArea className="h-full">
+        <div className={inputMode === 'manual' ? 'flex-1 min-h-0 overflow-y-auto' : 'hidden'}>
           <div className="space-y-6 p-6">
             {/* Basic Info */}
             <div className="grid gap-4 sm:grid-cols-2" style={{ direction: 'rtl' }}>
@@ -635,7 +633,6 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
               />
             </div>
           </div>
-        </ScrollArea>
         </div>
 
         <DialogFooter className="border-t p-6 pt-4 flex-row-reverse gap-2 shrink-0">
