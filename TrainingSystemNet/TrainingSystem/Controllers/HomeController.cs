@@ -55,13 +55,6 @@ namespace TrainingSystem.Controllers
                 return NotFound();
             }
 
-            // منع التسجيل إذا كانت فترة الترشيح مغلقة
-            if (batch.TrainingProgram != null && !batch.TrainingProgram.IsRegistrationOpen)
-            {
-                TempData["Error"] = "عذراً، فترة الترشيح لهذا البرنامج مغلقة حالياً";
-                return RedirectToAction(nameof(ProgramDetails), new { id = batch.TrainingProgramId });
-            }
-
             ViewBag.Program = batch.TrainingProgram;
             ViewBag.Batch = batch;
 
@@ -75,17 +68,6 @@ namespace TrainingSystem.Controllers
             // Convert Arabic numbers to English
             registration.EmployeeId = ConvertArabicToEnglish(registration.EmployeeId);
             registration.Phone = ConvertArabicToEnglish(registration.Phone);
-
-            // التحقق من فترة الترشيح
-            var batchForCheck = await _context.Batches
-                .Include(b => b.TrainingProgram)
-                .FirstOrDefaultAsync(b => b.Id == registration.BatchId);
-
-            if (batchForCheck?.TrainingProgram != null && !batchForCheck.TrainingProgram.IsRegistrationOpen)
-            {
-                TempData["Error"] = "عذراً، فترة الترشيح لهذا البرنامج مغلقة حالياً";
-                return RedirectToAction(nameof(ProgramDetails), new { id = batchForCheck.TrainingProgramId });
-            }
 
             // Check for duplicate registration
             var existingReg = await _context.Registrations

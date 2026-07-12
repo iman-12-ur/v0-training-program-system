@@ -16,10 +16,6 @@ namespace TrainingSystem.Models
         [RegularExpression(@"^[0-9]+$", ErrorMessage = "الرقم الوظيفي يجب أن يحتوي على أرقام إنجليزية فقط")]
         public string EmployeeId { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "المسمى الوظيفي مطلوب")]
-        [Display(Name = "المسمى الوظيفي")]
-        public string JobTitle { get; set; } = string.Empty;
-
         [Required(ErrorMessage = "الدائرة/المحكمة مطلوبة")]
         [Display(Name = "الدائرة/المحكمة")]
         public string Court { get; set; } = string.Empty;
@@ -33,9 +29,9 @@ namespace TrainingSystem.Models
         [Display(Name = "البريد الإلكتروني")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "رقم الهاتف مطلوب")]
-        [Display(Name = "رقم الهاتف")]
-        [RegularExpression(@"^(968)?[279]\d{7}$", ErrorMessage = "رقم الهاتف يجب أن يبدأ بـ 2 أو 7 أو 9 ويتكون من 8 أرقام (سلطنة عُمان)")]
+        [Required(ErrorMessage = "رقم الجوال مطلوب")]
+        [Display(Name = "رقم الجوال")]
+        [RegularExpression(@"^[0-9]+$", ErrorMessage = "رقم الجوال يجب أن يحتوي على أرقام إنجليزية فقط")]
         public string Phone { get; set; } = string.Empty;
 
         [Display(Name = "حالة الطلب")]

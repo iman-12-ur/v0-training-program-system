@@ -55,13 +55,6 @@
                             <span asp-validation-for="EmployeeId" class="text-danger small"></span>
                         </div>
 
-                        <!-- Job Title -->
-                        <div class="col-md-6">
-                            <label asp-for="JobTitle" class="form-label">المسمى الوظيفي <span class="text-danger">*</span></label>
-                            <input asp-for="JobTitle" class="form-control" placeholder="مثال: أخصائي موارد بشرية" />
-                            <span asp-validation-for="JobTitle" class="text-danger small"></span>
-                        </div>
-
                         <!-- Court -->
                         <div class="col-md-6">
                             <label asp-for="Court" class="form-label">الدائرة/المحكمة <span class="text-danger">*</span></label>
@@ -85,13 +78,9 @@
 
                         <!-- Phone -->
                         <div class="col-md-6">
-                            <label asp-for="Phone" class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
-                            <div class="input-group" dir="ltr">
-                                <span class="input-group-text">968+</span>
-                                <input asp-for="Phone" class="form-control" placeholder="9xxxxxxx" maxlength="8" />
-                            </div>
+                            <label asp-for="Phone" class="form-label">رقم الجوال <span class="text-danger">*</span></label>
+                            <input asp-for="Phone" class="form-control" placeholder="05xxxxxxxx (أرقام إنجليزية)" />
                             <span asp-validation-for="Phone" class="text-danger small"></span>
-                            <small class="text-muted">رقم عُماني يبدأ بـ 7 أو 9 (8 أرقام)</small>
                         </div>
                     </div>
 

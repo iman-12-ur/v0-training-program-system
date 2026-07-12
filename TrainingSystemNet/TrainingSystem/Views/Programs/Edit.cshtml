@@ -86,24 +86,6 @@
                 </div>
             </div>
 
-            <!-- Registration Period -->
-            <h5 class="fw-bold mb-3 pb-2 border-bottom">
-                <i class="bi bi-calendar-check text-primary me-2"></i> فترة الترشيح
-            </h5>
-
-            <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <label asp-for="RegistrationStartDate" class="form-label">بداية فترة الترشيح</label>
-                    <input asp-for="RegistrationStartDate" type="date" class="form-control" value="@(Model.RegistrationStartDate?.ToString("yyyy-MM-dd"))" />
-                    <span asp-validation-for="RegistrationStartDate" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="RegistrationEndDate" class="form-label">نهاية فترة الترشيح</label>
-                    <input asp-for="RegistrationEndDate" type="date" class="form-control" value="@(Model.RegistrationEndDate?.ToString("yyyy-MM-dd"))" />
-                    <span asp-validation-for="RegistrationEndDate" class="text-danger small"></span>
-                </div>
-            </div>
-
             <!-- Objectives & Topics -->
             <h5 class="fw-bold mb-3 pb-2 border-bottom">
                 <i class="bi bi-list-check text-primary me-2"></i> الأهداف والمحاور

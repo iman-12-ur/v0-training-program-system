@@ -145,41 +145,13 @@
                             <strong>@Model.Instructor</strong>
                         </div>
                     </li>
-                    <li class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                    <li class="d-flex align-items-center">
                         <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
                             <i class="bi bi-geo-alt text-primary"></i>
                         </div>
                         <div>
                             <small class="text-muted d-block">الموقع</small>
                             <strong>@Model.Location</strong>
-                        </div>
-                    </li>
-                    <li class="d-flex align-items-center">
-                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
-                            <i class="bi bi-calendar-check text-primary"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted d-block">فترة الترشيح</small>
-                            @if (Model.RegistrationStartDate.HasValue || Model.RegistrationEndDate.HasValue)
-                            {
-                                <strong>
-                                    @(Model.RegistrationStartDate?.ToString("yyyy/MM/dd") ?? "-")
-                                    -
-                                    @(Model.RegistrationEndDate?.ToString("yyyy/MM/dd") ?? "-")
-                                </strong>
-                                @if (Model.IsRegistrationOpen)
-                                {
-                                    <span class="badge bg-success ms-2">مفتوح</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger ms-2">مغلق</span>
-                                }
-                            }
-                            else
-                            {
-                                <strong>مفتوح دائماً</strong>
-                            }
                         </div>
                     </li>
                 </ul>
@@ -210,10 +182,6 @@
                             @if (isFull)
                             {
                                 <span class="badge bg-danger">مكتمل العدد</span>
-                            }
-                            else if (!Model.IsRegistrationOpen)
-                            {
-                                <span class="badge bg-secondary">فترة الترشيح مغلقة</span>
                             }
                             else
                             {

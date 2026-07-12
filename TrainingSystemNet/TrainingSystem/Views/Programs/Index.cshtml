@@ -9,79 +9,10 @@
         <h1 class="page-title">البرامج التدريبية</h1>
         <p class="page-subtitle">إدارة جميع البرامج التدريبية</p>
     </div>
-    <div class="d-flex gap-2">
-        <a href="@Url.Action("DownloadTemplate")" class="btn btn-secondary">
-            <i class="bi bi-download me-2"></i>
-            قالب Excel
-        </a>
-        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#importModal">
-            <i class="bi bi-file-earmark-excel me-2"></i>
-            استيراد من Excel
-        </button>
-        <a href="@Url.Action("Create")" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-2"></i>
-            إضافة برنامج
-        </a>
-    </div>
-</div>
-
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
-<!-- Import Modal -->
-<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <form asp-action="Import" method="post" enctype="multipart/form-data">
-                @Html.AntiForgeryToken()
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-file-earmark-excel text-success me-2"></i>
-                        استيراد البرامج من ملف Excel
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted small mb-3">
-                        حمّل القالب أولاً، عبّئ بيانات البرامج بنفس توزيعة النظام، ثم ارفع الملف هنا. يمكنك إدراج أكثر من برنامج (كل برنامج في صف).
-                    </p>
-                    <div class="mb-3">
-                        <a href="@Url.Action("DownloadTemplate")" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-download me-1"></i> تحميل القالب
-                        </a>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">ملف Excel <span class="text-danger">*</span></label>
-                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required />
-                    </div>
-                    <div class="bg-light rounded p-3 mt-3" style="font-size: 0.75rem;">
-                        <strong>الأعمدة المطلوبة:</strong>
-                        عنوان البرنامج، وصف البرنامج، التصنيفات، نوع البرنامج، الفئة المستهدفة، المدة، المدرب، الموقع، الأهداف، المحاور، المتطلبات المسبقة، بداية/نهاية فترة الترشيح.
-                        <br />
-                        يمكن الفصل بين عناصر التصنيفات/الأهداف/المحاور بعلامة | أو فاصلة.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-upload me-1"></i> رفع واستيراد
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <a href="@Url.Action("Create")" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i>
+        إضافة برنامج
+    </a>
 </div>
 
 <!-- Programs Table -->

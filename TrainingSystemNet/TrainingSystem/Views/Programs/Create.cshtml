@@ -93,27 +93,6 @@
                 </div>
             </div>
 
-            <!-- Registration Period Section -->
-            <div class="mb-4">
-                <h3 style="font-size: 1rem; font-weight: 600; color: var(--foreground); padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
-                    <i class="bi bi-calendar-check text-primary me-2"></i>
-                    فترة الترشيح
-                </h3>
-
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                    <div class="form-group">
-                        <label asp-for="RegistrationStartDate" class="form-label">بداية فترة الترشيح</label>
-                        <input asp-for="RegistrationStartDate" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                        <span asp-validation-for="RegistrationStartDate" class="text-danger" style="font-size: 0.75rem;"></span>
-                    </div>
-                    <div class="form-group">
-                        <label asp-for="RegistrationEndDate" class="form-label">نهاية فترة الترشيح</label>
-                        <input asp-for="RegistrationEndDate" type="date" class="form-control" value="@DateTime.Today.AddDays(14).ToString("yyyy-MM-dd")" />
-                        <span asp-validation-for="RegistrationEndDate" class="text-danger" style="font-size: 0.75rem;"></span>
-                    </div>
-                </div>
-            </div>
-
             <!-- Objectives & Topics Section -->
             <div class="mb-4">
                 <h3 style="font-size: 1rem; font-weight: 600; color: var(--foreground); padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">

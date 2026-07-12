@@ -19,11 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, X, Image as ImageIcon, PencilLine, FileSpreadsheet, Upload, Download, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Plus, X, Image as ImageIcon } from 'lucide-react';
 import { categories, programTypes } from '@/lib/mock-data';
-import * as XLSX from 'xlsx';
 
 interface AddProgramFormProps {
   isOpen: boolean;
@@ -47,113 +47,6 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
     prerequisites: [''],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [inputMode, setInputMode] = useState<'manual' | 'excel'>('manual');
-  const [excelMessage, setExcelMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  // تحميل قالب Excel فارغ بنفس توزيعة النظام
-  const handleDownloadTemplate = () => {
-    const headers = [
-      'عنوان البرنامج',
-      'وصف البرنامج',
-      'التصنيفات',
-      'نوع البرنامج',
-      'الفئة المستهدفة',
-      'المدة',
-      'المدرب',
-      'الموقع',
-      'الأهداف',
-      'المحاور',
-      'المتطلبات المسبقة',
-    ];
-    const example = [
-      'القيادة الفعّالة',
-      'برنامج تدريبي لتطوير المهارات القيادية',
-      'إدارية، قيادية',
-      programTypes[0] || 'حضوري',
-      'المشرفين والمدراء',
-      '5 أيام',
-      'أ. محمد العامري',
-      'قاعة التدريب الرئيسية',
-      'فهم أساسيات القيادة | تطوير مهارات التواصل',
-      'أنماط القيادة | إدارة الفرق | حل المشكلات',
-      'خبرة سنتين | موافقة المدير المباشر',
-    ];
-    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-    ws['!cols'] = headers.map(() => ({ wch: 25 }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'البرامج');
-    XLSX.writeFile(wb, 'قالب_البرامج_التدريبية.xlsx');
-  };
-
-  // قراءة ملف Excel وتعبئة الخانات تلقائياً
-  const splitList = (value: string) =>
-    String(value || '')
-      .split(/[|\n,؛;]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setExcelMessage(null);
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: 'array' });
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
-
-        if (rows.length === 0) {
-          setExcelMessage({ type: 'error', text: 'الملف فارغ. تأكد من تعبئة صف واحد على الأقل.' });
-          return;
-        }
-
-        const row = rows[0];
-        const get = (key: string) => String(row[key] ?? '').trim();
-
-        const importedCategories = splitList(get('التصنيفات'));
-        // إضافة أي تصنيف جديد غير موجود إلى القائمة المتاحة
-        if (importedCategories.length > 0) {
-          setAvailableCategories((prev) => {
-            const merged = [...prev];
-            importedCategories.forEach((c) => {
-              if (!merged.includes(c)) merged.push(c);
-            });
-            return merged;
-          });
-        }
-
-        setFormData((prev) => ({
-          ...prev,
-          title: get('عنوان البرنامج') || prev.title,
-          description: get('وصف البرنامج') || prev.description,
-          selectedCategories: importedCategories.length ? importedCategories : prev.selectedCategories,
-          programType: get('نوع البرنامج') || prev.programType,
-          targetAudience: get('الفئة المستهدفة') || prev.targetAudience,
-          duration: get('المدة') || prev.duration,
-          instructor: get('المدرب') || prev.instructor,
-          location: get('الموقع') || prev.location,
-          objectives: splitList(get('الأهداف')).length ? splitList(get('الأهداف')) : prev.objectives,
-          topics: splitList(get('المحاور')).length ? splitList(get('المحاور')) : prev.topics,
-          prerequisites: splitList(get('المتطلبات المسبقة')).length
-            ? splitList(get('المتطلبات المسبقة'))
-            : prev.prerequisites,
-        }));
-
-        setExcelMessage({
-          type: 'success',
-          text: `تم استيراد بيانات البرنامج بنجاح${rows.length > 1 ? ` (تم استخدام أول صف من أصل ${rows.length})` : ''}. راجع الخانات ثم اضغط حفظ.`,
-        });
-        setInputMode('manual');
-      } catch (err) {
-        setExcelMessage({ type: 'error', text: 'تعذّر قراءة الملف. تأكد أنه ملف Excel صالح بنفس القالب.' });
-      }
-    };
-    reader.readAsArrayBuffer(file);
-    e.target.value = '';
-  };
 
   const handleCategoryToggle = (category: string) => {
     setFormData((prev) => ({
@@ -204,8 +97,6 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
       topics: [''],
       prerequisites: [''],
     });
-    setExcelMessage(null);
-    setInputMode('manual');
   };
 
   
@@ -239,90 +130,12 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0 flex flex-col overflow-hidden">
-        <DialogHeader className="border-b p-6 pb-4 shrink-0">
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0">
+        <DialogHeader className="border-b p-6 pb-4">
           <DialogTitle>إضافة برنامج تدريبي جديد</DialogTitle>
-          {/* اختيار طريقة الإدخال */}
-          <div className="mt-4 grid grid-cols-2 gap-2" style={{ direction: 'rtl' }}>
-            <button
-              type="button"
-              onClick={() => setInputMode('manual')}
-              className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-colors ${
-                inputMode === 'manual'
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/50'
-              }`}
-            >
-              <PencilLine className="h-4 w-4" />
-              إدخال يدوي
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputMode('excel')}
-              className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-colors ${
-                inputMode === 'excel'
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/50'
-              }`}
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              رفع ملف Excel
-            </button>
-          </div>
-          {/* رسالة نتيجة الاستيراد */}
-          {excelMessage && (
-            <div
-              className={`mt-3 flex items-start gap-2 rounded-lg border p-3 text-sm ${
-                excelMessage.type === 'success'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-destructive/20 bg-destructive/10 text-destructive'
-              }`}
-              style={{ direction: 'rtl' }}
-            >
-              {excelMessage.type === 'success' ? (
-                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-              )}
-              <span>{excelMessage.text}</span>
-            </div>
-          )}
         </DialogHeader>
 
-        {inputMode === 'excel' && (
-          <div className="flex-1 min-h-0 overflow-y-auto p-6" style={{ direction: 'rtl' }}>
-            <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/30 p-8 text-center">
-              <FileSpreadsheet className="mx-auto h-12 w-12 text-primary" />
-              <h4 className="mt-3 font-semibold text-foreground">رفع ملف Excel للبرنامج التدريبي</h4>
-              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                حمّل القالب أولاً، عبّئ بيانات البرنامج بنفس توزيعة النظام، ثم ارفعه هنا وسيتم تعبئة الخانات تلقائياً لمراجعتها قبل الحفظ.
-              </p>
-              <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Button type="button" variant="outline" onClick={handleDownloadTemplate} className="gap-2">
-                  <Download className="h-4 w-4" />
-                  تحميل القالب
-                </Button>
-                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                  <Upload className="h-4 w-4" />
-                  اختيار ملف Excel
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    className="hidden"
-                    onChange={handleExcelUpload}
-                  />
-                </label>
-              </div>
-            </div>
-            <div className="mt-4 rounded-lg bg-muted/50 p-4 text-right text-xs text-muted-foreground">
-              <p className="font-medium text-foreground mb-1">أعمدة القالب المطلوبة:</p>
-              <p>عنوان البرنامج، وصف البرنامج، التصنيفات، نوع البرنامج، الفئة المستهدفة، المدة، المدرب، الموقع، الأهداف، المحاور، المتطلبات المسبقة.</p>
-              <p className="mt-1">يمكن الفصل بين عناصر التصنيفات/الأهداف/المحاور/المتطلبات بعلامة | أو فاصلة.</p>
-            </div>
-          </div>
-        )}
-
-        <div className={inputMode === 'manual' ? 'flex-1 min-h-0 overflow-y-auto' : 'hidden'}>
+        <ScrollArea className="max-h-[60vh]">
           <div className="space-y-6 p-6">
             {/* Basic Info */}
             <div className="grid gap-4 sm:grid-cols-2" style={{ direction: 'rtl' }}>
@@ -633,9 +446,9 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
               />
             </div>
           </div>
-        </div>
+        </ScrollArea>
 
-        <DialogFooter className="border-t p-6 pt-4 flex-row-reverse gap-2 shrink-0">
+        <DialogFooter className="border-t p-6 pt-4 flex-row-reverse gap-2">
           <Button onClick={handleSubmit} disabled={!isValid || isSubmitting}>
             {isSubmitting ? 'جاري الحفظ...' : 'حفظ البرنامج'}
           </Button>

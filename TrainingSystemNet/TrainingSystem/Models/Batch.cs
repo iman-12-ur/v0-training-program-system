@@ -14,12 +14,12 @@ namespace TrainingSystem.Models
         [Required(ErrorMessage = "تاريخ البدء مطلوب")]
         [Display(Name = "تاريخ البدء")]
         [DataType(DataType.Date)]
-        public DateTime StartDate { get; set; } = DateTime.Today;
+        public DateTime StartDate { get; set; }
 
         [Required(ErrorMessage = "تاريخ الانتهاء مطلوب")]
         [Display(Name = "تاريخ الانتهاء")]
         [DataType(DataType.Date)]
-        public DateTime EndDate { get; set; } = DateTime.Today.AddDays(1);
+        public DateTime EndDate { get; set; }
 
         [Required(ErrorMessage = "الحد الأقصى للمشاركين مطلوب")]
         [Display(Name = "الحد الأقصى للمشاركين")]
