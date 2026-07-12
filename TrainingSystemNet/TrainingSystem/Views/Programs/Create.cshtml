@@ -45,6 +45,17 @@
                     </div>
                 </div>
                 
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div class="form-group">
+                        <label asp-for="ProgramCode" class="form-label">رمز البرنامج</label>
+                        <input asp-for="ProgramCode" class="form-control" placeholder="مثال: LEAD-101" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="ReferenceNumber" class="form-label">الرقم المرجعي</label>
+                        <input class="form-control" value="يُولّد تلقائياً عند الحفظ" readonly disabled />
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label asp-for="Description" class="form-label">وصف البرنامج <span class="text-danger">*</span></label>
                     <textarea asp-for="Description" class="form-control" rows="3" placeholder="اكتب وصفاً تفصيلياً للبرنامج"></textarea>

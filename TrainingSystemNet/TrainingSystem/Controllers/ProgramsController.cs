@@ -44,15 +44,41 @@ namespace TrainingSystem.Controllers
             {
                 program.Status = ProgramStatus.Active;
                 program.CreatedAt = DateTime.Now;
+                program.ReferenceNumber = await GenerateReferenceNumberAsync();
 
                 _context.TrainingPrograms.Add(program);
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] = "تم إضافة البرنامج بنجاح";
+                TempData["Success"] = $"تم إضافة البرنامج بنجاح - الرقم المرجعي: {program.ReferenceNumber}";
                 return RedirectToAction(nameof(Index));
             }
 
             return View(program);
+        }
+
+        // توليد رقم مرجعي تلقائي فريد بصيغة PRG-{السنة}-{تسلسل}
+        private async Task<string> GenerateReferenceNumberAsync()
+        {
+            var year = DateTime.Now.Year;
+            var prefix = $"PRG-{year}-";
+
+            var lastForYear = await _context.TrainingPrograms
+                .Where(p => p.ReferenceNumber != null && p.ReferenceNumber.StartsWith(prefix))
+                .OrderByDescending(p => p.ReferenceNumber)
+                .Select(p => p.ReferenceNumber)
+                .FirstOrDefaultAsync();
+
+            var next = 1;
+            if (!string.IsNullOrEmpty(lastForYear))
+            {
+                var numericPart = lastForYear.Substring(prefix.Length);
+                if (int.TryParse(numericPart, out var parsed))
+                {
+                    next = parsed + 1;
+                }
+            }
+
+            return $"{prefix}{next:D4}";
         }
 
         // تعديل برنامج - SuperAdmin و Admin فقط

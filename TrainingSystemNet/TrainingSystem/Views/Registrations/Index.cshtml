@@ -68,6 +68,10 @@
                                 <td>
                                     <strong>@reg.VisitorName</strong>
                                     <br /><small class="text-muted">@reg.EmployeeId</small>
+                                    @if (!string.IsNullOrEmpty(reg.JobTitle))
+                                    {
+                                        <br /><small class="text-muted">@reg.JobTitle</small>
+                                    }
                                 </td>
                                 <td>
                                     <small>@reg.Court</small>

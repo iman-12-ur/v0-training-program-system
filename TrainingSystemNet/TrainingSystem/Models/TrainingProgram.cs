@@ -6,6 +6,14 @@ namespace TrainingSystem.Models
     {
         public int Id { get; set; }
 
+        // الرقم المرجعي التلقائي (يُولّد تلقائياً عند الإضافة)
+        [Display(Name = "الرقم المرجعي")]
+        public string? ReferenceNumber { get; set; }
+
+        // رمز البرنامج (يُدخله المستخدم)
+        [Display(Name = "رمز البرنامج")]
+        public string? ProgramCode { get; set; }
+
         [Required(ErrorMessage = "عنوان البرنامج مطلوب")]
         [Display(Name = "عنوان البرنامج")]
         public string Title { get; set; } = string.Empty;

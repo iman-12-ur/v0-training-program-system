@@ -17,6 +17,7 @@
         <form asp-action="Edit" method="post">
             <input type="hidden" asp-for="Id" />
             <input type="hidden" asp-for="CreatedAt" />
+            <input type="hidden" asp-for="ReferenceNumber" />
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
             <!-- Basic Info -->
@@ -44,6 +45,14 @@
                     <label asp-for="Description" class="form-label">وصف البرنامج <span class="text-danger">*</span></label>
                     <textarea asp-for="Description" class="form-control" rows="3"></textarea>
                     <span asp-validation-for="Description" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ProgramCode" class="form-label">رمز البرنامج</label>
+                    <input asp-for="ProgramCode" class="form-control" placeholder="مثال: LEAD-101" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الرقم المرجعي</label>
+                    <input class="form-control" value="@Model.ReferenceNumber" readonly disabled />
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Categories" class="form-label">التصنيفات</label>

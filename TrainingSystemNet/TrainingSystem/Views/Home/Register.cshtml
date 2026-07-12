@@ -55,6 +55,13 @@
                             <span asp-validation-for="EmployeeId" class="text-danger small"></span>
                         </div>
 
+                        <!-- Job Title -->
+                        <div class="col-md-6">
+                            <label asp-for="JobTitle" class="form-label">المسمى الوظيفي <span class="text-danger">*</span></label>
+                            <input asp-for="JobTitle" class="form-control" placeholder="مثال: أخصائي موارد بشرية" />
+                            <span asp-validation-for="JobTitle" class="text-danger small"></span>
+                        </div>
+
                         <!-- Court -->
                         <div class="col-md-6">
                             <label asp-for="Court" class="form-label">الدائرة/المحكمة <span class="text-danger">*</span></label>
@@ -78,8 +85,8 @@
 
                         <!-- Phone -->
                         <div class="col-md-6">
-                            <label asp-for="Phone" class="form-label">رقم الجوال <span class="text-danger">*</span></label>
-                            <input asp-for="Phone" class="form-control" placeholder="05xxxxxxxx (أرقام إنجليزية)" />
+                            <label asp-for="Phone" class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
+                            <input asp-for="Phone" class="form-control" placeholder="مثال: 9xxxxxxx (رقم عُماني)" maxlength="8" />
                             <span asp-validation-for="Phone" class="text-danger small"></span>
                         </div>
                     </div>
