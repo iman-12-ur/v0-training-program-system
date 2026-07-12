@@ -240,8 +240,8 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0">
-        <DialogHeader className="border-b p-6 pb-4">
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 flex flex-col overflow-hidden">
+        <DialogHeader className="border-b p-6 pb-4 shrink-0">
           <DialogTitle>إضافة برنامج تدريبي جديد</DialogTitle>
           {/* اختيار طريقة الإدخال */}
           <div className="mt-4 grid grid-cols-2 gap-2" style={{ direction: 'rtl' }}>
@@ -291,7 +291,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
         </DialogHeader>
 
         {inputMode === 'excel' && (
-          <div className="p-6" style={{ direction: 'rtl' }}>
+          <div className="flex-1 min-h-0 overflow-y-auto p-6" style={{ direction: 'rtl' }}>
             <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/30 p-8 text-center">
               <FileSpreadsheet className="mx-auto h-12 w-12 text-primary" />
               <h4 className="mt-3 font-semibold text-foreground">رفع ملف Excel للبرنامج التدريبي</h4>
@@ -323,8 +323,8 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
           </div>
         )}
 
-        <div className={inputMode === 'manual' ? '' : 'hidden'}>
-        <ScrollArea className="max-h-[60vh]">
+        <div className={inputMode === 'manual' ? 'flex-1 min-h-0 overflow-hidden' : 'hidden'}>
+        <ScrollArea className="h-full">
           <div className="space-y-6 p-6">
             {/* Basic Info */}
             <div className="grid gap-4 sm:grid-cols-2" style={{ direction: 'rtl' }}>
@@ -638,7 +638,7 @@ export function AddProgramForm({ isOpen, onClose, onSubmit }: AddProgramFormProp
         </ScrollArea>
         </div>
 
-        <DialogFooter className="border-t p-6 pt-4 flex-row-reverse gap-2">
+        <DialogFooter className="border-t p-6 pt-4 flex-row-reverse gap-2 shrink-0">
           <Button onClick={handleSubmit} disabled={!isValid || isSubmitting}>
             {isSubmitting ? 'جاري الحفظ...' : 'حفظ البرنامج'}
           </Button>
