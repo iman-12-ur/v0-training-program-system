@@ -17,6 +17,30 @@
 
 <div class="card">
     <div class="card-body">
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            </div>
+        }
+
+        <!-- Tabs: Manual entry / Excel import -->
+        <ul class="nav nav-tabs mb-4" id="createTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-pane" type="button" role="tab">
+                    <i class="bi bi-pencil-square me-2"></i>إدخال يدوي
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="excel-tab" data-bs-toggle="tab" data-bs-target="#excel-pane" type="button" role="tab">
+                    <i class="bi bi-file-earmark-excel me-2"></i>استيراد من Excel
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="createTabsContent">
+        <!-- Manual entry pane -->
+        <div class="tab-pane fade show active" id="manual-pane" role="tabpanel">
         <form asp-action="Create" method="post">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
@@ -143,6 +167,52 @@
                 </a>
             </div>
         </form>
+        </div>
+        <!-- End manual pane -->
+
+        <!-- Excel import pane -->
+        <div class="tab-pane fade" id="excel-pane" role="tabpanel">
+            <div class="mb-4">
+                <h3 style="font-size: 1rem; font-weight: 600; color: var(--foreground); padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+                    <i class="bi bi-file-earmark-excel text-primary me-2"></i>
+                    استيراد البرامج من ملف Excel
+                </h3>
+
+                <div class="alert alert-info" style="font-size: 0.875rem;">
+                    <i class="bi bi-info-circle me-2"></i>
+                    حمّل القالب أولاً، عبّئ بيانات البرامج بنفس توزيعة النظام (كل برنامج في صف)، ثم ارفع الملف لمعاينة البيانات والتحقق منها قبل الاستيراد.
+                    يمكنك الفصل بين عناصر الأهداف والمحاور بعلامة <strong>|</strong>.
+                </div>
+
+                <div class="mb-3">
+                    <a href="@Url.Action("DownloadTemplate")" class="btn btn-secondary">
+                        <i class="bi bi-download me-2"></i>
+                        تحميل قالب Excel
+                    </a>
+                </div>
+
+                <form asp-action="ImportPreview" method="post" enctype="multipart/form-data">
+                    <div class="form-group mb-3">
+                        <label class="form-label">ملف Excel <span class="text-danger">*</span></label>
+                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required />
+                        <span class="text-muted" style="font-size: 0.75rem;">الصيغ المدعومة: xlsx.</span>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border); padding-top: 1.5rem; display: flex; gap: 0.75rem;">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-eye me-2"></i>
+                            معاينة البيانات
+                        </button>
+                        <a href="@Url.Action("Index")" class="btn btn-secondary btn-lg">
+                            <i class="bi bi-x-lg me-2"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- End Excel pane -->
+        </div>
     </div>
 </div>
 
