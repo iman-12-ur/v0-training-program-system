@@ -1,0 +1,290 @@
+@model TrainingSystem.Controllers.ReportsViewModel
+@{
+    ViewData["Title"] = "التقارير";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">التقارير والإحصائيات</h1>
+        <p class="text-muted mb-0">عرض إحصائيات وتقارير النظام</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="ExportToCsv" asp-route-type="registrations" class="btn btn-outline-primary">
+            <i class="bi bi-download me-2"></i>تصدير التسجيلات
+        </a>
+        <a asp-action="ExportToCsv" asp-route-type="programs" class="btn btn-outline-primary">
+            <i class="bi bi-download me-2"></i>تصدير البرامج
+        </a>
+    </div>
+</div>
+
+<!-- إحصائيات سريعة -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="stats-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                <i class="bi bi-book"></i>
+            </div>
+            <div class="stats-info">
+                <h3>@Model.TotalPrograms</h3>
+                <p>البرامج التدريبية</p>
+                <small class="text-success">@Model.ActivePrograms نشط</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="stats-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                <i class="bi bi-collection"></i>
+            </div>
+            <div class="stats-info">
+                <h3>@Model.TotalBatches</h3>
+                <p>الدفعات</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="stats-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="stats-info">
+                <h3>@Model.TotalRegistrations</h3>
+                <p>إجمالي التسجيلات</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="stats-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div class="stats-info">
+                <h3>@Model.PendingRegistrations</h3>
+                <p>قيد المراجعة</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- توزيع حالات التسجيل -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="display-4 text-warning mb-2">@Model.PendingRegistrations</div>
+                <h6 class="text-muted">قيد المراجعة</h6>
+                <div class="progress mt-3" style="height: 8px;">
+                    @{
+                        var pendingPercent = Model.TotalRegistrations > 0 ? (Model.PendingRegistrations * 100.0 / Model.TotalRegistrations) : 0;
+                    }
+                    <div class="progress-bar bg-warning" style="width: @pendingPercent%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="display-4 text-success mb-2">@Model.ApprovedRegistrations</div>
+                <h6 class="text-muted">مقبول</h6>
+                <div class="progress mt-3" style="height: 8px;">
+                    @{
+                        var approvedPercent = Model.TotalRegistrations > 0 ? (Model.ApprovedRegistrations * 100.0 / Model.TotalRegistrations) : 0;
+                    }
+                    <div class="progress-bar bg-success" style="width: @approvedPercent%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="display-4 text-danger mb-2">@Model.RejectedRegistrations</div>
+                <h6 class="text-muted">مرفوض</h6>
+                <div class="progress mt-3" style="height: 8px;">
+                    @{
+                        var rejectedPercent = Model.TotalRegistrations > 0 ? (Model.RejectedRegistrations * 100.0 / Model.TotalRegistrations) : 0;
+                    }
+                    <div class="progress-bar bg-danger" style="width: @rejectedPercent%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- البرامج الأكثر طلباً -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-trophy me-2 text-warning"></i>
+                    البرامج الأكثر طلباً
+                </h5>
+            </div>
+            <div class="card-body">
+                @if (Model.TopPrograms.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>البرنامج</th>
+                                    <th class="text-center">التسجيلات</th>
+                                    <th class="text-center">مقبول</th>
+                                    <th class="text-center">مرفوض</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var program in Model.TopPrograms)
+                                {
+                                    <tr>
+                                        <td>@program.ProgramName</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">@program.TotalRegistrations</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-success">@program.ApprovedCount</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">@program.RejectedCount</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox display-4"></i>
+                        <p class="mt-2">لا توجد بيانات</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- التسجيلات الأخيرة -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-clock-history me-2 text-info"></i>
+                    التسجيلات الأخيرة
+                </h5>
+            </div>
+            <div class="card-body">
+                @if (Model.RecentRegistrations.Any())
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var reg in Model.RecentRegistrations.Take(5))
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div>
+                                    <h6 class="mb-1">@reg.VisitorName</h6>
+                                    <small class="text-muted">@reg.Batch?.TrainingProgram?.Title</small>
+                                </div>
+                                <div class="text-end">
+                                    @{
+                                        var statusClass = reg.Status switch
+                                        {
+                                            TrainingSystem.Models.RegistrationStatus.Approved => "success",
+                                            TrainingSystem.Models.RegistrationStatus.Rejected => "danger",
+                                            _ => "warning"
+                                        };
+                                        var statusText = reg.Status switch
+                                        {
+                                            TrainingSystem.Models.RegistrationStatus.Approved => "مقبول",
+                                            TrainingSystem.Models.RegistrationStatus.Rejected => "مرفوض",
+                                            _ => "قيد المراجعة"
+                                        };
+                                    }
+                                    <span class="badge bg-@statusClass">@statusText</span>
+                                    <br>
+                                    <small class="text-muted">@reg.RegisteredAt.ToString("yyyy/MM/dd")</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox display-4"></i>
+                        <p class="mt-2">لا توجد تسجيلات</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- إحصائيات شهرية -->
+@if (Model.MonthlyStats.Any())
+{
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-graph-up me-2 text-primary"></i>
+                التسجيلات خلال الأشهر الماضية
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                @foreach (var stat in Model.MonthlyStats)
+                {
+                    <div class="col-md-2 text-center mb-3">
+                        <div class="border rounded p-3">
+                            <h4 class="text-primary mb-1">@stat.Count</h4>
+                            <small class="text-muted">@stat.MonthName</small>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<!-- روابط سريعة للتقارير التفصيلية -->
+<div class="row g-4 mt-2">
+    <div class="col-md-4">
+        <a asp-action="Programs" class="card card-link h-100 text-decoration-none">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-book display-4 text-primary mb-3"></i>
+                <h5>تقرير البرامج التدريبية</h5>
+                <p class="text-muted mb-0">عرض تفاصيل جميع البرامج</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a asp-action="Batches" class="card card-link h-100 text-decoration-none">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-collection display-4 text-success mb-3"></i>
+                <h5>تقرير الدفعات</h5>
+                <p class="text-muted mb-0">عرض تفاصيل جميع الدفعات</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a asp-action="Registrations" class="card card-link h-100 text-decoration-none">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-people display-4 text-info mb-3"></i>
+                <h5>تقرير التسجيلات</h5>
+                <p class="text-muted mb-0">عرض وتصفية التسجيلات</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<style>
+    .card-link {
+        transition: all 0.3s ease;
+    }
+    .card-link:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+</style>

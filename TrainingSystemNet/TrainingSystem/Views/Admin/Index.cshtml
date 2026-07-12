@@ -3,119 +3,106 @@
     ViewData["Title"] = "لوحة التحكم";
 }
 
-<!-- Welcome Section -->
-<div class="bg-primary bg-gradient text-white rounded-4 p-4 mb-4">
-    <h2 class="fw-bold">@ViewBag.AdminWelcome @ViewBag.AdminName</h2>
-    <p class="mb-0 opacity-75">@ViewBag.AdminDescription</p>
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-title">لوحة التحكم</h1>
+    <p class="page-subtitle">مرحباً بك في نظام إدارة البرامج التدريبية</p>
 </div>
 
 <!-- Stats Cards -->
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
-                        <i class="bi bi-collection text-primary fs-4"></i>
-                    </div>
-                    <div>
-                        <h3 class="mb-0 fw-bold">@ViewBag.TotalPrograms</h3>
-                        <small class="text-muted">البرامج التدريبية</small>
-                    </div>
-                </div>
-            </div>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon primary">
+            <i class="bi bi-book"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@ViewBag.TotalPrograms</div>
+            <div class="stat-label">البرامج التدريبية</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="bg-success bg-opacity-10 rounded-circle p-3 me-3">
-                        <i class="bi bi-calendar3 text-success fs-4"></i>
-                    </div>
-                    <div>
-                        <h3 class="mb-0 fw-bold">@ViewBag.TotalBatches</h3>
-                        <small class="text-muted">الدفعات</small>
-                    </div>
-                </div>
-            </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <i class="bi bi-calendar-check"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@ViewBag.TotalBatches</div>
+            <div class="stat-label">الدفعات</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">
-                        <i class="bi bi-people text-info fs-4"></i>
-                    </div>
-                    <div>
-                        <h3 class="mb-0 fw-bold">@ViewBag.TotalRegistrations</h3>
-                        <small class="text-muted">إجمالي الطلبات</small>
-                    </div>
-                </div>
-            </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon info">
+            <i class="bi bi-people"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@ViewBag.TotalRegistrations</div>
+            <div class="stat-label">إجمالي الطلبات</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
-                        <i class="bi bi-hourglass-split text-warning fs-4"></i>
-                    </div>
-                    <div>
-                        <h3 class="mb-0 fw-bold">@ViewBag.PendingRegistrations</h3>
-                        <small class="text-muted">قيد المراجعة</small>
-                    </div>
-                </div>
-            </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@ViewBag.PendingRegistrations</div>
+            <div class="stat-label">قيد المراجعة</div>
         </div>
     </div>
 </div>
 
 <!-- Quick Actions -->
-<div class="row g-4 mb-4">
-    <div class="col-md-4">
-        <a asp-controller="Programs" asp-action="Create" class="card border-0 shadow-sm text-decoration-none h-100">
-            <div class="card-body text-center py-4">
-                <i class="bi bi-plus-circle text-primary fs-1 mb-3"></i>
-                <h5 class="fw-bold">إضافة برنامج</h5>
-                <p class="text-muted small mb-0">إضافة برنامج تدريبي جديد</p>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a asp-controller="Batches" asp-action="Create" class="card border-0 shadow-sm text-decoration-none h-100">
-            <div class="card-body text-center py-4">
-                <i class="bi bi-calendar-plus text-success fs-1 mb-3"></i>
-                <h5 class="fw-bold">إضافة دفعة</h5>
-                <p class="text-muted small mb-0">إضافة دفعة جديدة لبرنامج</p>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-4">
-        <a asp-controller="Registrations" asp-action="Index" class="card border-0 shadow-sm text-decoration-none h-100">
-            <div class="card-body text-center py-4">
-                <i class="bi bi-person-lines-fill text-info fs-1 mb-3"></i>
-                <h5 class="fw-bold">طلبات الترشيح</h5>
-                <p class="text-muted small mb-0">إدارة طلبات الترشيح</p>
-            </div>
-        </a>
-    </div>
+<div class="stats-grid mb-4">
+    <a href="@Url.Action("Create", "Programs")" class="stat-card" style="text-decoration: none;">
+        <div class="stat-icon primary">
+            <i class="bi bi-plus-circle"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value" style="font-size: 1.125rem;">إضافة برنامج</div>
+            <div class="stat-label">إضافة برنامج تدريبي جديد</div>
+        </div>
+    </a>
+    
+    <a href="@Url.Action("Create", "Batches")" class="stat-card" style="text-decoration: none;">
+        <div class="stat-icon success">
+            <i class="bi bi-calendar-plus"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value" style="font-size: 1.125rem;">إضافة دفعة</div>
+            <div class="stat-label">إضافة دفعة جديدة لبرنامج</div>
+        </div>
+    </a>
+    
+    <a href="@Url.Action("Index", "Registrations")" class="stat-card" style="text-decoration: none;">
+        <div class="stat-icon warning">
+            <i class="bi bi-clipboard-check"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value" style="font-size: 1.125rem;">طلبات الترشيح</div>
+            <div class="stat-label">إدارة طلبات الترشيح</div>
+        </div>
+    </a>
 </div>
 
 <!-- Recent Registrations -->
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i> آخر الطلبات</h5>
-        <a asp-controller="Registrations" asp-action="Index" class="btn btn-sm btn-outline-primary">عرض الكل</a>
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-clock-history me-2"></i>
+            آخر الطلبات
+        </h3>
+        <a href="@Url.Action("Index", "Registrations")" class="btn btn-primary btn-sm">
+            عرض الكل
+            <i class="bi bi-arrow-left ms-1"></i>
+        </a>
     </div>
     <div class="card-body p-0">
         @if (Model.Any())
         {
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="bg-light">
+            <div class="table-container">
+                <table class="table">
+                    <thead>
                         <tr>
                             <th>الموظف</th>
                             <th>البرنامج</th>
@@ -139,16 +126,16 @@
                                     @switch (reg.Status)
                                     {
                                         case RegistrationStatus.Pending:
-                                            <span class="badge bg-warning">قيد المراجعة</span>
+                                            <span class="badge badge-warning">قيد المراجعة</span>
                                             break;
                                         case RegistrationStatus.Approved:
-                                            <span class="badge bg-success">مقبول</span>
+                                            <span class="badge badge-success">مقبول</span>
                                             break;
                                         case RegistrationStatus.Rejected:
-                                            <span class="badge bg-danger">مرفوض</span>
+                                            <span class="badge badge-danger">مرفوض</span>
                                             break;
                                         case RegistrationStatus.Completed:
-                                            <span class="badge bg-info">مكتمل</span>
+                                            <span class="badge badge-info">مكتمل</span>
                                             break;
                                     }
                                 </td>
@@ -160,9 +147,9 @@
         }
         else
         {
-            <div class="text-center py-5 text-muted">
-                <i class="bi bi-inbox fs-1 mb-3 d-block"></i>
-                لا توجد طلبات حتى الآن
+            <div class="text-center p-4" style="color: var(--muted-foreground);">
+                <i class="bi bi-inbox" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
+                <p>لا توجد طلبات حتى الآن</p>
             </div>
         }
     </div>

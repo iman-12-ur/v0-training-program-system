@@ -7,7 +7,8 @@ using TrainingSystem.Models;
 
 namespace TrainingSystem.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    // السماح لجميع الأدوار بالعرض
+    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
     public class RegistrationsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -19,6 +20,7 @@ namespace TrainingSystem.Controllers
             _userManager = userManager;
         }
 
+        // عرض الطلبات - متاح للجميع
         public async Task<IActionResult> Index(string? status = null, string? search = null)
         {
             var query = _context.Registrations
@@ -36,6 +38,7 @@ namespace TrainingSystem.Controllers
                 query = query.Where(r => 
                     r.VisitorName.Contains(search) || 
                     r.EmployeeId.Contains(search) ||
+                    r.JobTitle.Contains(search) ||
                     r.Email.Contains(search));
             }
 
@@ -49,6 +52,7 @@ namespace TrainingSystem.Controllers
             return View(registrations);
         }
 
+        // تفاصيل الطلب - متاح للجميع
         public async Task<IActionResult> Details(int id)
         {
             var registration = await _context.Registrations
@@ -64,8 +68,10 @@ namespace TrainingSystem.Controllers
             return View(registration);
         }
 
+        // قبول الطلب - SuperAdmin و Admin و Supervisor
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
         public async Task<IActionResult> Approve(int id)
         {
             var registration = await _context.Registrations.FindAsync(id);
@@ -84,8 +90,10 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // رفض الطلب - SuperAdmin و Admin و Supervisor
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
         public async Task<IActionResult> Reject(int id, string? notes = null)
         {
             var registration = await _context.Registrations
@@ -114,8 +122,10 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // حذف الطلب - SuperAdmin و Admin فقط
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var registration = await _context.Registrations
@@ -138,6 +148,7 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // تصدير التقارير - متاح للجميع
         public async Task<IActionResult> Export()
         {
             var registrations = await _context.Registrations
@@ -147,10 +158,10 @@ namespace TrainingSystem.Controllers
                 .ToListAsync();
 
             // Generate CSV
-            var csv = "الاسم,الرقم الوظيفي,الدائرة,القسم,البريد,الجوال,البرنامج,الدفعة,الحالة,تاريخ التسجيل\n";
+            var csv = "الاسم,الرقم الوظيفي,المسمى الوظيفي,الدائرة,القسم,البريد,الهاتف,البرنامج,الدفعة,الحالة,تاريخ التسجيل\n";
             foreach (var r in registrations)
             {
-                csv += $"{r.VisitorName},{r.EmployeeId},{r.Court},{r.Department},{r.Email},{r.Phone},{r.Batch?.TrainingProgram?.Title},{r.Batch?.Name},{r.Status},{r.RegisteredAt:yyyy-MM-dd}\n";
+                csv += $"{r.VisitorName},{r.EmployeeId},{r.JobTitle},{r.Court},{r.Department},{r.Email},{r.Phone},{r.Batch?.TrainingProgram?.Title},{r.Batch?.Name},{r.Status},{r.RegisteredAt:yyyy-MM-dd}\n";
             }
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv);

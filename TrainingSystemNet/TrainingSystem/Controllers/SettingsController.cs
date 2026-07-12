@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using TrainingSystem.Data;
 using TrainingSystem.Models;
 
 namespace TrainingSystem.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
     public class SettingsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -25,6 +26,7 @@ namespace TrainingSystem.Controllers
         }
 
         // صفحة الإعدادات الرئيسية
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Index()
         {
             var settings = await _context.SystemSettings.FirstOrDefaultAsync();
@@ -33,6 +35,7 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> UpdateSettings(SystemSettings model)
         {
             var settings = await _context.SystemSettings.FirstOrDefaultAsync();
@@ -57,7 +60,7 @@ namespace TrainingSystem.Controllers
 
         // ==================== إدارة المستخدمين ====================
 
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Users()
         {
             var users = await _userManager.Users.ToListAsync();
@@ -70,7 +73,7 @@ namespace TrainingSystem.Controllers
                 {
                     User = user,
                     Roles = roles.ToList(),
-                    PrimaryRole = roles.FirstOrDefault() ?? "Viewer"
+                    PrimaryRole = roles.FirstOrDefault() ?? "Supervisor"
                 });
             }
 
@@ -78,7 +81,7 @@ namespace TrainingSystem.Controllers
             return View(usersWithRoles);
         }
 
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public IActionResult CreateUser()
         {
             ViewBag.AllRoles = SystemRoles.AllRoles;
@@ -87,7 +90,7 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> CreateUser(CreateUserViewModel model)
         {
             if (!ModelState.IsValid)
@@ -104,7 +107,8 @@ namespace TrainingSystem.Controllers
                 PhoneNumber = model.PhoneNumber,
                 Department = model.Department,
                 EmailConfirmed = true,
-                IsActive = true
+                IsActive = true,
+                CustomPermissions = model.CustomPermissions
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -129,7 +133,7 @@ namespace TrainingSystem.Controllers
             return View(model);
         }
 
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> EditUser(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -146,7 +150,8 @@ namespace TrainingSystem.Controllers
                 PhoneNumber = user.PhoneNumber,
                 Department = user.Department,
                 IsActive = user.IsActive,
-                Role = roles.FirstOrDefault() ?? "Viewer"
+                Role = roles.FirstOrDefault() ?? "Supervisor",
+                CustomPermissions = user.CustomPermissions
             };
 
             ViewBag.AllRoles = SystemRoles.AllRoles;
@@ -155,8 +160,8 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "SuperAdmin")]
-        public async Task<IActionResult> EditUser(EditUserViewModel model)
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> EditUser(EditUserViewModel model, string? CustomPermissionsString)
         {
             if (!ModelState.IsValid)
             {
@@ -173,6 +178,16 @@ namespace TrainingSystem.Controllers
             user.PhoneNumber = model.PhoneNumber;
             user.Department = model.Department;
             user.IsActive = model.IsActive;
+            
+            // حفظ الصلاحيات المخصصة للمشرف
+            if (model.Role == SystemRoles.Supervisor)
+            {
+                user.CustomPermissions = CustomPermissionsString;
+            }
+            else
+            {
+                user.CustomPermissions = null;
+            }
 
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
@@ -193,7 +208,7 @@ namespace TrainingSystem.Controllers
                     await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
                 }
 
-                TempData["Success"] = "تم تحديث بيانات المستخدم بنجاح";
+                TempData["Success"] = "تم تحديث بيانات الم��تخدم بنجاح";
                 return RedirectToAction(nameof(Users));
             }
 
@@ -208,7 +223,7 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> ToggleUserStatus(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -224,7 +239,7 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> DeleteUser(string userId)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -246,17 +261,17 @@ namespace TrainingSystem.Controllers
 
         // ==================== عرض الصلاحيات ====================
 
-        [Authorize(Roles = "SuperAdmin")]
-        public IActionResult Permissions()
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public IActionResult PermissionsMatrix()
         {
             var rolesWithPermissions = new Dictionary<string, List<string>>();
             
             foreach (var role in SystemRoles.AllRoles)
             {
-                rolesWithPermissions[role] = Permissions.RolePermissions.GetValueOrDefault(role, new List<string>());
+                rolesWithPermissions[role] = Models.Permissions.RolePermissions.GetValueOrDefault(role, new List<string>());
             }
 
-            return View(rolesWithPermissions);
+            return View("Permissions", rolesWithPermissions);
         }
     }
 
@@ -301,7 +316,10 @@ namespace TrainingSystem.Controllers
 
         [Required(ErrorMessage = "الدور مطلوب")]
         [Display(Name = "الدور")]
-        public string Role { get; set; } = "Viewer";
+        public string Role { get; set; } = "Supervisor";
+
+        [Display(Name = "الصلاحيات المخصصة")]
+        public string? CustomPermissions { get; set; }
     }
 
     public class EditUserViewModel
@@ -333,9 +351,12 @@ namespace TrainingSystem.Controllers
 
         [Required(ErrorMessage = "الدور مطلوب")]
         [Display(Name = "الدور")]
-        public string Role { get; set; } = "Viewer";
+        public string Role { get; set; } = "Supervisor";
 
         [Display(Name = "نشط")]
         public bool IsActive { get; set; } = true;
+
+        [Display(Name = "الصلاحيات المخصصة")]
+        public string? CustomPermissions { get; set; }
     }
 }

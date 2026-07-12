@@ -1,0 +1,99 @@
+@model List<TrainingSystem.Models.TrainingProgram>
+@{
+    ViewData["Title"] = "تقرير البرامج التدريبية";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">تقرير البرامج التدريبية</h1>
+        <p class="text-muted mb-0">عرض تفاصيل جميع البرامج التدريبية</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-right me-2"></i>العودة
+        </a>
+        <a asp-action="ExportToCsv" asp-route-type="programs" class="btn btn-primary">
+            <i class="bi bi-download me-2"></i>تصدير CSV
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>اسم البرنامج</th>
+                        <th>التصنيف</th>
+                        <th class="text-center">عدد الدفعات</th>
+                        <th class="text-center">إجمالي التسجيلات</th>
+                        <th class="text-center">مقبول</th>
+                        <th class="text-center">مرفوض</th>
+                        <th class="text-center">قيد المراجعة</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var index = 1;
+                    }
+                    @foreach (var program in Model)
+                    {
+                        var totalRegs = program.Batches?.Sum(b => b.Registrations?.Count ?? 0) ?? 0;
+                        var approvedRegs = program.Batches?.Sum(b => b.Registrations?.Count(r => r.Status == TrainingSystem.Models.RegistrationStatus.Approved) ?? 0) ?? 0;
+                        var rejectedRegs = program.Batches?.Sum(b => b.Registrations?.Count(r => r.Status == TrainingSystem.Models.RegistrationStatus.Rejected) ?? 0) ?? 0;
+                        var pendingRegs = program.Batches?.Sum(b => b.Registrations?.Count(r => r.Status == TrainingSystem.Models.RegistrationStatus.Pending) ?? 0) ?? 0;
+                        
+                        <tr>
+                            <td>@(index++)</td>
+                            <td>
+                                <strong>@program.Title</strong>
+                                <br>
+                                <small class="text-muted">@program.Description?.Substring(0, Math.Min(50, program.Description?.Length ?? 0))...</small>
+                            </td>
+                            <td>@program.Category</td>
+                            <td class="text-center">
+                                <span class="badge bg-info">@(program.Batches?.Count ?? 0)</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-primary">@totalRegs</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-success">@approvedRegs</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-danger">@rejectedRegs</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-warning">@pendingRegs</span>
+                            </td>
+                            <td>
+                                @if (program.Status == TrainingSystem.Models.ProgramStatus.Active)
+                                {
+                                    <span class="badge bg-success">نشط</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">غير نشط</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-light fw-bold">
+                        <td colspan="3">الإجمالي</td>
+                        <td class="text-center">@Model.Sum(p => p.Batches?.Count ?? 0)</td>
+                        <td class="text-center">@Model.Sum(p => p.Batches?.Sum(b => b.Registrations?.Count ?? 0) ?? 0)</td>
+                        <td class="text-center">@Model.Sum(p => p.Batches?.Sum(b => b.Registrations?.Count(r => r.Status == TrainingSystem.Models.RegistrationStatus.Approved) ?? 0) ?? 0)</td>
+                        <td class="text-center">@Model.Sum(p => p.Batches?.Sum(b => b.Registrations?.Count(r => r.Status == TrainingSystem.Models.RegistrationStatus.Rejected) ?? 0) ?? 0)</td>
+                        <td class="text-center">@Model.Sum(p => p.Batches?.Sum(b => b.Registrations?.Count(r => r.Status == TrainingSystem.Models.RegistrationStatus.Pending) ?? 0) ?? 0)</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>

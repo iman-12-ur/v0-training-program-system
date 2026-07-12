@@ -22,21 +22,23 @@ namespace TrainingSystem.Models
         public string? AvatarUrl { get; set; }
 
         [Display(Name = "رقم الهاتف")]
-        public string? PhoneNumber { get; set; }
+        public new string? PhoneNumber { get; set; }
 
         [Display(Name = "القسم")]
         public string? Department { get; set; }
+
+        // صلاحيات مخصصة للمشرف (يحددها المدير)
+        public string? CustomPermissions { get; set; }
     }
 
     // الصلاحيات المتاحة في النظام
     public static class SystemRoles
     {
         public const string SuperAdmin = "SuperAdmin";  // مدير النظام - كل الصلاحيات
-        public const string Admin = "Admin";            // مدير - إدارة البرامج والتسجيلات
-        public const string Supervisor = "Supervisor";  // مشرف - عرض وموافقة على التسجيلات
-        public const string Viewer = "Viewer";          // مشاهد - عرض فقط
+        public const string Admin = "Admin";            // مدير - كل الصلاحيات (مثل مدير النظام)
+        public const string Supervisor = "Supervisor";  // مشرف - صلاحيات يحددها المدير
 
-        public static List<string> AllRoles => new() { SuperAdmin, Admin, Supervisor, Viewer };
+        public static List<string> AllRoles => new() { SuperAdmin, Admin, Supervisor };
 
         public static string GetRoleDisplayName(string role)
         {
@@ -45,7 +47,6 @@ namespace TrainingSystem.Models
                 SuperAdmin => "مدير النظام",
                 Admin => "مدير",
                 Supervisor => "مشرف",
-                Viewer => "مشاهد",
                 _ => role
             };
         }
@@ -55,9 +56,8 @@ namespace TrainingSystem.Models
             return role switch
             {
                 SuperAdmin => "كل الصلاحيات - إدارة المستخدمين والإعدادات والبرامج",
-                Admin => "إدارة البرامج التدريبية والدفعات والتسجيلات",
-                Supervisor => "عرض البرامج والموافقة على طلبات التسجيل",
-                Viewer => "عرض البرامج والتسجيلات فقط",
+                Admin => "كل الصلاحيات - إدارة المستخدمين والإعدادات والبرامج",
+                Supervisor => "صلاحيات يحددها مدير النظام أو المدير",
                 _ => ""
             };
         }
@@ -99,40 +99,60 @@ namespace TrainingSystem.Models
         public const string Reports_View = "Reports.View";
         public const string Reports_Export = "Reports.Export";
 
+        // جميع الصلاحيات المتاحة
+        public static List<string> AllPermissions => new()
+        {
+            Programs_View, Programs_Create, Programs_Edit, Programs_Delete,
+            Batches_View, Batches_Create, Batches_Edit, Batches_Delete,
+            Registrations_View, Registrations_Approve, Registrations_Reject, Registrations_Delete, Registrations_Export,
+            Users_View, Users_Create, Users_Edit, Users_Delete,
+            Settings_View, Settings_Edit,
+            Reports_View, Reports_Export
+        };
+
+        // أسماء الصلاحيات بالعربي
+        public static string GetPermissionDisplayName(string permission)
+        {
+            return permission switch
+            {
+                Programs_View => "عرض البرامج",
+                Programs_Create => "إضافة البرامج",
+                Programs_Edit => "تعديل البرامج",
+                Programs_Delete => "حذف البرامج",
+                Batches_View => "عرض الدفعات",
+                Batches_Create => "إضافة الدفعات",
+                Batches_Edit => "تعديل الدفعات",
+                Batches_Delete => "حذف الدفعات",
+                Registrations_View => "عرض طلبات الترشيح",
+                Registrations_Approve => "قبول طلبات الترشيح",
+                Registrations_Reject => "رفض طلبات الترشيح",
+                Registrations_Delete => "حذف طلبات الترشيح",
+                Registrations_Export => "تصدير طلبات الترشيح",
+                Users_View => "عرض المستخدمين",
+                Users_Create => "إضافة المستخدمين",
+                Users_Edit => "تعديل المستخدمين",
+                Users_Delete => "حذف المستخدمين",
+                Settings_View => "عرض الإعدادات",
+                Settings_Edit => "تعديل الإعدادات",
+                Reports_View => "عرض التقارير",
+                Reports_Export => "تصدير التقارير",
+                _ => permission
+            };
+        }
+
+        // صلاحيات كل دور
         public static Dictionary<string, List<string>> RolePermissions => new()
         {
             {
-                SystemRoles.SuperAdmin, new List<string>
-                {
-                    Programs_View, Programs_Create, Programs_Edit, Programs_Delete,
-                    Batches_View, Batches_Create, Batches_Edit, Batches_Delete,
-                    Registrations_View, Registrations_Approve, Registrations_Reject, Registrations_Delete, Registrations_Export,
-                    Users_View, Users_Create, Users_Edit, Users_Delete,
-                    Settings_View, Settings_Edit,
-                    Reports_View, Reports_Export
-                }
+                SystemRoles.SuperAdmin, AllPermissions
             },
             {
-                SystemRoles.Admin, new List<string>
-                {
-                    Programs_View, Programs_Create, Programs_Edit, Programs_Delete,
-                    Batches_View, Batches_Create, Batches_Edit, Batches_Delete,
-                    Registrations_View, Registrations_Approve, Registrations_Reject, Registrations_Delete, Registrations_Export,
-                    Reports_View, Reports_Export
-                }
+                SystemRoles.Admin, AllPermissions
             },
             {
                 SystemRoles.Supervisor, new List<string>
                 {
-                    Programs_View,
-                    Batches_View,
-                    Registrations_View, Registrations_Approve, Registrations_Reject,
-                    Reports_View
-                }
-            },
-            {
-                SystemRoles.Viewer, new List<string>
-                {
+                    // الصلاحيات الافتراضية للمشرف (يمكن تعديلها من قبل المدير)
                     Programs_View,
                     Batches_View,
                     Registrations_View,
@@ -141,8 +161,22 @@ namespace TrainingSystem.Models
             }
         };
 
-        public static bool HasPermission(string role, string permission)
+        public static bool HasPermission(string role, string permission, string? customPermissions = null)
         {
+            // مدير النظام والمدير لهم كل الصلاحيات
+            if (role == SystemRoles.SuperAdmin || role == SystemRoles.Admin)
+            {
+                return true;
+            }
+
+            // للمشرف: تحقق من الصلاحيات المخصصة أولاً
+            if (role == SystemRoles.Supervisor && !string.IsNullOrEmpty(customPermissions))
+            {
+                var userPermissions = customPermissions.Split(',').ToList();
+                return userPermissions.Contains(permission);
+            }
+
+            // الصلاحيات الافتراضية
             if (RolePermissions.TryGetValue(role, out var permissions))
             {
                 return permissions.Contains(permission);

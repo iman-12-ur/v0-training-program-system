@@ -1,66 +1,203 @@
 @model IEnumerable<TrainingProgram>
 @{
     ViewData["Title"] = "البرامج التدريبية";
+    Layout = "_Layout";
 }
 
-<!-- Hero Section -->
-<div class="bg-primary bg-gradient text-white rounded-4 p-5 mb-5">
-    <h1 class="display-5 fw-bold">@ViewBag.WelcomeTitle</h1>
-    <p class="lead mb-0">@ViewBag.WelcomeDescription</p>
-</div>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - نظام التدريب</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        .public-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 4rem 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .hero-section h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .hero-section p {
+            font-size: 1.125rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .program-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            transition: all 0.2s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .program-card:hover {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+        }
+        .program-card-body {
+            padding: 1.5rem;
+            flex: 1;
+        }
+        .program-card-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .program-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .program-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .program-meta-item {
+            background: #f1f5f9;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.8125rem;
+            color: #475569;
+        }
+        .batches-badge {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.8125rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body style="background: #f8fafc;">
+    <!-- Header -->
+    <header class="public-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width: 2.5rem; height: 2.5rem; background: rgba(255,255,255,0.2); border-radius: 0.625rem; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-mortarboard-fill" style="font-size: 1.25rem;"></i>
+                    </div>
+                    <div>
+                        <h1 style="font-size: 1.125rem; font-weight: 700; margin: 0;">نظام التدريب</h1>
+                        <p style="font-size: 0.75rem; margin: 0; opacity: 0.9;">إدارة البرامج التدريبية</p>
+                    </div>
+                </div>
+                <a asp-controller="Account" asp-action="Login" class="btn btn-light btn-sm">
+                    <i class="bi bi-box-arrow-in-left me-2"></i> تسجيل الدخول
+                </a>
+            </div>
+        </div>
+    </header>
 
-<!-- Programs Grid -->
-<div class="row g-4">
-    @if (!Model.Any())
-    {
-        <div class="col-12">
-            <div class="alert alert-info text-center">
-                <i class="bi bi-info-circle me-2"></i>
-                لا توجد برامج تدريبية متاحة حالياً
-            </div>
+    <main class="container pb-5">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <i class="bi bi-mortarboard" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+            <h1>@(ViewBag.WelcomeTitle ?? "مرحباً بك في نظام التدريب")</h1>
+            <p>@(ViewBag.WelcomeDescription ?? "اكتشف البرامج التدريبية المتاحة وسجل في البرنامج المناسب لتطوير مهاراتك")</p>
         </div>
-    }
-    @foreach (var program in Model)
-    {
-        var upcomingBatches = program.Batches?.Where(b => b.Status == BatchStatus.Upcoming).ToList() ?? new List<Batch>();
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <h5 class="card-title fw-bold mb-0">@program.Title</h5>
-                        @if (!string.IsNullOrEmpty(program.ProgramType))
-                        {
-                            <span class="badge bg-primary">@program.ProgramType</span>
-                        }
-                    </div>
-                    <p class="card-text text-muted small">
-                        @(program.Description.Length > 100 ? program.Description.Substring(0, 100) + "..." : program.Description)
-                    </p>
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        <span class="badge bg-light text-dark">
-                            <i class="bi bi-clock me-1"></i> @program.Duration
-                        </span>
-                        <span class="badge bg-light text-dark">
-                            <i class="bi bi-person me-1"></i> @program.Instructor
-                        </span>
-                        <span class="badge bg-light text-dark">
-                            <i class="bi bi-geo-alt me-1"></i> @program.Location
-                        </span>
-                    </div>
-                    @if (upcomingBatches.Any())
-                    {
-                        <div class="alert alert-success py-2 small mb-3">
-                            <i class="bi bi-calendar-check me-1"></i>
-                            @upcomingBatches.Count دفعة متاحة للتسجيل
+
+        <!-- Programs Section -->
+        <h2 class="h4 fw-bold mb-4">
+            <i class="bi bi-collection text-primary me-2"></i>
+            البرامج التدريبية المتاحة
+        </h2>
+
+        @if (Model != null && Model.Any())
+        {
+            <div class="row g-4">
+                @foreach (var program in Model)
+                {
+                    var upcomingBatches = program.Batches?.Where(b => b.Status == BatchStatus.Upcoming).ToList() ?? new List<Batch>();
+                    <div class="col-md-6 col-lg-4">
+                        <div class="program-card">
+                            <div class="program-card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="fw-bold mb-0" style="font-size: 1rem;">@program.Title</h5>
+                                    @if (!string.IsNullOrEmpty(program.ProgramType))
+                                    {
+                                        <span class="program-badge">@program.ProgramType</span>
+                                    }
+                                </div>
+                                <p class="text-muted small mb-0" style="line-height: 1.6;">
+                                    @(program.Description?.Length > 100 ? program.Description.Substring(0, 100) + "..." : program.Description)
+                                </p>
+                                <div class="program-meta">
+                                    <span class="program-meta-item">
+                                        <i class="bi bi-clock me-1"></i> @program.Duration
+                                    </span>
+                                    <span class="program-meta-item">
+                                        <i class="bi bi-person me-1"></i> @program.Instructor
+                                    </span>
+                                    <span class="program-meta-item">
+                                        <i class="bi bi-geo-alt me-1"></i> @program.Location
+                                    </span>
+                                </div>
+                                @if (upcomingBatches.Any())
+                                {
+                                    <div class="batches-badge mt-3">
+                                        <i class="bi bi-calendar-check"></i>
+                                        <span>@upcomingBatches.Count دفعة متاحة للتسجيل</span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="program-card-footer">
+                                <a asp-action="ProgramDetails" asp-route-id="@program.Id" class="btn btn-primary w-100">
+                                    <i class="bi bi-eye me-2"></i> عرض التفاصيل والتسجيل
+                                </a>
+                            </div>
                         </div>
-                    }
-                </div>
-                <div class="card-footer bg-transparent border-0 pt-0">
-                    <a asp-action="ProgramDetails" asp-route-id="@program.Id" class="btn btn-primary w-100">
-                        <i class="bi bi-eye me-2"></i> عرض التفاصيل
-                    </a>
-                </div>
+                    </div>
+                }
             </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="bi bi-collection text-muted" style="font-size: 4rem;"></i>
+                </div>
+                <h5 class="text-muted">لا توجد برامج تدريبية متاحة حالياً</h5>
+                <p class="text-muted">يرجى التحقق لاحقاً من البرامج الجديدة</p>
+            </div>
+        }
+    </main>
+
+    <!-- Footer -->
+    <footer style="background: white; border-top: 1px solid #e2e8f0; padding: 1.5rem 0; text-align: center;">
+        <div class="container">
+            <p class="text-muted small mb-0">جميع الحقوق محفوظة &copy; @DateTime.Now.Year نظام التدريب</p>
         </div>
-    }
-</div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

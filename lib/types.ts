@@ -38,6 +38,8 @@ export interface TrainingProgram {
   objectives?: string[];
   topics?: string[];
   status: 'active' | 'inactive' | 'draft';
+  registrationStartDate?: string;
+  registrationEndDate?: string;
   createdAt: string;
 }
 
@@ -49,6 +51,7 @@ export interface Registration {
   batchName: string;
   visitorName: string;
   employeeId: string;
+  jobTitle: string;
   court: string;
   department: string;
   email: string;
