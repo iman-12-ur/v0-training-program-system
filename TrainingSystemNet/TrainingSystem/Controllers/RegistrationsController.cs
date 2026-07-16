@@ -21,7 +21,7 @@ namespace TrainingSystem.Controllers
         }
 
         // عرض الطلبات - متاح للجميع
-        public async Task<IActionResult> Index(string? status = null, string? search = null)
+        public async Task<IActionResult> Index(string? status = null, string? search = null, int? programId = null)
         {
             var query = _context.Registrations
                 .Include(r => r.Batch)
@@ -33,20 +33,33 @@ namespace TrainingSystem.Controllers
                 query = query.Where(r => r.Status == statusEnum);
             }
 
+            if (programId.HasValue && programId.Value > 0)
+            {
+                query = query.Where(r => r.Batch != null && r.Batch.TrainingProgramId == programId.Value);
+            }
+
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(r => 
                     r.VisitorName.Contains(search) || 
                     r.EmployeeId.Contains(search) ||
-                    r.Email.Contains(search));
+                    r.Email.Contains(search) ||
+                    (r.JobTitle != null && r.JobTitle.Contains(search)));
             }
 
             var registrations = await query
                 .OrderByDescending(r => r.RegisteredAt)
                 .ToListAsync();
 
+            // قائمة البرامج للفلترة
+            ViewBag.Programs = await _context.TrainingPrograms
+                .OrderBy(p => p.Title)
+                .Select(p => new { p.Id, p.Title })
+                .ToListAsync();
+
             ViewBag.CurrentStatus = status;
             ViewBag.Search = search;
+            ViewBag.CurrentProgramId = programId;
 
             return View(registrations);
         }
@@ -165,6 +178,44 @@ namespace TrainingSystem.Controllers
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
             return File(bytes, "text/csv", $"registrations_{DateTime.Now:yyyyMMdd}.csv");
+        }
+
+        // تصدير المقبولين حسب البرنامج - متاح للجميع
+        public async Task<IActionResult> ExportApproved(int? programId = null)
+        {
+            var query = _context.Registrations
+                .Include(r => r.Batch)
+                .ThenInclude(b => b!.TrainingProgram)
+                .Where(r => r.Status == RegistrationStatus.Approved)
+                .AsQueryable();
+
+            string programTitle = "جميع_البرامج";
+            if (programId.HasValue && programId.Value > 0)
+            {
+                query = query.Where(r => r.Batch != null && r.Batch.TrainingProgramId == programId.Value);
+                var program = await _context.TrainingPrograms.FindAsync(programId.Value);
+                if (program != null)
+                {
+                    programTitle = program.Title.Replace(" ", "_");
+                }
+            }
+
+            var registrations = await query
+                .OrderBy(r => r.Batch!.TrainingProgram!.Title)
+                .ThenBy(r => r.Batch!.Name)
+                .ThenByDescending(r => r.RegisteredAt)
+                .ToListAsync();
+
+            // BOM لضمان قراءة العربية بشكل صحيح في Excel
+            var csv = "\uFEFF";
+            csv += "الاسم,الرقم الوظيفي,المسمى الوظيفي,الدائرة,القسم,البريد,الهاتف,البرنامج,الدفعة,تاريخ التسجيل\n";
+            foreach (var r in registrations)
+            {
+                csv += $"{r.VisitorName},{r.EmployeeId},{r.JobTitle},{r.Court},{r.Department},{r.Email},{r.Phone},{r.Batch?.TrainingProgram?.Title},{r.Batch?.Name},{r.RegisteredAt:yyyy-MM-dd}\n";
+            }
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            return File(bytes, "text/csv", $"accepted_{programTitle}_{DateTime.Now:yyyyMMdd}.csv");
         }
     }
 }

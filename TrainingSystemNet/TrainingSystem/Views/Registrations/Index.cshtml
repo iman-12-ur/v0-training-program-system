@@ -8,9 +8,14 @@
         <h4 class="fw-bold mb-1">طلبات الترشيح</h4>
         <p class="text-muted mb-0">إدارة ومراجعة طلبات الترشيح للبرامج التدريبية</p>
     </div>
-    <a asp-action="Export" class="btn btn-success">
-        <i class="bi bi-download me-2"></i> تصدير Excel
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-action="ExportApproved" asp-route-programId="@ViewBag.CurrentProgramId" class="btn btn-success">
+            <i class="bi bi-download me-2"></i> تصدير المقبولين حسب البرنامج
+        </a>
+        <a asp-action="Export" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i> تصدير الكل
+        </a>
+    </div>
 </div>
 
 <!-- Filters -->
@@ -19,9 +24,24 @@
         <form method="get" class="row g-3 align-items-end">
             <div class="col-md-4">
                 <label class="form-label">البحث</label>
-                <input type="text" name="search" class="form-control" placeholder="اسم أو رقم وظيفي أو بريد..." value="@ViewBag.Search" />
+                <input type="text" name="search" class="form-control" placeholder="اسم أو رقم وظيفي أو مسمى وظيفي أو بريد..." value="@ViewBag.Search" />
             </div>
             <div class="col-md-3">
+                <label class="form-label">البرنامج</label>
+                <select name="programId" class="form-select">
+                    <option value="">جميع البرامج</option>
+                    @if (ViewBag.Programs != null)
+                    {
+                        int currentProgramId = ViewBag.CurrentProgramId != null ? (int)ViewBag.CurrentProgramId : 0;
+                        foreach (var p in ViewBag.Programs)
+                        {
+                            int pid = (int)p.Id;
+                            <option value="@pid" @(currentProgramId == pid ? "selected" : "")>@p.Title</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
                 <label class="form-label">الحالة</label>
                 <select name="status" class="form-select">
                     <option value="">جميع الحالات</option>
@@ -35,9 +55,9 @@
                     <i class="bi bi-search me-2"></i> بحث
                 </button>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <a asp-action="Index" class="btn btn-outline-secondary w-100">
-                    <i class="bi bi-x-circle me-2"></i> مسح
+                    <i class="bi bi-x-circle"></i>
                 </a>
             </div>
         </form>
@@ -135,7 +155,7 @@
                                             <div class="modal-content">
                                                 <form asp-action="Reject" asp-route-id="@reg.Id" method="post">
                                                     <div class="modal-header">
-                                                        <h5 class="modal-title">رفض الطلب</h5>
+                                                        <h5 class="modal-title">رفض الطل��</h5>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                     </div>
                                                     <div class="modal-body">
