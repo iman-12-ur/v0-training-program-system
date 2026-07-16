@@ -9,11 +9,11 @@
         <p class="text-muted mb-0">عرض إحصائيات وتقارير النظام</p>
     </div>
     <div class="d-flex gap-2">
-        <a asp-action="ExportToCsv" asp-route-type="registrations" class="btn btn-outline-primary">
-            <i class="bi bi-download me-2"></i>تصدير التسجيلات
+        <a asp-action="ExportToExcel" asp-route-type="registrations" class="btn btn-outline-primary">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i>تصدير التسجيلات Excel
         </a>
-        <a asp-action="ExportToCsv" asp-route-type="programs" class="btn btn-outline-primary">
-            <i class="bi bi-download me-2"></i>تصدير البرامج
+        <a asp-action="ExportToExcel" asp-route-type="programs" class="btn btn-outline-primary">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i>تصدير البرامج Excel
         </a>
     </div>
 </div>

@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -127,53 +128,112 @@ namespace TrainingSystem.Controllers
             return View(registrations);
         }
 
-        // تصدير التقرير إلى CSV
-        public async Task<IActionResult> ExportToCsv(string type = "registrations")
+        // تصدير التقارير إلى ملف Excel حقيقي
+        public async Task<IActionResult> ExportToExcel(string type = "registrations")
         {
-            var csv = new System.Text.StringBuilder();
-            
-            if (type == "registrations")
+            using var workbook = new XLWorkbook();
+
+            if (type == "programs")
             {
-                csv.AppendLine("الاسم,الرقم الوظيفي,البريد الإلكتروني,الهاتف,البرنامج,الدفعة,الحالة,تاريخ التسجيل");
+                var worksheet = workbook.Worksheets.Add("البرامج");
+                worksheet.RightToLeft = true;
+                string[] headers = { "م", "البرنامج", "عدد الدفعات", "عدد التسجيلات", "الحالة" };
+                ConfigureHeader(worksheet, headers);
+
+                var programs = await _context.TrainingPrograms
+                    .Include(p => p.Batches)
+                    .ThenInclude(b => b.Registrations)
+                    .OrderBy(p => p.Title)
+                    .ToListAsync();
+
+                for (int index = 0; index < programs.Count; index++)
+                {
+                    var program = programs[index];
+                    int row = index + 2;
+                    worksheet.Cell(row, 1).Value = index + 1;
+                    worksheet.Cell(row, 2).Value = program.Title;
+                    worksheet.Cell(row, 3).Value = program.Batches?.Count ?? 0;
+                    worksheet.Cell(row, 4).Value = program.Batches?.Sum(b => b.Registrations?.Count ?? 0) ?? 0;
+                    worksheet.Cell(row, 5).Value = program.Status == ProgramStatus.Active ? "نشط" : "غير نشط";
+                }
+
+                FormatWorksheet(worksheet, programs.Count + 1, headers.Length);
+            }
+            else
+            {
+                type = "registrations";
+                var worksheet = workbook.Worksheets.Add("التسجيلات");
+                worksheet.RightToLeft = true;
+                string[] headers =
+                {
+                    "م", "الاسم", "الرقم الوظيفي", "المسمى الوظيفي", "الدائرة/المحكمة",
+                    "القسم", "البريد الإلكتروني", "الهاتف", "البرنامج", "الدفعة", "الحالة", "تاريخ التسجيل"
+                };
+                ConfigureHeader(worksheet, headers);
 
                 var registrations = await _context.Registrations
                     .Include(r => r.Batch)
                     .ThenInclude(b => b.TrainingProgram)
+                    .OrderByDescending(r => r.RegisteredAt)
                     .ToListAsync();
 
-                foreach (var r in registrations)
+                for (int index = 0; index < registrations.Count; index++)
                 {
-                    var status = r.Status switch
+                    var registration = registrations[index];
+                    int row = index + 2;
+                    worksheet.Cell(row, 1).Value = index + 1;
+                    worksheet.Cell(row, 2).Value = registration.VisitorName;
+                    worksheet.Cell(row, 3).Value = registration.EmployeeId;
+                    worksheet.Cell(row, 4).Value = registration.JobTitle ?? string.Empty;
+                    worksheet.Cell(row, 5).Value = registration.Court;
+                    worksheet.Cell(row, 6).Value = registration.Department;
+                    worksheet.Cell(row, 7).Value = registration.Email;
+                    worksheet.Cell(row, 8).Value = registration.Phone;
+                    worksheet.Cell(row, 9).Value = registration.Batch?.TrainingProgram?.Title ?? string.Empty;
+                    worksheet.Cell(row, 10).Value = registration.Batch?.Name ?? string.Empty;
+                    worksheet.Cell(row, 11).Value = registration.Status switch
                     {
                         RegistrationStatus.Pending => "قيد المراجعة",
                         RegistrationStatus.Approved => "مقبول",
                         RegistrationStatus.Rejected => "مرفوض",
                         _ => "غير معروف"
                     };
-                    csv.AppendLine($"{r.VisitorName},{r.EmployeeId},{r.Email},{r.Phone},{r.Batch?.TrainingProgram?.Title},{r.Batch?.Name},{status},{r.RegisteredAt:yyyy-MM-dd}");
+                    worksheet.Cell(row, 12).Value = registration.RegisteredAt;
+                    worksheet.Cell(row, 12).Style.DateFormat.Format = "yyyy/MM/dd";
                 }
+
+                FormatWorksheet(worksheet, registrations.Count + 1, headers.Length);
             }
-            else if (type == "programs")
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return File(
+                stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"report_{type}_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+
+        private static void ConfigureHeader(IXLWorksheet worksheet, IReadOnlyList<string> headers)
+        {
+            for (int column = 1; column <= headers.Count; column++)
             {
-                csv.AppendLine("البرنامج,عدد الدفعات,عدد التسجيلات,الحالة");
-
-                var programs = await _context.TrainingPrograms
-                    .Include(p => p.Batches)
-                    .ThenInclude(b => b.Registrations)
-                    .ToListAsync();
-
-                foreach (var p in programs)
-                {
-                    var totalRegs = p.Batches?.Sum(b => b.Registrations?.Count ?? 0) ?? 0;
-                    csv.AppendLine($"{p.Title},{p.Batches?.Count ?? 0},{totalRegs},{(p.Status == ProgramStatus.Active ? "نشط" : "غير نشط")}");
-                }
+                var cell = worksheet.Cell(1, column);
+                cell.Value = headers[column - 1];
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontColor = XLColor.White;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e3a5f");
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             }
+        }
 
-            var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
-            var bom = new byte[] { 0xEF, 0xBB, 0xBF };
-            var result = bom.Concat(bytes).ToArray();
-
-            return File(result, "text/csv", $"report_{type}_{DateTime.Now:yyyyMMdd}.csv");
+        private static void FormatWorksheet(IXLWorksheet worksheet, int lastRow, int lastColumn)
+        {
+            var range = worksheet.Range(1, 1, Math.Max(lastRow, 1), lastColumn);
+            range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            range.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            worksheet.SheetView.FreezeRows(1);
+            worksheet.Columns().AdjustToContents();
         }
     }
 

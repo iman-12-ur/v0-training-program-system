@@ -162,7 +162,7 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // تصدير التقارير - متاح للجميع
+        // تصدير جميع الطلبات إلى ملف Excel حقيقي - متاح للجميع
         public async Task<IActionResult> Export()
         {
             var registrations = await _context.Registrations
@@ -171,15 +171,65 @@ namespace TrainingSystem.Controllers
                 .OrderByDescending(r => r.RegisteredAt)
                 .ToListAsync();
 
-            // Generate CSV
-            var csv = "الاسم,الرقم الوظيفي,المسمى الوظيفي,الدائرة,القسم,البريد,الهاتف,البرنامج,الدفعة,الحالة,تاريخ التسجيل\n";
-            foreach (var r in registrations)
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("جميع الطلبات");
+            worksheet.RightToLeft = true;
+
+            string[] headers =
             {
-                csv += $"{r.VisitorName},{r.EmployeeId},{r.JobTitle},{r.Court},{r.Department},{r.Email},{r.Phone},{r.Batch?.TrainingProgram?.Title},{r.Batch?.Name},{r.Status},{r.RegisteredAt:yyyy-MM-dd}\n";
+                "م", "الاسم", "الرقم الوظيفي", "المسمى الوظيفي", "الدائرة/المحكمة",
+                "القسم", "البريد الإلكتروني", "الهاتف", "البرنامج", "الدفعة", "الحالة", "تاريخ التسجيل"
+            };
+
+            for (int column = 1; column <= headers.Length; column++)
+            {
+                var cell = worksheet.Cell(1, column);
+                cell.Value = headers[column - 1];
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontColor = XLColor.White;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e3a5f");
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             }
 
-            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
-            return File(bytes, "text/csv", $"registrations_{DateTime.Now:yyyyMMdd}.csv");
+            for (int index = 0; index < registrations.Count; index++)
+            {
+                var registration = registrations[index];
+                int row = index + 2;
+                worksheet.Cell(row, 1).Value = index + 1;
+                worksheet.Cell(row, 2).Value = registration.VisitorName;
+                worksheet.Cell(row, 3).Value = registration.EmployeeId;
+                worksheet.Cell(row, 4).Value = registration.JobTitle ?? string.Empty;
+                worksheet.Cell(row, 5).Value = registration.Court;
+                worksheet.Cell(row, 6).Value = registration.Department;
+                worksheet.Cell(row, 7).Value = registration.Email;
+                worksheet.Cell(row, 8).Value = registration.Phone;
+                worksheet.Cell(row, 9).Value = registration.Batch?.TrainingProgram?.Title ?? string.Empty;
+                worksheet.Cell(row, 10).Value = registration.Batch?.Name ?? string.Empty;
+                worksheet.Cell(row, 11).Value = registration.Status switch
+                {
+                    RegistrationStatus.Pending => "قيد المراجعة",
+                    RegistrationStatus.Approved => "مقبول",
+                    RegistrationStatus.Rejected => "مرفوض",
+                    _ => "غير معروف"
+                };
+                worksheet.Cell(row, 12).Value = registration.RegisteredAt;
+                worksheet.Cell(row, 12).Style.DateFormat.Format = "yyyy/MM/dd";
+            }
+
+            int lastRow = Math.Max(registrations.Count + 1, 1);
+            var tableRange = worksheet.Range(1, 1, lastRow, headers.Length);
+            tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            tableRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            worksheet.SheetView.FreezeRows(1);
+            worksheet.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return File(
+                stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"registrations_{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
         // تصدير المقبولين فقط حسب البرنامج إلى ملف Excel حقيقي
