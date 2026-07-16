@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -206,16 +207,58 @@ namespace TrainingSystem.Controllers
                 .ThenByDescending(r => r.RegisteredAt)
                 .ToListAsync();
 
-            // BOM لضمان قراءة العربية بشكل صحيح في Excel
-            var csv = "\uFEFF";
-            csv += "الاسم,الرقم الوظيفي,المسمى الوظيفي,الدائرة,القسم,البريد,الهاتف,البرنامج,الدفعة,تاريخ التسجيل\n";
-            foreach (var r in registrations)
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add("المقبولون");
+            ws.RightToLeft = true;
+
+            var headers = new[]
             {
-                csv += $"{r.VisitorName},{r.EmployeeId},{r.JobTitle},{r.Court},{r.Department},{r.Email},{r.Phone},{r.Batch?.TrainingProgram?.Title},{r.Batch?.Name},{r.RegisteredAt:yyyy-MM-dd}\n";
+                "م", "الاسم", "الرقم الوظيفي", "المسمى الوظيفي", "الدائرة/المحكمة",
+                "القسم", "البريد الإلكتروني", "الهاتف", "البرنامج", "الدفعة", "تاريخ التسجيل"
+            };
+
+            // ترويسة الأعمدة
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = ws.Cell(1, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e3a5f");
+                cell.Style.Font.FontColor = XLColor.White;
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
             }
 
-            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
-            return File(bytes, "text/csv", $"accepted_{programTitle}_{DateTime.Now:yyyyMMdd}.csv");
+            // بيانات المقبولين
+            int row = 2;
+            int seq = 1;
+            foreach (var r in registrations)
+            {
+                ws.Cell(row, 1).Value = seq++;
+                ws.Cell(row, 2).Value = r.VisitorName;
+                ws.Cell(row, 3).Value = r.EmployeeId;
+                ws.Cell(row, 4).Value = r.JobTitle ?? "";
+                ws.Cell(row, 5).Value = r.Court;
+                ws.Cell(row, 6).Value = r.Department;
+                ws.Cell(row, 7).Value = r.Email;
+                ws.Cell(row, 8).Value = r.Phone;
+                ws.Cell(row, 9).Value = r.Batch?.TrainingProgram?.Title ?? "";
+                ws.Cell(row, 10).Value = r.Batch?.Name ?? "";
+                ws.Cell(row, 11).Value = r.RegisteredAt.ToString("yyyy-MM-dd");
+                row++;
+            }
+
+            // حدود للجدول وتنسيق
+            var usedRange = ws.Range(1, 1, Math.Max(row - 1, 1), headers.Length);
+            usedRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            usedRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            ws.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return File(stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"accepted_{programTitle}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 }
