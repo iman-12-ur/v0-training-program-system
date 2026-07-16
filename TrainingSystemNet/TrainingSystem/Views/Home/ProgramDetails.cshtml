@@ -166,18 +166,33 @@
             <div class="card-body">
                 @if (Model.Batches?.Any(b => b.Status == BatchStatus.Upcoming) == true)
                 {
+                    @{
+                        var approvedCounts = ViewBag.ApprovedCounts as Dictionary<int, int>;
+                    }
                     @foreach (var batch in Model.Batches.Where(b => b.Status == BatchStatus.Upcoming))
                     {
+                        var approved = (approvedCounts != null && approvedCounts.ContainsKey(batch.Id)) ? approvedCounts[batch.Id] : 0;
+                        var seatsFull = approved >= batch.MaxParticipants;
+                        var percent = batch.MaxParticipants > 0 ? (int)Math.Min(100, (approved * 100) / batch.MaxParticipants) : 0;
                         <div class="border rounded p-3 mb-3">
                             <h6 class="fw-bold mb-2">@batch.Name</h6>
                             <div class="small text-muted mb-2">
                                 <i class="bi bi-calendar me-1"></i>
                                 @batch.StartDate.ToString("yyyy/MM/dd") - @batch.EndDate.ToString("yyyy/MM/dd")
                             </div>
-                            <div class="small text-muted mb-3">
-                                <i class="bi bi-people me-1"></i>
-                                العدد المطلوب: @batch.MaxParticipants &mdash; عدد المرشحين: @batch.CurrentParticipants
+                            <div class="small text-muted mb-1 d-flex justify-content-between">
+                                <span><i class="bi bi-people me-1"></i> المقاعد المقبولة</span>
+                                <span class="fw-bold">@approved / @batch.MaxParticipants</span>
                             </div>
+                            <div class="progress mb-2" style="height: 6px;">
+                                <div class="progress-bar @(seatsFull ? "bg-danger" : "bg-success")" role="progressbar" style="width: @percent%;" aria-valuenow="@approved" aria-valuemin="0" aria-valuemax="@batch.MaxParticipants"></div>
+                            </div>
+                            @if (seatsFull)
+                            {
+                                <div class="small text-danger mb-2">
+                                    <i class="bi bi-info-circle me-1"></i> اكتمل عدد المقاعد المقبولة، ويمكنك التسجيل ضمن قائمة الانتظار.
+                                </div>
+                            }
                             <a asp-action="Register" asp-route-programId="@Model.Id" asp-route-batchId="@batch.Id" 
                                class="btn btn-success btn-sm w-100">
                                 <i class="bi bi-pencil-square me-1"></i> التسجيل في هذه الدفعة

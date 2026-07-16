@@ -87,9 +87,26 @@ namespace TrainingSystem.Controllers
         [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
         public async Task<IActionResult> Approve(int id)
         {
-            var registration = await _context.Registrations.FindAsync(id);
+            var registration = await _context.Registrations
+                .Include(r => r.Batch)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
             if (registration != null)
             {
+                // منع القبول إذا اكتمل العدد المطلوب للدفعة
+                if (registration.Batch != null && registration.Status != RegistrationStatus.Approved)
+                {
+                    var approvedCount = await _context.Registrations
+                        .CountAsync(r => r.BatchId == registration.BatchId
+                                         && r.Status == RegistrationStatus.Approved);
+
+                    if (approvedCount >= registration.Batch.MaxParticipants)
+                    {
+                        TempData["Error"] = $"لا يمكن القبول: اكتمل العدد المطلوب للدفعة ({registration.Batch.MaxParticipants} مقاعد). يمكنك رفض أحد المقبولين لإتاحة مقعد.";
+                        return RedirectToAction(nameof(Index));
+                    }
+                }
+
                 var currentUser = await _userManager.GetUserAsync(User);
                 
                 registration.Status = RegistrationStatus.Approved;

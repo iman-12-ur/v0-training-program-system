@@ -40,6 +40,17 @@ namespace TrainingSystem.Controllers
                 return NotFound();
             }
 
+            // عدد المقبولين لكل دفعة (لعرض امتلاء المقاعد)
+            var batchIds = program.Batches.Select(b => b.Id).ToList();
+            var approvedCounts = await _context.Registrations
+                .Where(r => batchIds.Contains(r.BatchId)
+                            && r.Status == RegistrationStatus.Approved)
+                .GroupBy(r => r.BatchId)
+                .Select(g => new { BatchId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.BatchId, x => x.Count);
+
+            ViewBag.ApprovedCounts = approvedCounts;
+
             return View(program);
         }
 
