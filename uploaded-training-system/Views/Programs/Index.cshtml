@@ -1,0 +1,145 @@
+@model IEnumerable<TrainingProgram>
+@{
+    ViewData["Title"] = "البرامج التدريبية";
+}
+
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">البرامج التدريبية</h1>
+        <p class="page-subtitle">إدارة جميع البرامج التدريبية</p>
+    </div>
+    <a href="@Url.Action("Create")" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i>
+        إضافة برنامج
+    </a>
+</div>
+
+<!-- Programs Table -->
+<div class="card">
+    <div class="card-body p-0">
+        @if (Model.Any())
+        {
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%">البرنامج</th>
+                            <th>النوع</th>
+                            <th>المدرب</th>
+                            <th>الدفعات</th>
+                            <th>الحالة</th>
+                            <th style="width: 180px">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var program in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@program.Title</strong>
+                                    <br /><small class="text-muted">@program.Duration - @program.Location</small>
+                                    @if (!string.IsNullOrEmpty(program.ReferenceNumber) || !string.IsNullOrEmpty(program.ProgramCode))
+                                    {
+                                        <br />
+                                        @if (!string.IsNullOrEmpty(program.ReferenceNumber))
+                                        {
+                                            <small class="text-muted"><i class="bi bi-hash"></i>@program.ReferenceNumber</small>
+                                        }
+                                        @if (!string.IsNullOrEmpty(program.ProgramCode))
+                                        {
+                                            <small class="text-muted ms-2"><i class="bi bi-tag"></i> @program.ProgramCode</small>
+                                        }
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(program.ProgramType))
+                                    {
+                                        <span class="badge badge-secondary">@program.ProgramType</span>
+                                    }
+                                </td>
+                                <td>@program.Instructor</td>
+                                <td>
+                                    <span class="badge badge-info">@program.Batches.Count دفعة</span>
+                                </td>
+                                <td>
+                                    @switch (program.Status)
+                                    {
+                                        case ProgramStatus.Active:
+                                            <span class="badge badge-success">نشط</span>
+                                            break;
+                                        case ProgramStatus.Inactive:
+                                            <span class="badge badge-secondary">غير نشط</span>
+                                            break;
+                                        case ProgramStatus.Draft:
+                                            <span class="badge badge-warning">مسودة</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a href="@Url.Action("Edit", new { id = program.Id })" class="btn btn-sm btn-outline-primary" title="تعديل">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form asp-action="ToggleStatus" asp-route-id="@program.Id" method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm @(program.Status == ProgramStatus.Active ? "btn-outline-secondary" : "btn-success")" 
+                                                    title="@(program.Status == ProgramStatus.Active ? "إيقاف" : "تفعيل")">
+                                                <i class="bi bi-@(program.Status == ProgramStatus.Active ? "pause" : "play")"></i>
+                                            </button>
+                                        </form>
+                                        <a href="@Url.Action("Create", "Batches", new { programId = program.Id })" 
+                                           class="btn btn-sm btn-outline-primary" title="إضافة دفعة">
+                                            <i class="bi bi-plus"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-danger" title="حذف"
+                                                onclick="showDeleteModal(@program.Id, '@program.Title')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center p-4" style="color: var(--muted-foreground);">
+                <i class="bi bi-inbox" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
+                <p class="mb-3">لا توجد برامج تدريبية</p>
+                <a href="@Url.Action("Create")" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-2"></i>
+                    إضافة برنامج جديد
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" style="display: none; position: fixed; inset: 0; z-index: 1050;">
+    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);" onclick="hideDeleteModal()"></div>
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; max-width: 400px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 1.5rem;">
+        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">تأكيد الحذف</h3>
+        <p id="deleteMessage" style="color: var(--muted-foreground); margin-bottom: 1.5rem;"></p>
+        <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-secondary" onclick="hideDeleteModal()">إلغاء</button>
+            <form id="deleteForm" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-danger">حذف</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showDeleteModal(id, title) {
+        document.getElementById('deleteMessage').textContent = 'هل أنت متأكد من حذف البرنامج "' + title + '"؟';
+        document.getElementById('deleteForm').action = '@Url.Action("Delete")/' + id;
+        document.getElementById('deleteModal').style.display = 'block';
+    }
+    
+    function hideDeleteModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+</script>

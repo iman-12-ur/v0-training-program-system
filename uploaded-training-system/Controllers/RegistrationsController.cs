@@ -1,0 +1,262 @@
+using ClosedXML.Excel;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TrainingSystem.Data;
+using TrainingSystem.Models;
+
+namespace TrainingSystem.Controllers
+{
+    // السماح لجميع الأدوار بالعرض
+    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
+    public class RegistrationsController : Controller
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        public RegistrationsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        {
+            _context = context;
+            _userManager = userManager;
+        }
+
+        // عرض الطلبات - متاح للجميع
+        public async Task<IActionResult> Index(string? status = null, string? search = null, int? programId = null)
+        {
+            var query = _context.Registrations
+                .Include(r => r.Batch)
+                .ThenInclude(b => b!.TrainingProgram)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<RegistrationStatus>(status, true, out var statusEnum))
+            {
+                query = query.Where(r => r.Status == statusEnum);
+            }
+
+            if (programId.HasValue && programId.Value > 0)
+            {
+                query = query.Where(r => r.Batch != null && r.Batch.TrainingProgramId == programId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = search.Trim();
+                query = query.Where(r =>
+                    r.VisitorName.Contains(searchTerm) ||
+                    r.EmployeeId.Contains(searchTerm) ||
+                    r.Email.Contains(searchTerm) ||
+                    (r.JobTitle != null && r.JobTitle.Contains(searchTerm)) ||
+                    r.Court.Contains(searchTerm) ||
+                    r.Department.Contains(searchTerm));
+            }
+
+            var registrations = await query
+                .OrderByDescending(r => r.RegisteredAt)
+                .ToListAsync();
+
+            ViewBag.Programs = await _context.TrainingPrograms
+                .OrderBy(p => p.Title)
+                .Select(p => new { p.Id, p.Title })
+                .ToListAsync();
+            ViewBag.CurrentStatus = status;
+            ViewBag.Search = search;
+            ViewBag.CurrentProgramId = programId;
+
+            return View(registrations);
+        }
+
+        // تفاصيل الطلب - متاح للجميع
+        public async Task<IActionResult> Details(int id)
+        {
+            var registration = await _context.Registrations
+                .Include(r => r.Batch)
+                .ThenInclude(b => b!.TrainingProgram)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (registration == null)
+            {
+                return NotFound();
+            }
+
+            return View(registration);
+        }
+
+        // قبول الطلب - SuperAdmin و Admin و Supervisor
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
+        public async Task<IActionResult> Approve(int id)
+        {
+            var registration = await _context.Registrations.FindAsync(id);
+            if (registration != null)
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                
+                registration.Status = RegistrationStatus.Approved;
+                registration.ApprovedBy = currentUser?.FullName ?? "المدير";
+                registration.ApprovedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم قبول الطلب بنجاح";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // رفض الطلب - SuperAdmin و Admin و Supervisor
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
+        public async Task<IActionResult> Reject(int id, string? notes = null)
+        {
+            var registration = await _context.Registrations
+                .Include(r => r.Batch)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (registration != null)
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                
+                registration.Status = RegistrationStatus.Rejected;
+                registration.ApprovedBy = currentUser?.FullName ?? "المدير";
+                registration.ApprovedAt = DateTime.Now;
+                registration.Notes = notes;
+
+                // Decrease batch participants count
+                if (registration.Batch != null && registration.Batch.CurrentParticipants > 0)
+                {
+                    registration.Batch.CurrentParticipants--;
+                }
+
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم رفض الطلب";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // حذف الطلب - SuperAdmin و Admin فقط
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var registration = await _context.Registrations
+                .Include(r => r.Batch)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (registration != null)
+            {
+                // Decrease batch participants count
+                if (registration.Batch != null && registration.Batch.CurrentParticipants > 0)
+                {
+                    registration.Batch.CurrentParticipants--;
+                }
+
+                _context.Registrations.Remove(registration);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم حذف الطلب";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // تصدير التقارير - متاح للجميع
+        public async Task<IActionResult> Export()
+        {
+            var registrations = await _context.Registrations
+                .Include(r => r.Batch)
+                .ThenInclude(b => b!.TrainingProgram)
+                .OrderByDescending(r => r.RegisteredAt)
+                .ToListAsync();
+
+            // Generate CSV
+            var csv = "الاسم,الرقم الوظيفي,المسمى الوظيفي,الدائرة,القسم,البريد,الهاتف,البرنامج,الدفعة,الحالة,تاريخ التسجيل\n";
+            foreach (var r in registrations)
+            {
+                csv += $"{r.VisitorName},{r.EmployeeId},{r.JobTitle},{r.Court},{r.Department},{r.Email},{r.Phone},{r.Batch?.TrainingProgram?.Title},{r.Batch?.Name},{r.Status},{r.RegisteredAt:yyyy-MM-dd}\n";
+            }
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            return File(bytes, "text/csv", $"registrations_{DateTime.Now:yyyyMMdd}.csv");
+        }
+
+        // تصدير المقبولين فقط حسب البرنامج إلى ملف Excel حقيقي
+        public async Task<IActionResult> ExportApproved(int? programId = null)
+        {
+            var query = _context.Registrations
+                .Include(r => r.Batch)
+                .ThenInclude(b => b!.TrainingProgram)
+                .Where(r => r.Status == RegistrationStatus.Approved)
+                .AsQueryable();
+
+            string fileProgramName = "all-programs";
+            if (programId.HasValue && programId.Value > 0)
+            {
+                query = query.Where(r => r.Batch != null && r.Batch.TrainingProgramId == programId.Value);
+                fileProgramName = $"program-{programId.Value}";
+            }
+
+            var registrations = await query
+                .OrderBy(r => r.Batch!.TrainingProgram!.Title)
+                .ThenBy(r => r.Batch!.Name)
+                .ThenBy(r => r.VisitorName)
+                .ToListAsync();
+
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("المقبولون");
+            worksheet.RightToLeft = true;
+
+            string[] headers =
+            {
+                "م", "الاسم", "الرقم الوظيفي", "المسمى الوظيفي", "الدائرة/المحكمة",
+                "القسم", "البريد الإلكتروني", "الهاتف", "البرنامج", "الدفعة", "تاريخ التسجيل"
+            };
+
+            for (int column = 1; column <= headers.Length; column++)
+            {
+                var cell = worksheet.Cell(1, column);
+                cell.Value = headers[column - 1];
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontColor = XLColor.White;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e3a5f");
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            }
+
+            for (int index = 0; index < registrations.Count; index++)
+            {
+                var registration = registrations[index];
+                int row = index + 2;
+                worksheet.Cell(row, 1).Value = index + 1;
+                worksheet.Cell(row, 2).Value = registration.VisitorName;
+                worksheet.Cell(row, 3).Value = registration.EmployeeId;
+                worksheet.Cell(row, 4).Value = registration.JobTitle ?? string.Empty;
+                worksheet.Cell(row, 5).Value = registration.Court;
+                worksheet.Cell(row, 6).Value = registration.Department;
+                worksheet.Cell(row, 7).Value = registration.Email;
+                worksheet.Cell(row, 8).Value = registration.Phone;
+                worksheet.Cell(row, 9).Value = registration.Batch?.TrainingProgram?.Title ?? string.Empty;
+                worksheet.Cell(row, 10).Value = registration.Batch?.Name ?? string.Empty;
+                worksheet.Cell(row, 11).Value = registration.RegisteredAt;
+                worksheet.Cell(row, 11).Style.DateFormat.Format = "yyyy/MM/dd";
+            }
+
+            int lastRow = Math.Max(registrations.Count + 1, 1);
+            var tableRange = worksheet.Range(1, 1, lastRow, headers.Length);
+            tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            tableRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            worksheet.SheetView.FreezeRows(1);
+            worksheet.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return File(
+                stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"accepted_{fileProgramName}_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+    }
+}
