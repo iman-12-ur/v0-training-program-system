@@ -100,6 +100,16 @@
                                 <td>
                                     <small>@reg.Batch?.TrainingProgram?.Title</small>
                                     <br /><small class="text-muted">@reg.Batch?.Name</small>
+                                    @if (reg.Batch != null)
+                                    {
+                                        var batchApproved = (ViewBag.BatchApprovedCounts as Dictionary<int, int>);
+                                        var approvedCount = (batchApproved != null && batchApproved.ContainsKey(reg.Batch.Id)) ? batchApproved[reg.Batch.Id] : 0;
+                                        var isFull = approvedCount >= reg.Batch.MaxParticipants;
+                                        <br />
+                                        <span class="badge @(isFull ? "bg-danger" : "bg-success") mt-1" title="عدد المقبولين مقابل العدد المطلوب">
+                                            <i class="bi bi-people me-1"></i> المقبولون: @approvedCount / @reg.Batch.MaxParticipants
+                                        </span>
+                                    }
                                 </td>
                                 <td>
                                     <small><i class="bi bi-envelope me-1 text-muted"></i> @reg.Email</small>

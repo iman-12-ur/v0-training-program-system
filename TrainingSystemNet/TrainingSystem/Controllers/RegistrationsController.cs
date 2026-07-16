@@ -58,6 +58,18 @@ namespace TrainingSystem.Controllers
                 .Select(p => new { p.Id, p.Title })
                 .ToListAsync();
 
+            // عدد المقبولين والعدد المطلوب لكل دفعة (لعرض عدّاد المقاعد في الجدول)
+            var batchIds = registrations
+                .Select(r => r.BatchId)
+                .Distinct()
+                .ToList();
+
+            ViewBag.BatchApprovedCounts = await _context.Registrations
+                .Where(r => batchIds.Contains(r.BatchId) && r.Status == RegistrationStatus.Approved)
+                .GroupBy(r => r.BatchId)
+                .Select(g => new { BatchId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.BatchId, x => x.Count);
+
             ViewBag.CurrentStatus = status;
             ViewBag.Search = search;
             ViewBag.CurrentProgramId = programId;
