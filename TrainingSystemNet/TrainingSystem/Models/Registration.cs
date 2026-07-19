@@ -13,7 +13,7 @@ namespace TrainingSystem.Models
 
         [Required(ErrorMessage = "الرقم الوظيفي مطلوب")]
         [Display(Name = "الرقم الوظيفي")]
-        [RegularExpression(@"^[0-9]+$", ErrorMessage = "الرقم الوظيفي يجب أن يحتوي على أرقام إنجليزية فقط")]
+        [RegularExpression(@"^192[0-9]+$", ErrorMessage = "الرقم الوظيفي يجب أن يبدأ بـ 192 ويحتوي على أرقام إنجليزية فقط")]
         public string EmployeeId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "المسمى الوظيفي مطلوب")]

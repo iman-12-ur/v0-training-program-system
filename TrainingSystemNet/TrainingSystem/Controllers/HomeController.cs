@@ -74,11 +74,19 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(Registration registration)
+        public async Task<IActionResult> Register(Registration registration, string? employeeIdSuffix)
         {
-            // Convert Arabic numbers to English
-            registration.EmployeeId = ConvertArabicToEnglish(registration.EmployeeId);
+            // أول ثلاثة أرقام ثابتة، ويُحفظ الرقم الوظيفي كاملاً بصيغة 192 + الأرقام المدخلة.
+            var normalizedSuffix = ConvertArabicToEnglish(employeeIdSuffix ?? string.Empty).Trim();
+            registration.EmployeeId = $"192{normalizedSuffix}";
             registration.Phone = ConvertArabicToEnglish(registration.Phone);
+
+            // استبدال نتيجة التحقق الأولية لأن EmployeeId يُركّب في الخادم من الجزء الثابت والمتغير.
+            ModelState.Remove(nameof(Registration.EmployeeId));
+            if (string.IsNullOrWhiteSpace(normalizedSuffix) || !normalizedSuffix.All(char.IsAsciiDigit))
+            {
+                ModelState.AddModelError(nameof(Registration.EmployeeId), "أدخل الأرقام المتبقية من الرقم الوظيفي باستخدام أرقام إنجليزية فقط");
+            }
 
             // Check for duplicate registration
             var existingReg = await _context.Registrations
@@ -86,7 +94,7 @@ namespace TrainingSystem.Controllers
 
             if (existingReg)
             {
-                ModelState.AddModelError("EmployeeId", "تم التسجيل مسبقاً بهذا الرقم الوظيفي في هذه الدفعة");
+                ModelState.AddModelError(nameof(Registration.EmployeeId), "تم التسجيل مسبقاً بهذا الرقم الوظيفي في هذه الدفعة");
             }
 
             if (ModelState.IsValid)
