@@ -1,6 +1,7 @@
 @model IEnumerable<Registration>
 @{
     ViewData["Title"] = "طلبات الترشيح";
+    int selectedProgramId = ViewBag.CurrentProgramId is int programId ? programId : 0;
 }
 
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
@@ -9,9 +10,18 @@
         <p class="text-muted mb-0">إدارة ومراجعة طلبات الترشيح للبرامج التدريبية</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-        <a asp-action="ExportApproved" asp-route-programId="@ViewBag.CurrentProgramId" class="btn btn-success">
-            <i class="bi bi-file-earmark-spreadsheet me-2"></i> تصدير المقبولين حسب البرنامج
-        </a>
+        @if (selectedProgramId > 0)
+        {
+            <a asp-controller="Registrations" asp-action="ExportApproved" asp-route-programId="@selectedProgramId" class="btn btn-success">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i> تصدير المقبولين للبرنامج المحدد
+            </a>
+        }
+        else
+        {
+            <button type="button" class="btn btn-success" disabled title="اختر برنامجاً محدداً أولاً">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i> اختر برنامجاً للتصدير
+            </button>
+        }
         <a asp-action="Export" class="btn btn-outline-success">
             <i class="bi bi-file-earmark-spreadsheet me-2"></i> تصدير جميع الطلبات Excel
         </a>
@@ -28,11 +38,10 @@
             </div>
             <div class="col-lg-3 col-md-6">
                 <label class="form-label" for="programId">البرنامج</label>
-                <select id="programId" name="programId" class="form-select">
+                <select id="programId" name="programId" class="form-select" onchange="this.form.submit()">
                     <option value="">جميع البرامج</option>
                     @if (ViewBag.Programs != null)
                     {
-                        int selectedProgramId = ViewBag.CurrentProgramId != null ? (int)ViewBag.CurrentProgramId : 0;
                         foreach (var program in ViewBag.Programs)
                         {
                             int currentId = (int)program.Id;
@@ -50,7 +59,7 @@
             </div>
             <div class="col-lg-2 col-md-6">
                 <label class="form-label" for="status">الحالة</label>
-                <select id="status" name="status" class="form-select">
+                <select id="status" name="status" class="form-select" onchange="this.form.submit()">
                     <option value="">جميع الحالات</option>
                     @if (ViewBag.CurrentStatus == "Pending")
                     {

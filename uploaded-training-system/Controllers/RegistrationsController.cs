@@ -232,23 +232,35 @@ namespace TrainingSystem.Controllers
                 $"registrations_{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
-        // تصدير المقبولين فقط حسب البرنامج إلى ملف Excel حقيقي
-        public async Task<IActionResult> ExportApproved(int? programId = null)
+        // تصدير المقبولين فقط للبرنامج المحدد إلى ملف Excel حقيقي
+        public async Task<IActionResult> ExportApproved(int? programId)
         {
-            var query = _context.Registrations
-                .Include(r => r.Batch)
-                .ThenInclude(b => b!.TrainingProgram)
-                .Where(r => r.Status == RegistrationStatus.Approved)
-                .AsQueryable();
-
-            string fileProgramName = "all-programs";
-            if (programId.HasValue && programId.Value > 0)
+            // لا نسمح بالتصدير دون برنامج حتى لا يتم تصدير جميع المرشحين بالخطأ
+            if (!programId.HasValue || programId.Value <= 0)
             {
-                query = query.Where(r => r.Batch != null && r.Batch.TrainingProgramId == programId.Value);
-                fileProgramName = $"program-{programId.Value}";
+                TempData["Error"] = "يرجى اختيار برنامج محدد أولاً، ثم الضغط على تصدير المقبولين حسب البرنامج.";
+                return RedirectToAction(nameof(Index));
             }
 
-            var registrations = await query
+            var selectedProgram = await _context.TrainingPrograms
+                .AsNoTracking()
+                .Where(p => p.Id == programId.Value)
+                .Select(p => new { p.Id, p.Title })
+                .FirstOrDefaultAsync();
+
+            if (selectedProgram == null)
+            {
+                TempData["Error"] = "البرنامج المحدد غير موجود.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var registrations = await _context.Registrations
+                .AsNoTracking()
+                .Include(r => r.Batch)
+                .ThenInclude(b => b!.TrainingProgram)
+                .Where(r => r.Status == RegistrationStatus.Approved
+                            && r.Batch != null
+                            && r.Batch.TrainingProgramId == selectedProgram.Id)
                 .OrderBy(r => r.Batch!.TrainingProgram!.Title)
                 .ThenBy(r => r.Batch!.Name)
                 .ThenBy(r => r.VisitorName)
@@ -306,7 +318,7 @@ namespace TrainingSystem.Controllers
             return File(
                 stream.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"accepted_{fileProgramName}_{DateTime.Now:yyyyMMdd}.xlsx");
+                $"accepted_program_{selectedProgram.Id}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 }
