@@ -24,29 +24,7 @@ namespace TrainingSystem.Controllers
         // عرض الطلبات - متاح للجميع
         public async Task<IActionResult> Index(string? status = null, string? search = null, int? programId = null)
         {
-            var query = _context.Registrations
-                .Include(r => r.Batch)
-                .ThenInclude(b => b!.TrainingProgram)
-                .AsQueryable();
-
-            if (!string.IsNullOrEmpty(status) && Enum.TryParse<RegistrationStatus>(status, out var statusEnum))
-            {
-                query = query.Where(r => r.Status == statusEnum);
-            }
-
-            if (programId.HasValue && programId.Value > 0)
-            {
-                query = query.Where(r => r.Batch != null && r.Batch.TrainingProgramId == programId.Value);
-            }
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(r => 
-                    r.VisitorName.Contains(search) || 
-                    r.EmployeeId.Contains(search) ||
-                    r.Email.Contains(search) ||
-                    (r.JobTitle != null && r.JobTitle.Contains(search)));
-            }
+            var query = BuildFilteredQuery(status, search, programId);
 
             var registrations = await query
                 .OrderByDescending(r => r.RegisteredAt)
@@ -190,104 +168,119 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // تصدير التقارير - متاح للجميع
-        public async Task<IActionResult> Export()
+        // تصدير النتائج الحالية إلى Excel وفق البحث والبرنامج والحالة المحددة
+        public async Task<IActionResult> Export(string? status = null, string? search = null, int? programId = null)
         {
-            var registrations = await _context.Registrations
-                .Include(r => r.Batch)
-                .ThenInclude(b => b!.TrainingProgram)
+            var registrations = await BuildFilteredQuery(status, search, programId)
                 .OrderByDescending(r => r.RegisteredAt)
                 .ToListAsync();
 
-            // Generate CSV
-            var csv = "الاسم,الرقم الوظيفي,المسمى الوظيفي,الدائرة,القسم,البريد,الهاتف,البرنامج,الدفعة,الحالة,تاريخ التسجيل\n";
-            foreach (var r in registrations)
-            {
-                csv += $"{r.VisitorName},{r.EmployeeId},{r.JobTitle},{r.Court},{r.Department},{r.Email},{r.Phone},{r.Batch?.TrainingProgram?.Title},{r.Batch?.Name},{r.Status},{r.RegisteredAt:yyyy-MM-dd}\n";
-            }
-
-            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
-            return File(bytes, "text/csv", $"registrations_{DateTime.Now:yyyyMMdd}.csv");
+            return CreateRegistrationsWorkbook(registrations, "طلبات الترشيح", "طلبات-الترشيح");
         }
 
-        // تصدير المقبولين حسب البرنامج - متاح للجميع
-        public async Task<IActionResult> ExportApproved(int? programId = null)
+        private IQueryable<Registration> BuildFilteredQuery(string? status, string? search, int? programId)
         {
             var query = _context.Registrations
+                .AsNoTracking()
                 .Include(r => r.Batch)
                 .ThenInclude(b => b!.TrainingProgram)
-                .Where(r => r.Status == RegistrationStatus.Approved)
                 .AsQueryable();
 
-            string programTitle = "جميع_البرامج";
-            if (programId.HasValue && programId.Value > 0)
+            if (!string.IsNullOrWhiteSpace(status)
+                && Enum.TryParse<RegistrationStatus>(status, true, out var statusEnum))
             {
-                query = query.Where(r => r.Batch != null && r.Batch.TrainingProgramId == programId.Value);
-                var program = await _context.TrainingPrograms.FindAsync(programId.Value);
-                if (program != null)
-                {
-                    programTitle = program.Title.Replace(" ", "_");
-                }
+                query = query.Where(r => r.Status == statusEnum);
             }
 
-            var registrations = await query
-                .OrderBy(r => r.Batch!.TrainingProgram!.Title)
-                .ThenBy(r => r.Batch!.Name)
-                .ThenByDescending(r => r.RegisteredAt)
-                .ToListAsync();
+            if (programId.HasValue && programId.Value > 0)
+            {
+                var selectedProgramId = programId.Value;
+                query = query.Where(r => _context.Batches.Any(b =>
+                    b.Id == r.BatchId && b.TrainingProgramId == selectedProgramId));
+            }
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = search.Trim();
+                query = query.Where(r =>
+                    r.VisitorName.Contains(searchTerm) ||
+                    r.EmployeeId.Contains(searchTerm) ||
+                    r.Email.Contains(searchTerm) ||
+                    (r.JobTitle != null && r.JobTitle.Contains(searchTerm)) ||
+                    r.Court.Contains(searchTerm) ||
+                    r.Department.Contains(searchTerm) ||
+                    (r.Batch != null && r.Batch.TrainingProgram != null
+                        && r.Batch.TrainingProgram.Title.Contains(searchTerm)));
+            }
+
+            return query;
+        }
+
+        private FileContentResult CreateRegistrationsWorkbook(
+            IReadOnlyList<Registration> registrations,
+            string worksheetName,
+            string fileName)
+        {
             using var workbook = new XLWorkbook();
-            var ws = workbook.Worksheets.Add("المقبولون");
-            ws.RightToLeft = true;
+            var worksheet = workbook.Worksheets.Add(worksheetName);
+            worksheet.RightToLeft = true;
 
-            var headers = new[]
+            string[] headers =
             {
                 "م", "الاسم", "الرقم الوظيفي", "المسمى الوظيفي", "الدائرة/المحكمة",
-                "القسم", "البريد الإلكتروني", "الهاتف", "البرنامج", "الدفعة", "تاريخ التسجيل"
+                "القسم", "البريد الإلكتروني", "الهاتف", "البرنامج", "الدفعة", "الحالة", "تاريخ التسجيل"
             };
 
-            // ترويسة الأعمدة
-            for (int i = 0; i < headers.Length; i++)
+            for (int column = 1; column <= headers.Length; column++)
             {
-                var cell = ws.Cell(1, i + 1);
-                cell.Value = headers[i];
+                var cell = worksheet.Cell(1, column);
+                cell.Value = headers[column - 1];
                 cell.Style.Font.Bold = true;
                 cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e3a5f");
                 cell.Style.Font.FontColor = XLColor.White;
                 cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
             }
 
-            // بيانات المقبولين
-            int row = 2;
-            int seq = 1;
-            foreach (var r in registrations)
+            for (int index = 0; index < registrations.Count; index++)
             {
-                ws.Cell(row, 1).Value = seq++;
-                ws.Cell(row, 2).Value = r.VisitorName;
-                ws.Cell(row, 3).Value = r.EmployeeId;
-                ws.Cell(row, 4).Value = r.JobTitle ?? "";
-                ws.Cell(row, 5).Value = r.Court;
-                ws.Cell(row, 6).Value = r.Department;
-                ws.Cell(row, 7).Value = r.Email;
-                ws.Cell(row, 8).Value = r.Phone;
-                ws.Cell(row, 9).Value = r.Batch?.TrainingProgram?.Title ?? "";
-                ws.Cell(row, 10).Value = r.Batch?.Name ?? "";
-                ws.Cell(row, 11).Value = r.RegisteredAt.ToString("yyyy-MM-dd");
-                row++;
+                var registration = registrations[index];
+                int row = index + 2;
+                worksheet.Cell(row, 1).Value = index + 1;
+                worksheet.Cell(row, 2).Value = registration.VisitorName;
+                worksheet.Cell(row, 3).Value = registration.EmployeeId;
+                worksheet.Cell(row, 4).Value = registration.JobTitle ?? string.Empty;
+                worksheet.Cell(row, 5).Value = registration.Court;
+                worksheet.Cell(row, 6).Value = registration.Department;
+                worksheet.Cell(row, 7).Value = registration.Email;
+                worksheet.Cell(row, 8).Value = registration.Phone;
+                worksheet.Cell(row, 9).Value = registration.Batch?.TrainingProgram?.Title ?? string.Empty;
+                worksheet.Cell(row, 10).Value = registration.Batch?.Name ?? string.Empty;
+                worksheet.Cell(row, 11).Value = GetStatusText(registration.Status);
+                worksheet.Cell(row, 12).Value = registration.RegisteredAt;
+                worksheet.Cell(row, 12).Style.DateFormat.Format = "yyyy/MM/dd HH:mm";
             }
 
-            // حدود للجدول وتنسيق
-            var usedRange = ws.Range(1, 1, Math.Max(row - 1, 1), headers.Length);
+            var usedRange = worksheet.Range(1, 1, Math.Max(registrations.Count + 1, 1), headers.Length);
             usedRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             usedRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-            ws.Columns().AdjustToContents();
+            usedRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            worksheet.SheetView.FreezeRows(1);
+            worksheet.Columns().AdjustToContents();
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
-            return File(stream.ToArray(),
+            return File(
+                stream.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"accepted_{programTitle}_{DateTime.Now:yyyyMMdd}.xlsx");
+                $"{fileName}-{DateTime.Now:yyyyMMdd}.xlsx");
         }
+
+        private static string GetStatusText(RegistrationStatus status) => status switch
+        {
+            RegistrationStatus.Pending => "قيد المراجعة",
+            RegistrationStatus.Approved => "مقبول",
+            RegistrationStatus.Rejected => "مرفوض",
+            _ => "غير معروف"
+        };
     }
 }
