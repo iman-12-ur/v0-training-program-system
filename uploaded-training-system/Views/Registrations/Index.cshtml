@@ -12,8 +12,8 @@
     <div class="d-flex flex-wrap gap-2">
         @if (selectedProgramId > 0)
         {
-            <a asp-controller="Registrations" asp-action="ExportApproved" asp-route-programId="@selectedProgramId" class="btn btn-success">
-                <i class="bi bi-file-earmark-spreadsheet me-2"></i> تصدير المقبولين للبرنامج المحدد
+            <a asp-controller="Registrations" asp-action="ExportByProgram" asp-route-programId="@selectedProgramId" class="btn btn-success">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i> تصدير مرشحي البرنامج المحدد
             </a>
         }
         else
@@ -31,14 +31,14 @@
 <!-- Filters -->
 <div class="card mb-4">
     <div class="card-body">
-        <form method="get" class="row g-3 align-items-end">
+        <form asp-controller="Registrations" asp-action="Index" method="get" class="row g-3 align-items-end">
             <div class="col-lg-4 col-md-6">
                 <label class="form-label" for="search">البحث</label>
                 <input id="search" type="search" name="search" class="form-control" placeholder="الاسم أو الرقم الوظيفي أو المسمى أو البريد..." value="@ViewBag.Search" />
             </div>
             <div class="col-lg-3 col-md-6">
                 <label class="form-label" for="programId">البرنامج</label>
-                <select id="programId" name="programId" class="form-select" onchange="this.form.submit()">
+                <select id="programId" name="programId" class="form-select">
                     <option value="">جميع البرامج</option>
                     @if (ViewBag.Programs != null)
                     {
@@ -59,7 +59,7 @@
             </div>
             <div class="col-lg-2 col-md-6">
                 <label class="form-label" for="status">الحالة</label>
-                <select id="status" name="status" class="form-select" onchange="this.form.submit()">
+                <select id="status" name="status" class="form-select">
                     <option value="">جميع الحالات</option>
                     @if (ViewBag.CurrentStatus == "Pending")
                     {
@@ -99,6 +99,14 @@
             </div>
         </form>
     </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <span class="text-muted">عدد النتائج: <strong>@ViewBag.FilteredCount</strong></span>
+    @if (selectedProgramId > 0)
+    {
+        <span class="badge bg-primary">تم تطبيق فلتر البرنامج</span>
+    }
 </div>
 
 <div class="card">

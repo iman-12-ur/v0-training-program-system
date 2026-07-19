@@ -22,9 +22,10 @@ namespace TrainingSystem.Controllers
         }
 
         // عرض الطلبات - متاح للجميع
-        public async Task<IActionResult> Index(string? status = null, string? search = null, int? programId = null)
+        public async Task<IActionResult> Index(string? status = null, string? search = null, int programId = 0)
         {
             var query = _context.Registrations
+                .AsNoTracking()
                 .Include(r => r.Batch)
                 .ThenInclude(b => b!.TrainingProgram)
                 .AsQueryable();
@@ -34,9 +35,11 @@ namespace TrainingSystem.Controllers
                 query = query.Where(r => r.Status == statusEnum);
             }
 
-            if (programId.HasValue && programId.Value > 0)
+            if (programId > 0)
             {
-                query = query.Where(r => r.Batch != null && r.Batch.TrainingProgramId == programId.Value);
+                // التسجيل مرتبط بالبرنامج من خلال الدفعة؛ نستخدم BatchId صراحة لضمان الفلترة الصحيحة.
+                query = query.Where(r => _context.Batches.Any(b =>
+                    b.Id == r.BatchId && b.TrainingProgramId == programId));
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -48,20 +51,24 @@ namespace TrainingSystem.Controllers
                     r.Email.Contains(searchTerm) ||
                     (r.JobTitle != null && r.JobTitle.Contains(searchTerm)) ||
                     r.Court.Contains(searchTerm) ||
-                    r.Department.Contains(searchTerm));
+                    r.Department.Contains(searchTerm) ||
+                    (r.Batch != null && r.Batch.TrainingProgram != null &&
+                     r.Batch.TrainingProgram.Title.Contains(searchTerm)));
             }
 
             var registrations = await query
                 .OrderByDescending(r => r.RegisteredAt)
                 .ToListAsync();
 
+            // نمرر كيانات عامة إلى Razor بدلاً من نوع مجهول داخل ViewBag.
             ViewBag.Programs = await _context.TrainingPrograms
+                .AsNoTracking()
                 .OrderBy(p => p.Title)
-                .Select(p => new { p.Id, p.Title })
                 .ToListAsync();
-            ViewBag.CurrentStatus = status;
-            ViewBag.Search = search;
+            ViewBag.CurrentStatus = status ?? string.Empty;
+            ViewBag.Search = search ?? string.Empty;
             ViewBag.CurrentProgramId = programId;
+            ViewBag.FilteredCount = registrations.Count;
 
             return View(registrations);
         }
@@ -232,21 +239,18 @@ namespace TrainingSystem.Controllers
                 $"registrations_{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
-        // تصدير المقبولين فقط للبرنامج المحدد إلى ملف Excel حقيقي
-        public async Task<IActionResult> ExportApproved(int? programId)
+        // تصدير جميع مرشحي البرنامج المحدد فقط إلى ملف Excel حقيقي
+        public async Task<IActionResult> ExportByProgram(int programId)
         {
-            // لا نسمح بالتصدير دون برنامج حتى لا يتم تصدير جميع المرشحين بالخطأ
-            if (!programId.HasValue || programId.Value <= 0)
+            if (programId <= 0)
             {
-                TempData["Error"] = "يرجى اختيار برنامج محدد أولاً، ثم الضغط على تصدير المقبولين حسب البرنامج.";
+                TempData["Error"] = "يرجى اختيار برنامج محدد أولاً، ثم الضغط على تصدير مرشحي البرنامج.";
                 return RedirectToAction(nameof(Index));
             }
 
             var selectedProgram = await _context.TrainingPrograms
                 .AsNoTracking()
-                .Where(p => p.Id == programId.Value)
-                .Select(p => new { p.Id, p.Title })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(p => p.Id == programId);
 
             if (selectedProgram == null)
             {
@@ -258,22 +262,20 @@ namespace TrainingSystem.Controllers
                 .AsNoTracking()
                 .Include(r => r.Batch)
                 .ThenInclude(b => b!.TrainingProgram)
-                .Where(r => r.Status == RegistrationStatus.Approved
-                            && r.Batch != null
-                            && r.Batch.TrainingProgramId == selectedProgram.Id)
-                .OrderBy(r => r.Batch!.TrainingProgram!.Title)
-                .ThenBy(r => r.Batch!.Name)
+                .Where(r => _context.Batches.Any(b =>
+                    b.Id == r.BatchId && b.TrainingProgramId == programId))
+                .OrderBy(r => r.Batch!.Name)
                 .ThenBy(r => r.VisitorName)
                 .ToListAsync();
 
             using var workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add("المقبولون");
+            var worksheet = workbook.Worksheets.Add("مرشحو البرنامج");
             worksheet.RightToLeft = true;
 
             string[] headers =
             {
                 "م", "الاسم", "الرقم الوظيفي", "المسمى الوظيفي", "الدائرة/المحكمة",
-                "القسم", "البريد الإلكتروني", "الهاتف", "البرنامج", "الدفعة", "تاريخ التسجيل"
+                "القسم", "البريد الإلكتروني", "الهاتف", "البرنامج", "الدفعة", "الحالة", "تاريخ التسجيل"
             };
 
             for (int column = 1; column <= headers.Length; column++)
@@ -301,8 +303,15 @@ namespace TrainingSystem.Controllers
                 worksheet.Cell(row, 8).Value = registration.Phone;
                 worksheet.Cell(row, 9).Value = registration.Batch?.TrainingProgram?.Title ?? string.Empty;
                 worksheet.Cell(row, 10).Value = registration.Batch?.Name ?? string.Empty;
-                worksheet.Cell(row, 11).Value = registration.RegisteredAt;
-                worksheet.Cell(row, 11).Style.DateFormat.Format = "yyyy/MM/dd";
+                worksheet.Cell(row, 11).Value = registration.Status switch
+                {
+                    RegistrationStatus.Pending => "قيد المراجعة",
+                    RegistrationStatus.Approved => "مقبول",
+                    RegistrationStatus.Rejected => "مرفوض",
+                    _ => "غير معروف"
+                };
+                worksheet.Cell(row, 12).Value = registration.RegisteredAt;
+                worksheet.Cell(row, 12).Style.DateFormat.Format = "yyyy/MM/dd";
             }
 
             int lastRow = Math.Max(registrations.Count + 1, 1);
@@ -318,7 +327,7 @@ namespace TrainingSystem.Controllers
             return File(
                 stream.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"accepted_program_{selectedProgram.Id}_{DateTime.Now:yyyyMMdd}.xlsx");
+                $"program_candidates_{selectedProgram.Id}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 }
