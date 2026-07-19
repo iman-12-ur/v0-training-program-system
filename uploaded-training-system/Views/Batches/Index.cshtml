@@ -1,0 +1,134 @@
+@model IEnumerable<Batch>
+@{
+    ViewData["Title"] = "إدارة الدفعات";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">إدارة الدفعات</h4>
+        <p class="text-muted mb-0">إدارة الدفعات التدريبية لجميع البرامج</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i> إضافة دفعة
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        @if (Model != null && Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>اسم الدفعة</th>
+                            <th>البرنامج التدريبي</th>
+                            <th>التاريخ</th>
+                            <th>المشاركين</th>
+                            <th>الحالة</th>
+                            <th style="width: 140px">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var batch in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@batch.Name</strong>
+                                </td>
+                                <td>
+                                    <span class="text-muted">@batch.TrainingProgram?.Title</span>
+                                </td>
+                                <td>
+                                    <small>
+                                        <i class="bi bi-calendar3 me-1 text-muted"></i>
+                                        @batch.StartDate.ToString("yyyy/MM/dd") - @batch.EndDate.ToString("yyyy/MM/dd")
+                                    </small>
+                                </td>
+                                <td>
+                                    @{
+                                        var percentage = batch.MaxParticipants > 0 
+                                            ? (batch.CurrentParticipants * 100 / batch.MaxParticipants) 
+                                            : 0;
+                                        var progressColor = percentage >= 100 ? "bg-danger" : percentage >= 75 ? "bg-warning" : "bg-success";
+                                    }
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress" style="height: 8px; width: 80px;">
+                                            <div class="progress-bar @progressColor" style="width: @percentage%"></div>
+                                        </div>
+                                        <small class="text-muted">@batch.CurrentParticipants / @batch.MaxParticipants</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    @switch (batch.Status)
+                                    {
+                                        case BatchStatus.Upcoming:
+                                            <span class="badge bg-info">قادمة</span>
+                                            break;
+                                        case BatchStatus.InProgress:
+                                            <span class="badge bg-primary">جارية</span>
+                                            break;
+                                        case BatchStatus.Completed:
+                                            <span class="badge bg-success">مكتملة</span>
+                                            break;
+                                        case BatchStatus.Cancelled:
+                                            <span class="badge bg-danger">ملغاة</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <a asp-action="Edit" asp-route-id="@batch.Id" class="btn btn-sm btn-outline-primary" title="تعديل">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal@(batch.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Delete Modal -->
+                                    <div class="modal fade" id="deleteModal@(batch.Id)" tabindex="-1">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">تأكيد الحذف</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>هل أنت متأكد من حذف الدفعة "<strong>@batch.Name</strong>"؟</p>
+                                                    <p class="text-muted small mb-0">لا يمكن التراجع عن هذا الإجراء.</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                    <form asp-action="Delete" asp-route-id="@batch.Id" method="post" class="d-inline">
+                                                        <button type="submit" class="btn btn-danger">
+                                                            <i class="bi bi-trash me-1"></i> حذف
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="text-muted">لا توجد دفعات</h5>
+                <p class="text-muted mb-3">ابدأ بإضافة دفعة تدريبية جديدة</p>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-2"></i> إضافة دفعة جديدة
+                </a>
+            </div>
+        }
+    </div>
+</div>

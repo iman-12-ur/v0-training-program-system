@@ -109,8 +109,10 @@
 
                 @if (!string.IsNullOrEmpty(Model.ApprovedBy))
                 {
-                    <p class="small text-muted mb-1">معتمد من: @Model.ApprovedBy</p>
-                    <p class="small text-muted">@Model.ApprovedAt?.ToString("yyyy/MM/dd HH:mm")</p>
+                    <div class="alert alert-light border mt-3 mb-2 text-start">
+                        <p class="small text-muted mb-1">آخر قرار بواسطة: <strong>@Model.ApprovedBy</strong></p>
+                        <p class="small text-muted mb-0">تاريخ آخر قرار: <span dir="ltr">@Model.ApprovedAt?.ToString("yyyy/MM/dd HH:mm")</span></p>
+                    </div>
                 }
 
                 @if (!string.IsNullOrEmpty(Model.Notes))
@@ -121,40 +123,60 @@
             </div>
         </div>
 
-        @if (Model.Status == RegistrationStatus.Pending)
+        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
         {
             <div class="d-grid gap-2">
-                <form asp-action="Approve" asp-route-id="@Model.Id" method="post">
-                    <button type="submit" class="btn btn-success btn-lg w-100">
-                        <i class="bi bi-check-lg me-2"></i> قبول الطلب
+                @if (Model.Status == RegistrationStatus.Pending || Model.Status == RegistrationStatus.Rejected)
+                {
+                    <form asp-action="Approve" asp-route-id="@Model.Id" method="post"
+                          onsubmit="return confirm('@(Model.Status == RegistrationStatus.Rejected ? "هل تريد تغيير القرار من مرفوض إلى مقبول؟" : "هل تريد قبول هذا الطلب؟")');">
+                        <input type="hidden" name="returnToDetails" value="true" />
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <i class="bi bi-check-lg me-2"></i>
+                            @(Model.Status == RegistrationStatus.Rejected ? "تغيير القرار إلى مقبول" : "قبول الطلب")
+                        </button>
+                    </form>
+                }
+                @if (Model.Status == RegistrationStatus.Pending || Model.Status == RegistrationStatus.Approved)
+                {
+                    <button type="button" class="btn btn-danger btn-lg" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                        <i class="bi bi-x-lg me-2"></i>
+                        @(Model.Status == RegistrationStatus.Approved ? "تغيير القرار إلى مرفوض" : "رفض الطلب")
                     </button>
-                </form>
-                <button type="button" class="btn btn-danger btn-lg" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                    <i class="bi bi-x-lg me-2"></i> رفض الطلب
-                </button>
+                }
             </div>
 
-            <!-- Reject Modal -->
-            <div class="modal fade" id="rejectModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form asp-action="Reject" asp-route-id="@Model.Id" method="post">
-                            <div class="modal-header">
-                                <h5 class="modal-title">رفض الطلب</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <label class="form-label">سبب الرفض (اختياري)</label>
-                                <textarea name="notes" class="form-control" rows="3" placeholder="أدخل سبب الرفض..."></textarea>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                                <button type="submit" class="btn btn-danger">رفض الطلب</button>
-                            </div>
-                        </form>
+            @if (Model.Status == RegistrationStatus.Pending || Model.Status == RegistrationStatus.Approved)
+            {
+                <!-- Reject Modal -->
+                <div class="modal fade" id="rejectModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <form asp-action="Reject" asp-route-id="@Model.Id" method="post">
+                                <input type="hidden" name="returnToDetails" value="true" />
+                                <div class="modal-header">
+                                    <h5 class="modal-title">@(Model.Status == RegistrationStatus.Approved ? "تغيير القرار إلى مرفوض" : "رفض الطلب")</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                                </div>
+                                <div class="modal-body">
+                                    @if (Model.Status == RegistrationStatus.Approved)
+                                    {
+                                        <div class="alert alert-warning">
+                                            سيتم إلغاء قبول المرشح وإتاحة مقعد في الدفعة.
+                                        </div>
+                                    }
+                                    <label class="form-label">سبب الرفض (اختياري)</label>
+                                    <textarea name="notes" class="form-control" rows="3" placeholder="أدخل سبب الرفض...">@Model.Notes</textarea>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                    <button type="submit" class="btn btn-danger">تأكيد الرفض</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
         }
     </div>
 </div>

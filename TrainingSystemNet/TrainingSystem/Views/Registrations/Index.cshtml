@@ -8,20 +8,44 @@
         <h4 class="fw-bold mb-1">طلبات الترشيح</h4>
         <p class="text-muted mb-0">إدارة ومراجعة طلبات الترشيح للبرامج التدريبية</p>
     </div>
-    <a asp-action="Export" class="btn btn-success">
-        <i class="bi bi-download me-2"></i> تصدير Excel
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-action="Export"
+           asp-route-search="@ViewBag.Search"
+           asp-route-programId="@ViewBag.CurrentProgramId"
+           asp-route-status="@ViewBag.CurrentStatus"
+           class="btn btn-success">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i> تصدير النتائج الحالية Excel
+        </a>
+        <a asp-action="Export" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i> تصدير جميع الطلبات Excel
+        </a>
+    </div>
 </div>
 
 <!-- Filters -->
 <div class="card mb-4">
     <div class="card-body">
-        <form method="get" class="row g-3 align-items-end">
+        <form asp-controller="Registrations" asp-action="Index" method="get" class="row g-3 align-items-end">
             <div class="col-md-4">
                 <label class="form-label">البحث</label>
-                <input type="text" name="search" class="form-control" placeholder="اسم أو رقم وظيفي أو بريد..." value="@ViewBag.Search" />
+                <input type="text" name="search" class="form-control" placeholder="اسم أو رقم وظيفي أو مسمى وظيفي أو بريد..." value="@ViewBag.Search" />
             </div>
             <div class="col-md-3">
+                <label class="form-label">البرنامج</label>
+                <select name="programId" class="form-select">
+                    <option value="">جميع البرامج</option>
+                    @if (ViewBag.Programs != null)
+                    {
+                        int currentProgramId = ViewBag.CurrentProgramId != null ? (int)ViewBag.CurrentProgramId : 0;
+                        foreach (var p in ViewBag.Programs)
+                        {
+                            int pid = (int)p.Id;
+                            <option value="@pid" @(currentProgramId == pid ? "selected" : "")>@p.Title</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
                 <label class="form-label">الحالة</label>
                 <select name="status" class="form-select">
                     <option value="">جميع الحالات</option>
@@ -35,9 +59,9 @@
                     <i class="bi bi-search me-2"></i> بحث
                 </button>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <a asp-action="Index" class="btn btn-outline-secondary w-100">
-                    <i class="bi bi-x-circle me-2"></i> مسح
+                    <i class="bi bi-x-circle"></i>
                 </a>
             </div>
         </form>
@@ -70,9 +94,7 @@
                                     <br /><small class="text-muted">@reg.EmployeeId</small>
                                     @if (!string.IsNullOrEmpty(reg.JobTitle))
                                     {
-                                        <br />
-
-                                        <small class="text-muted"><i class="bi bi-briefcase me-1"></i>@reg.JobTitle</small>
+                                        <br /><small class="text-muted">@reg.JobTitle</small>
                                     }
                                 </td>
                                 <td>
@@ -82,6 +104,16 @@
                                 <td>
                                     <small>@reg.Batch?.TrainingProgram?.Title</small>
                                     <br /><small class="text-muted">@reg.Batch?.Name</small>
+                                    @if (reg.Batch != null)
+                                    {
+                                        var batchApproved = (ViewBag.BatchApprovedCounts as Dictionary<int, int>);
+                                        var approvedCount = (batchApproved != null && batchApproved.ContainsKey(reg.Batch.Id)) ? batchApproved[reg.Batch.Id] : 0;
+                                        var isFull = approvedCount >= reg.Batch.MaxParticipants;
+                                        <br />
+                                        <span class="badge @(isFull ? "bg-danger" : "bg-success") mt-1" title="عدد المقبولين مقابل العدد المطلوب">
+                                            <i class="bi bi-people me-1"></i> المقبولون: @approvedCount / @reg.Batch.MaxParticipants
+                                        </span>
+                                    }
                                 </td>
                                 <td>
                                     <small><i class="bi bi-envelope me-1 text-muted"></i> @reg.Email</small>
@@ -107,20 +139,40 @@
                                             <span class="badge bg-info">مكتمل</span>
                                             break;
                                     }
+                                    @if (!string.IsNullOrWhiteSpace(reg.ApprovedBy))
+                                    {
+                                        <div class="small text-muted mt-2">
+                                            <div>آخر قرار بواسطة: @reg.ApprovedBy</div>
+                                            @if (reg.ApprovedAt.HasValue)
+                                            {
+                                                <div dir="ltr">@reg.ApprovedAt.Value.ToString("yyyy/MM/dd HH:mm")</div>
+                                            }
+                                        </div>
+                                    }
                                 </td>
                                 <td>
                                     <div class="d-flex gap-1 flex-wrap">
-                                        @if (reg.Status == RegistrationStatus.Pending)
+                                        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
                                         {
-                                            <form asp-action="Approve" asp-route-id="@reg.Id" method="post" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-success" title="قبول">
-                                                    <i class="bi bi-check-lg"></i>
+                                            @if (reg.Status == RegistrationStatus.Pending || reg.Status == RegistrationStatus.Rejected)
+                                            {
+                                                <form asp-action="Approve" asp-route-id="@reg.Id" method="post" class="d-inline"
+                                                      onsubmit="return confirm('@(reg.Status == RegistrationStatus.Rejected ? "هل تريد تغيير القرار من مرفوض إلى مقبول؟" : "هل تريد قبول هذا الطلب؟")');">
+                                                    <input type="hidden" name="search" value="@ViewBag.Search" />
+                                                    <input type="hidden" name="programId" value="@ViewBag.CurrentProgramId" />
+                                                    <input type="hidden" name="status" value="@ViewBag.CurrentStatus" />
+                                                    <button type="submit" class="btn btn-sm btn-success" title="@(reg.Status == RegistrationStatus.Rejected ? "إعادة القبول" : "قبول")">
+                                                        <i class="bi bi-check-lg"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (reg.Status == RegistrationStatus.Pending || reg.Status == RegistrationStatus.Approved)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-danger" title="@(reg.Status == RegistrationStatus.Approved ? "تغيير القرار إلى مرفوض" : "رفض")"
+                                                        data-bs-toggle="modal" data-bs-target="#rejectModal@(reg.Id)">
+                                                    <i class="bi bi-x-lg"></i>
                                                 </button>
-                                            </form>
-                                            <button type="button" class="btn btn-sm btn-danger" title="رفض"
-                                                    data-bs-toggle="modal" data-bs-target="#rejectModal@(reg.Id)">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
+                                            }
                                         }
                                         <a asp-action="Details" asp-route-id="@reg.Id" class="btn btn-sm btn-outline-primary" title="تفاصيل">
                                             <i class="bi bi-eye"></i>
@@ -136,14 +188,23 @@
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <form asp-action="Reject" asp-route-id="@reg.Id" method="post">
+                                                    <input type="hidden" name="search" value="@ViewBag.Search" />
+                                                    <input type="hidden" name="programId" value="@ViewBag.CurrentProgramId" />
+                                                    <input type="hidden" name="status" value="@ViewBag.CurrentStatus" />
                                                     <div class="modal-header">
-                                                        <h5 class="modal-title">رفض الطلب</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        <h5 class="modal-title">@(reg.Status == RegistrationStatus.Approved ? "تغيير القرار إلى مرفوض" : "رفض الطلب")</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
                                                     </div>
                                                     <div class="modal-body">
+                                                        @if (reg.Status == RegistrationStatus.Approved)
+                                                        {
+                                                            <div class="alert alert-warning">
+                                                                سيتم إلغاء قبول <strong>@reg.VisitorName</strong> وإتاحة مقعد في الدفعة.
+                                                            </div>
+                                                        }
                                                         <div class="mb-3">
                                                             <label class="form-label">سبب الرفض (اختياري)</label>
-                                                            <textarea name="notes" class="form-control" rows="3" placeholder="أدخل سبب الرفض..."></textarea>
+                                                            <textarea name="notes" class="form-control" rows="3" placeholder="أدخل سبب الرفض...">@reg.Notes</textarea>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">

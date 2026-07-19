@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Users, CheckCircle2, User, Building2, Mail, Phone, BadgeCheck, AlertTriangle, Briefcase } from 'lucide-react';
+import { Calendar, Users, CheckCircle2, User, Building2, Mail, Phone, BadgeCheck, AlertTriangle } from 'lucide-react';
 
 import type { TrainingProgram, Batch, Registration } from '@/lib/types';
 
@@ -44,7 +44,6 @@ export function PublicRegistrationModal({
   const [formData, setFormData] = useState({
     visitorName: '',
     employeeId: '',
-    jobTitle: '',
     court: '',
     department: '',
     email: '',
@@ -115,9 +114,6 @@ export function PublicRegistrationModal({
     } else if (!hasOnlyEnglishNumbers(formData.employeeId)) {
       newErrors.employeeId = 'الرقم الوظيفي يجب أن يحتوي على أرقام إنجليزية فقط';
     }
-    if (!formData.jobTitle.trim()) {
-      newErrors.jobTitle = 'المسمى الوظيفي مطلوب';
-    }
     if (!formData.court.trim()) {
       newErrors.court = 'الدائرة/المحكمة مطلوبة';
     }
@@ -130,11 +126,9 @@ export function PublicRegistrationModal({
       newErrors.email = 'البريد الإلكتروني غير صحيح';
     }
     if (!formData.phone.trim()) {
-      newErrors.phone = 'رقم الهاتف مطلوب';
+      newErrors.phone = 'رقم الجوال مطلوب';
     } else if (!hasOnlyEnglishNumbers(formData.phone)) {
-      newErrors.phone = 'رقم الهاتف يجب أن يحتوي على أرقام إنجليزية فقط';
-    } else if (!/^(968)?[279]\d{7}$/.test(formData.phone)) {
-      newErrors.phone = 'رقم هاتف عُماني غير صحيح (يبدأ بـ 2 أو 7 أو 9 و8 أرقام)';
+      newErrors.phone = 'رقم الجوال يجب أن يحتوي على أرقام إنجليزية فقط';
     }
     if (!batchId) {
       newErrors.batchId = 'يرجى اختيار الدفعة';
@@ -182,7 +176,6 @@ export function PublicRegistrationModal({
       batchName: batch?.name || '',
       visitorName: formData.visitorName,
       employeeId: formData.employeeId,
-      jobTitle: formData.jobTitle,
       court: formData.court,
       department: formData.department,
       email: formData.email,
@@ -199,7 +192,6 @@ export function PublicRegistrationModal({
     setFormData({
       visitorName: '',
       employeeId: '',
-      jobTitle: '',
       court: '',
       department: '',
       email: '',
@@ -382,24 +374,6 @@ export function PublicRegistrationModal({
               </div>
             </div>
 
-            {/* Job Title Input */}
-            <div className="space-y-2">
-              <Label htmlFor="jobTitle">المسمى الوظيفي *</Label>
-              <div className="relative">
-                <Briefcase className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="jobTitle"
-                  placeholder="مثال: أخصائي موارد بشرية"
-                  value={formData.jobTitle}
-                  onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                  className={`pr-9 ${errors.jobTitle ? 'border-destructive' : ''}`}
-                />
-              </div>
-              {errors.jobTitle && (
-                <p className="text-xs text-destructive">{errors.jobTitle}</p>
-              )}
-            </div>
-
             {/* Court Input */}
             <div className="space-y-2">
               <Label htmlFor="court">الدائرة / المحكمة *</Label>
@@ -453,24 +427,20 @@ export function PublicRegistrationModal({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">رقم الهاتف *</Label>
+                <Label htmlFor="phone">رقم الجوال *</Label>
                 <div className="relative">
                   <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="phone"
                     type="tel"
-                    inputMode="numeric"
-                    maxLength={8}
-                    placeholder="9xxxxxxx"
+                    placeholder="05xxxxxxxx"
                     value={formData.phone}
                     onChange={(e) => handlePhoneChange(e.target.value)}
                     className={`pr-9 ${errors.phone ? 'border-destructive' : ''}`}
                   />
                 </div>
-                {errors.phone ? (
+                {errors.phone && (
                   <p className="text-xs text-destructive">{errors.phone}</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">رقم عُماني يبدأ بـ 7 أو 9 (8 أرقام)</p>
                 )}
               </div>
             </div>

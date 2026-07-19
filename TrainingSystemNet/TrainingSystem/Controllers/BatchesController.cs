@@ -48,6 +48,16 @@ namespace TrainingSystem.Controllers
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Create(Batch batch)
         {
+            if (batch.EndDate.Date < batch.StartDate.Date)
+            {
+                ModelState.AddModelError(nameof(Batch.EndDate), "تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء أو مساوياً له");
+            }
+
+            if (!await _context.TrainingPrograms.AnyAsync(p => p.Id == batch.TrainingProgramId))
+            {
+                ModelState.AddModelError(nameof(Batch.TrainingProgramId), "البرنامج التدريبي المحدد غير موجود");
+            }
+
             if (ModelState.IsValid)
             {
                 batch.Status = BatchStatus.Upcoming;
@@ -98,30 +108,51 @@ namespace TrainingSystem.Controllers
                 return NotFound();
             }
 
+            var existingBatch = await _context.Batches.FindAsync(id);
+            if (existingBatch == null)
+            {
+                return NotFound();
+            }
+
+            if (batch.EndDate.Date < batch.StartDate.Date)
+            {
+                ModelState.AddModelError(nameof(Batch.EndDate), "تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء أو مساوياً له");
+            }
+
+            var programExists = await _context.TrainingPrograms.AnyAsync(p => p.Id == batch.TrainingProgramId);
+            if (!programExists)
+            {
+                ModelState.AddModelError(nameof(Batch.TrainingProgramId), "البرنامج التدريبي المحدد غير موجود");
+            }
+
+            var approvedCount = await _context.Registrations.CountAsync(r =>
+                r.BatchId == id && r.Status == RegistrationStatus.Approved);
+            if (batch.MaxParticipants < approvedCount)
+            {
+                ModelState.AddModelError(nameof(Batch.MaxParticipants),
+                    $"لا يمكن خفض السعة عن عدد المقبولين الحالي ({approvedCount})");
+            }
+
             if (ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(batch);
-                    await _context.SaveChangesAsync();
-                    TempData["Success"] = "تم تحديث الدفعة بنجاح";
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!await _context.Batches.AnyAsync(b => b.Id == id))
-                    {
-                        return NotFound();
-                    }
-                    throw;
-                }
+                existingBatch.Name = batch.Name.Trim();
+                existingBatch.StartDate = batch.StartDate;
+                existingBatch.EndDate = batch.EndDate;
+                existingBatch.MaxParticipants = batch.MaxParticipants;
+                existingBatch.Status = batch.Status;
+                existingBatch.TrainingProgramId = batch.TrainingProgramId;
+                existingBatch.CurrentParticipants = approvedCount;
 
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم تحديث الدفعة بنجاح";
                 return RedirectToAction(nameof(Index));
             }
 
+            batch.CurrentParticipants = existingBatch.CurrentParticipants;
             ViewBag.Programs = new SelectList(
-                await _context.TrainingPrograms.ToListAsync(), 
-                "Id", 
-                "Title", 
+                await _context.TrainingPrograms.ToListAsync(),
+                "Id",
+                "Title",
                 batch.TrainingProgramId);
 
             return View(batch);
@@ -136,6 +167,13 @@ namespace TrainingSystem.Controllers
             var batch = await _context.Batches.FindAsync(id);
             if (batch != null)
             {
+                var hasRegistrations = await _context.Registrations.AnyAsync(r => r.BatchId == id);
+                if (hasRegistrations)
+                {
+                    TempData["Error"] = "لا يمكن حذف دفعة مرتبطة بطلبات تسجيل. يمكنك تغيير حالتها إلى ملغاة بدلاً من ذلك.";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 _context.Batches.Remove(batch);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "تم حذف الدفعة بنجاح";
