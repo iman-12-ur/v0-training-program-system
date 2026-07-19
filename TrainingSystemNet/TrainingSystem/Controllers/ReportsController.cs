@@ -289,6 +289,14 @@ namespace TrainingSystem.Controllers
         public int Year { get; set; }
         public int Month { get; set; }
         public int Count { get; set; }
-        public string MonthName => new DateTime(Year, Month, 1).ToString("MMMM yyyy", new System.Globalization.CultureInfo("ar-SA"));
+        public string MonthName
+        {
+            get
+            {
+                var culture = new System.Globalization.CultureInfo("ar-OM");
+                culture.DateTimeFormat.Calendar = new System.Globalization.GregorianCalendar();
+                return new DateTime(Year, Month, 1).ToString("MMMM yyyy", culture);
+            }
+        }
     }
 }
