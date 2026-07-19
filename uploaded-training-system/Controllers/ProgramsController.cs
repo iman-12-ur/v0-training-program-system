@@ -152,7 +152,7 @@ namespace TrainingSystem.Controllers
             workbook.SaveAs(stream);
             return File(stream.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"program-import-template-{DateTime.Now:yyyyMMdd}.xlsx");
+                $"قالب-استيراد-البرامج-{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
         // معاينة ملف Excel المرفوع قبل الاستيراد

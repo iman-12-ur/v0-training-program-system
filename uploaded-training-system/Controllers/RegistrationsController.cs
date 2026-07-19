@@ -236,15 +236,15 @@ namespace TrainingSystem.Controllers
             return File(
                 stream.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"registrations_{DateTime.Now:yyyyMMdd}.xlsx");
+                $"جميع-طلبات-الترشيح-{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
-        // تصدير جميع مرشحي البرنامج المحدد فقط إلى ملف Excel حقيقي
+        // تصدير جميع حالات مرشحي البرنامج المحدد: قيد المراجعة والمقبول والمرفوض
         public async Task<IActionResult> ExportByProgram(int programId)
         {
             if (programId <= 0)
             {
-                TempData["Error"] = "يرجى اختيار برنامج محدد أولاً، ثم الضغط على تصدير مرشحي البرنامج.";
+                TempData["Error"] = "يرجى اختيار برنامج محدد أولاً، ثم الضغط على تصدير جميع الحالات للبرنامج المحدد.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -327,7 +327,7 @@ namespace TrainingSystem.Controllers
             return File(
                 stream.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"program_candidates_{selectedProgram.Id}_{DateTime.Now:yyyyMMdd}.xlsx");
+                $"جميع-حالات-مرشحي-البرنامج-{selectedProgram.Id}-{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 }

@@ -207,10 +207,11 @@ namespace TrainingSystem.Controllers
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
+            var arabicFileName = type == "programs" ? "تقرير-البرامج" : "تقرير-التسجيلات";
             return File(
                 stream.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"report_{type}_{DateTime.Now:yyyyMMdd}.xlsx");
+                $"{arabicFileName}-{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
         private static void ConfigureHeader(IXLWorksheet worksheet, IReadOnlyList<string> headers)
