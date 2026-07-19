@@ -71,75 +71,128 @@ namespace TrainingSystem.Controllers
             return View(registration);
         }
 
-        // قبول الطلب - SuperAdmin و Admin و Supervisor
+        // قبول الطلب أو إعادة قبوله - للمديرين فقط
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
-        public async Task<IActionResult> Approve(int id)
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> Approve(
+            int id,
+            string? status = null,
+            string? search = null,
+            int? programId = null,
+            bool returnToDetails = false)
         {
             var registration = await _context.Registrations
                 .Include(r => r.Batch)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (registration != null)
+            if (registration == null)
             {
-                // منع القبول إذا اكتمل العدد المطلوب للدفعة
-                if (registration.Batch != null && registration.Status != RegistrationStatus.Approved)
-                {
-                    var approvedCount = await _context.Registrations
-                        .CountAsync(r => r.BatchId == registration.BatchId
-                                         && r.Status == RegistrationStatus.Approved);
-
-                    if (approvedCount >= registration.Batch.MaxParticipants)
-                    {
-                        TempData["Error"] = $"لا يمكن القبول: اكتمل العدد المطلوب للدفعة ({registration.Batch.MaxParticipants} مقاعد). يمكنك رفض أحد المقبولين لإتاحة مقعد.";
-                        return RedirectToAction(nameof(Index));
-                    }
-                }
-
-                var currentUser = await _userManager.GetUserAsync(User);
-                
-                registration.Status = RegistrationStatus.Approved;
-                registration.ApprovedBy = currentUser?.FullName ?? "المدير";
-                registration.ApprovedAt = DateTime.Now;
-
-                await _context.SaveChangesAsync();
-                TempData["Success"] = "تم قبول الطلب بنجاح";
+                return NotFound();
             }
 
-            return RedirectToAction(nameof(Index));
+            var previousStatus = registration.Status;
+            if (previousStatus == RegistrationStatus.Completed)
+            {
+                TempData["Error"] = "لا يمكن تغيير قرار طلب مكتمل.";
+                return RedirectAfterDecision(id, status, search, programId, returnToDetails);
+            }
+
+            if (previousStatus != RegistrationStatus.Approved && registration.Batch != null)
+            {
+                var approvedCount = await _context.Registrations
+                    .CountAsync(r => r.BatchId == registration.BatchId
+                                     && r.Status == RegistrationStatus.Approved);
+
+                if (approvedCount >= registration.Batch.MaxParticipants)
+                {
+                    TempData["Error"] = $"لا يمكن القبول: اكتمل العدد المطلوب للدفعة ({registration.Batch.MaxParticipants} مقاعد). يمكنك رفض أحد المقبولين لإتاحة مقعد.";
+                    return RedirectAfterDecision(id, status, search, programId, returnToDetails);
+                }
+
+                // الطلب قيد المراجعة محسوب مسبقاً عند التسجيل؛ نعيد المقعد فقط عند إعادة قبول طلب مرفوض.
+                if (previousStatus == RegistrationStatus.Rejected)
+                {
+                    registration.Batch.CurrentParticipants++;
+                }
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            registration.Status = RegistrationStatus.Approved;
+            registration.ApprovedBy = currentUser?.FullName ?? User.Identity?.Name ?? "المدير";
+            registration.ApprovedAt = DateTime.Now;
+            registration.Notes = null;
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = previousStatus == RegistrationStatus.Rejected
+                ? "تم تغيير القرار من مرفوض إلى مقبول"
+                : "تم قبول الطلب بنجاح";
+
+            return RedirectAfterDecision(id, status, search, programId, returnToDetails);
         }
 
-        // رفض الطلب - SuperAdmin و Admin و Supervisor
+        // رفض الطلب أو تغيير قرار القبول - للمديرين فقط
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
-        public async Task<IActionResult> Reject(int id, string? notes = null)
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> Reject(
+            int id,
+            string? notes = null,
+            string? status = null,
+            string? search = null,
+            int? programId = null,
+            bool returnToDetails = false)
         {
             var registration = await _context.Registrations
                 .Include(r => r.Batch)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (registration != null)
+            if (registration == null)
             {
-                var currentUser = await _userManager.GetUserAsync(User);
-                
-                registration.Status = RegistrationStatus.Rejected;
-                registration.ApprovedBy = currentUser?.FullName ?? "المدير";
-                registration.ApprovedAt = DateTime.Now;
-                registration.Notes = notes;
-
-                // Decrease batch participants count
-                if (registration.Batch != null && registration.Batch.CurrentParticipants > 0)
-                {
-                    registration.Batch.CurrentParticipants--;
-                }
-
-                await _context.SaveChangesAsync();
-                TempData["Success"] = "تم رفض الطلب";
+                return NotFound();
             }
 
-            return RedirectToAction(nameof(Index));
+            var previousStatus = registration.Status;
+            if (previousStatus == RegistrationStatus.Completed)
+            {
+                TempData["Error"] = "لا يمكن تغيير قرار طلب مكتمل.";
+                return RedirectAfterDecision(id, status, search, programId, returnToDetails);
+            }
+
+            if ((previousStatus == RegistrationStatus.Pending || previousStatus == RegistrationStatus.Approved)
+                && registration.Batch != null
+                && registration.Batch.CurrentParticipants > 0)
+            {
+                registration.Batch.CurrentParticipants--;
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            registration.Status = RegistrationStatus.Rejected;
+            registration.ApprovedBy = currentUser?.FullName ?? User.Identity?.Name ?? "المدير";
+            registration.ApprovedAt = DateTime.Now;
+            registration.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = previousStatus == RegistrationStatus.Approved
+                ? "تم تغيير القرار من مقبول إلى مرفوض"
+                : "تم رفض الطلب";
+
+            return RedirectAfterDecision(id, status, search, programId, returnToDetails);
+        }
+
+        private IActionResult RedirectAfterDecision(
+            int id,
+            string? status,
+            string? search,
+            int? programId,
+            bool returnToDetails)
+        {
+            if (returnToDetails)
+            {
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            return RedirectToAction(nameof(Index), new { status, search, programId });
         }
 
         // حذف الطلب - SuperAdmin و Admin فقط
@@ -154,8 +207,10 @@ namespace TrainingSystem.Controllers
 
             if (registration != null)
             {
-                // Decrease batch participants count
-                if (registration.Batch != null && registration.Batch.CurrentParticipants > 0)
+                // الطلبان قيد المراجعة والمقبول محسوبان في العداد، أما المرفوض فقد أُزيل سابقاً.
+                if ((registration.Status == RegistrationStatus.Pending || registration.Status == RegistrationStatus.Approved)
+                    && registration.Batch != null
+                    && registration.Batch.CurrentParticipants > 0)
                 {
                     registration.Batch.CurrentParticipants--;
                 }

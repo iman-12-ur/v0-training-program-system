@@ -139,20 +139,40 @@
                                             <span class="badge bg-info">مكتمل</span>
                                             break;
                                     }
+                                    @if (!string.IsNullOrWhiteSpace(reg.ApprovedBy))
+                                    {
+                                        <div class="small text-muted mt-2">
+                                            <div>آخر قرار بواسطة: @reg.ApprovedBy</div>
+                                            @if (reg.ApprovedAt.HasValue)
+                                            {
+                                                <div dir="ltr">@reg.ApprovedAt.Value.ToString("yyyy/MM/dd HH:mm")</div>
+                                            }
+                                        </div>
+                                    }
                                 </td>
                                 <td>
                                     <div class="d-flex gap-1 flex-wrap">
-                                        @if (reg.Status == RegistrationStatus.Pending)
+                                        @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
                                         {
-                                            <form asp-action="Approve" asp-route-id="@reg.Id" method="post" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-success" title="قبول">
-                                                    <i class="bi bi-check-lg"></i>
+                                            @if (reg.Status == RegistrationStatus.Pending || reg.Status == RegistrationStatus.Rejected)
+                                            {
+                                                <form asp-action="Approve" asp-route-id="@reg.Id" method="post" class="d-inline"
+                                                      onsubmit="return confirm('@(reg.Status == RegistrationStatus.Rejected ? "هل تريد تغيير القرار من مرفوض إلى مقبول؟" : "هل تريد قبول هذا الطلب؟")');">
+                                                    <input type="hidden" name="search" value="@ViewBag.Search" />
+                                                    <input type="hidden" name="programId" value="@ViewBag.CurrentProgramId" />
+                                                    <input type="hidden" name="status" value="@ViewBag.CurrentStatus" />
+                                                    <button type="submit" class="btn btn-sm btn-success" title="@(reg.Status == RegistrationStatus.Rejected ? "إعادة القبول" : "قبول")">
+                                                        <i class="bi bi-check-lg"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (reg.Status == RegistrationStatus.Pending || reg.Status == RegistrationStatus.Approved)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-danger" title="@(reg.Status == RegistrationStatus.Approved ? "تغيير القرار إلى مرفوض" : "رفض")"
+                                                        data-bs-toggle="modal" data-bs-target="#rejectModal@(reg.Id)">
+                                                    <i class="bi bi-x-lg"></i>
                                                 </button>
-                                            </form>
-                                            <button type="button" class="btn btn-sm btn-danger" title="رفض"
-                                                    data-bs-toggle="modal" data-bs-target="#rejectModal@(reg.Id)">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
+                                            }
                                         }
                                         <a asp-action="Details" asp-route-id="@reg.Id" class="btn btn-sm btn-outline-primary" title="تفاصيل">
                                             <i class="bi bi-eye"></i>
@@ -168,14 +188,23 @@
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <form asp-action="Reject" asp-route-id="@reg.Id" method="post">
+                                                    <input type="hidden" name="search" value="@ViewBag.Search" />
+                                                    <input type="hidden" name="programId" value="@ViewBag.CurrentProgramId" />
+                                                    <input type="hidden" name="status" value="@ViewBag.CurrentStatus" />
                                                     <div class="modal-header">
-                                                        <h5 class="modal-title">رفض الطل��</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        <h5 class="modal-title">@(reg.Status == RegistrationStatus.Approved ? "تغيير القرار إلى مرفوض" : "رفض الطلب")</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
                                                     </div>
                                                     <div class="modal-body">
+                                                        @if (reg.Status == RegistrationStatus.Approved)
+                                                        {
+                                                            <div class="alert alert-warning">
+                                                                سيتم إلغاء قبول <strong>@reg.VisitorName</strong> وإتاحة مقعد في الدفعة.
+                                                            </div>
+                                                        }
                                                         <div class="mb-3">
                                                             <label class="form-label">سبب الرفض (اختياري)</label>
-                                                            <textarea name="notes" class="form-control" rows="3" placeholder="أدخل سبب الرفض..."></textarea>
+                                                            <textarea name="notes" class="form-control" rows="3" placeholder="أدخل سبب الرفض...">@reg.Notes</textarea>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">
