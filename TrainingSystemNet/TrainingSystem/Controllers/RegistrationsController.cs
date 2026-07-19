@@ -110,11 +110,7 @@ namespace TrainingSystem.Controllers
                     return RedirectAfterDecision(id, status, search, programId, returnToDetails);
                 }
 
-                // الطلب قيد المراجعة محسوب مسبقاً عند التسجيل؛ نعيد المقعد فقط عند إعادة قبول طلب مرفوض.
-                if (previousStatus == RegistrationStatus.Rejected)
-                {
-                    registration.Batch.CurrentParticipants++;
-                }
+                registration.Batch.CurrentParticipants = approvedCount + 1;
             }
 
             var currentUser = await _userManager.GetUserAsync(User);
@@ -159,11 +155,12 @@ namespace TrainingSystem.Controllers
                 return RedirectAfterDecision(id, status, search, programId, returnToDetails);
             }
 
-            if ((previousStatus == RegistrationStatus.Pending || previousStatus == RegistrationStatus.Approved)
-                && registration.Batch != null
-                && registration.Batch.CurrentParticipants > 0)
+            if (previousStatus == RegistrationStatus.Approved && registration.Batch != null)
             {
-                registration.Batch.CurrentParticipants--;
+                var approvedCount = await _context.Registrations
+                    .CountAsync(r => r.BatchId == registration.BatchId
+                                     && r.Status == RegistrationStatus.Approved);
+                registration.Batch.CurrentParticipants = Math.Max(0, approvedCount - 1);
             }
 
             var currentUser = await _userManager.GetUserAsync(User);
@@ -207,12 +204,12 @@ namespace TrainingSystem.Controllers
 
             if (registration != null)
             {
-                // الطلبان قيد المراجعة والمقبول محسوبان في العداد، أما المرفوض فقد أُزيل سابقاً.
-                if ((registration.Status == RegistrationStatus.Pending || registration.Status == RegistrationStatus.Approved)
-                    && registration.Batch != null
-                    && registration.Batch.CurrentParticipants > 0)
+                if (registration.Status == RegistrationStatus.Approved && registration.Batch != null)
                 {
-                    registration.Batch.CurrentParticipants--;
+                    var approvedCount = await _context.Registrations
+                        .CountAsync(r => r.BatchId == registration.BatchId
+                                         && r.Status == RegistrationStatus.Approved);
+                    registration.Batch.CurrentParticipants = Math.Max(0, approvedCount - 1);
                 }
 
                 _context.Registrations.Remove(registration);
@@ -335,6 +332,7 @@ namespace TrainingSystem.Controllers
             RegistrationStatus.Pending => "قيد المراجعة",
             RegistrationStatus.Approved => "مقبول",
             RegistrationStatus.Rejected => "مرفوض",
+            RegistrationStatus.Completed => "مكتمل",
             _ => "غير معروف"
         };
     }

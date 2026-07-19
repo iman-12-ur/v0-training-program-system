@@ -115,8 +115,7 @@ namespace TrainingSystem.Controllers
             if (programId.HasValue && programId.Value > 0)
             {
                 var selectedProgramId = programId.Value;
-                query = query.Where(r => _context.Batches.Any(b =>
-                    b.Id == r.BatchId && b.TrainingProgramId == selectedProgramId));
+                query = query.Where(r => r.Batch.TrainingProgramId == selectedProgramId);
             }
 
             ViewBag.Programs = await _context.TrainingPrograms.ToListAsync();
@@ -185,8 +184,7 @@ namespace TrainingSystem.Controllers
                 if (programId.HasValue && programId.Value > 0)
                 {
                     var selectedProgramId = programId.Value;
-                    query = query.Where(r => _context.Batches.Any(b =>
-                        b.Id == r.BatchId && b.TrainingProgramId == selectedProgramId));
+                    query = query.Where(r => r.Batch.TrainingProgramId == selectedProgramId);
                 }
 
                 var registrations = await query
@@ -218,6 +216,7 @@ namespace TrainingSystem.Controllers
                         RegistrationStatus.Pending => "قيد المراجعة",
                         RegistrationStatus.Approved => "مقبول",
                         RegistrationStatus.Rejected => "مرفوض",
+                        RegistrationStatus.Completed => "مكتمل",
                         _ => "غير معروف"
                     };
                     worksheet.Cell(row, 9).Value = registration.RegisteredAt;

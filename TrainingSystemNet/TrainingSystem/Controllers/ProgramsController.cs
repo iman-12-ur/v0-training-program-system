@@ -344,26 +344,37 @@ namespace TrainingSystem.Controllers
                 return NotFound();
             }
 
+            var existingProgram = await _context.TrainingPrograms.FindAsync(id);
+            if (existingProgram == null)
+            {
+                return NotFound();
+            }
+
             if (ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(program);
-                    await _context.SaveChangesAsync();
-                    TempData["Success"] = "تم تحديث البرنامج بنجاح";
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!await _context.TrainingPrograms.AnyAsync(p => p.Id == id))
-                    {
-                        return NotFound();
-                    }
-                    throw;
-                }
+                existingProgram.ProgramCode = program.ProgramCode?.Trim();
+                existingProgram.Title = program.Title.Trim();
+                existingProgram.Description = program.Description.Trim();
+                existingProgram.Categories = program.Categories?.Trim();
+                existingProgram.ProgramType = program.ProgramType?.Trim();
+                existingProgram.TargetAudience = program.TargetAudience?.Trim();
+                existingProgram.Duration = program.Duration.Trim();
+                existingProgram.Instructor = program.Instructor.Trim();
+                existingProgram.Location = program.Location.Trim();
+                existingProgram.Logo = program.Logo?.Trim();
+                existingProgram.Objectives = program.Objectives?.Trim();
+                existingProgram.Topics = program.Topics?.Trim();
+                existingProgram.Prerequisites = program.Prerequisites?.Trim();
+                // ReferenceNumber و CreatedAt و Status لا تُقبل من نموذج التعديل.
 
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم تحديث البرنامج بنجاح";
                 return RedirectToAction(nameof(Index));
             }
 
+            program.ReferenceNumber = existingProgram.ReferenceNumber;
+            program.CreatedAt = existingProgram.CreatedAt;
+            program.Status = existingProgram.Status;
             return View(program);
         }
 
@@ -376,6 +387,13 @@ namespace TrainingSystem.Controllers
             var program = await _context.TrainingPrograms.FindAsync(id);
             if (program != null)
             {
+                var hasBatches = await _context.Batches.AnyAsync(b => b.TrainingProgramId == id);
+                if (hasBatches)
+                {
+                    TempData["Error"] = "لا يمكن حذف برنامج مرتبط بدفعات. يمكنك إيقاف البرنامج بدلاً من ذلك.";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 _context.TrainingPrograms.Remove(program);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "تم حذف البرنامج بنجاح";
