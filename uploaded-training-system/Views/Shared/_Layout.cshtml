@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - نظام إدارة البرامج التدريبية للمجلس الأعلى للقضاء</title>
+    
+    <!-- Fonts -->
+ 
+    <link  href="~/font/notosansarabic-variablefont_wdth,wght.ttf"/>
+    
+    <!-- Bootstrap 5 RTL -->
+    <link href="~/css/bootstrap.rtl.min.css" rel="stylesheet" />
+    <!-- Bootstrap Icons -->
+    <link href="~/font/bootstrap-icons.min.css" rel="stylesheet" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("Supervisor")))
+    {
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">
+            <i class="bi bi-list"></i>
+        </button>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Header -->
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i class="bi bi-mortarboard-fill"></i>
+                </div>
+                <div class="sidebar-title">
+                    <h1>نظام إدارة البرامج التدريبية</h1>
+                    <p>للمجلس الأعلى للقضاء</p>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="sidebar-nav">
+                <a href="@Url.Action("Index", "Home")" class="nav-item">
+                    <i class="bi bi-house-door"></i>
+                    <span>الصفحة الرئيسية</span>
+                </a>
+
+                <a href="@Url.Action("Index", "Admin")" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    <span>لوحة التحكم</span>
+                </a>
+
+                <a href="@Url.Action("Index", "Programs")" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Programs" ? "active" : "")">
+                    <i class="bi bi-book"></i>
+                    <span>البرامج التدريبية</span>
+                </a>
+
+                <a href="@Url.Action("Index", "Registrations")" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Registrations" ? "active" : "")">
+                    <i class="bi bi-clipboard-check"></i>
+                    <span>طلبات الترشيح</span>
+                </a>
+
+                <a href="@Url.Action("Index", "Batches")" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Batches" ? "active" : "")">
+                    <i class="bi bi-people"></i>
+                    <span>إدارة الدفعات</span>
+                </a>
+
+                <a href="@Url.Action("Index", "Reports")" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" ? "active" : "")">
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>التقارير</span>
+                </a>
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+                {
+                    <div class="nav-divider"></div>
+                    
+                    <a href="@Url.Action("Index", "Settings")" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Settings" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                        <i class="bi bi-gear"></i>
+                        <span>الإعدادات</span>
+                    </a>
+
+                    <a href="@Url.Action("Users", "Settings")" class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Users" || ViewContext.RouteData.Values["action"]?.ToString() == "CreateUser" || ViewContext.RouteData.Values["action"]?.ToString() == "EditUser" ? "active" : "")">
+                        <i class="bi bi-person-gear"></i>
+                        <span>إدارة المستخدمين</span>
+                    </a>
+
+                    <a href="@Url.Action("PermissionsMatrix", "Settings")" class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "PermissionsMatrix" || ViewContext.RouteData.Values["action"]?.ToString() == "Permissions" ? "active" : "")">
+                        <i class="bi bi-shield-check"></i>
+                        <span>الصلاحيات</span>
+                    </a>
+                }
+            </nav>
+
+            <!-- User Info -->
+            <div class="sidebar-user">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        @User.Identity?.Name?.Substring(0, 1).ToUpper()
+                    </div>
+                    <div class="user-details">
+                        <div class="name">@User.Identity?.Name</div>
+                        <div class="role">
+                            @if (User.IsInRole("SuperAdmin")) { <span>مدير النظام</span> }
+                            else if (User.IsInRole("Admin")) { <span>مدير</span> }
+                            else if (User.IsInRole("Supervisor")) { <span>مشرف</span> }
+                        </div>
+                    </div>
+                    <form asp-controller="Account" asp-action="Logout" method="post" style="margin: 0;">
+                        <button type="submit" class="btn-logout" title="تسجيل الخروج">
+                            <i class="bi bi-box-arrow-left"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show animate-slideIn">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <span>@TempData["Success"]</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show animate-slideIn">
+                    <i class="bi bi-exclamation-circle-fill me-2"></i>
+                    <span>@TempData["Error"]</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @RenderBody()
+        </main>
+
+        <!-- Mobile Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    }
+    else
+    {
+        <!-- Public Layout -->
+        @RenderBody()
+    }
+
+    <!-- Bootstrap JS -->
+    <script src="~/js/bootstrap.bundle.min.js"></script>
+  
+    
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('show');
+        }
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

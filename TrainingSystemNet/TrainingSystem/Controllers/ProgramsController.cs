@@ -45,15 +45,280 @@ namespace TrainingSystem.Controllers
             {
                 program.Status = ProgramStatus.Active;
                 program.CreatedAt = DateTime.Now;
+                program.ReferenceNumber = await GenerateReferenceNumberAsync();
 
                 _context.TrainingPrograms.Add(program);
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] = "تم إضافة البرنامج بنجاح";
+                TempData["Success"] = $"تم إضافة البرنامج بنجاح - الرقم المرجعي: {program.ReferenceNumber}";
                 return RedirectToAction(nameof(Index));
             }
 
             return View(program);
+        }
+
+        // توليد رقم مرجعي تلقائي فريد بصيغة PRG-{السنة}-{تسلسل}
+        private async Task<string> GenerateReferenceNumberAsync()
+        {
+            var year = DateTime.Now.Year;
+            var prefix = $"PRG-{year}-";
+
+            var lastForYear = await _context.TrainingPrograms
+                .Where(p => p.ReferenceNumber != null && p.ReferenceNumber.StartsWith(prefix))
+                .OrderByDescending(p => p.ReferenceNumber)
+                .Select(p => p.ReferenceNumber)
+                .FirstOrDefaultAsync();
+
+            var next = 1;
+            if (!string.IsNullOrEmpty(lastForYear))
+            {
+                var numericPart = lastForYear.Substring(prefix.Length);
+                if (int.TryParse(numericPart, out var parsed))
+                {
+                    next = parsed + 1;
+                }
+            }
+
+            return $"{prefix}{next:D4}";
+        }
+
+        // ==================== استيراد Excel ====================
+
+        // أعمدة القالب (بالترتيب) - تطابق نموذج البرنامج
+        private static readonly string[] TemplateHeaders = new[]
+        {
+            "رمز البرنامج",
+            "عنوان البرنامج *",
+            "وصف البرنامج *",
+            "التصنيفات",
+            "نوع البرنامج",
+            "الفئة المستهدفة",
+            "المدة *",
+            "المدرب *",
+            "الموقع *",
+            "أهداف البرنامج",
+            "محاور البرنامج",
+            "المتطلبات المسبقة"
+        };
+
+        // تحميل قالب Excel مطابق للنموذج
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public IActionResult DownloadTemplate()
+        {
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add("البرامج");
+            ws.RightToLeft = true;
+
+            // ترويسة الأعمدة
+            for (int i = 0; i < TemplateHeaders.Length; i++)
+            {
+                var cell = ws.Cell(1, i + 1);
+                cell.Value = TemplateHeaders[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e3a5f");
+                cell.Style.Font.FontColor = XLColor.White;
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            }
+
+            // صف مثال توضيحي
+            var example = new[]
+            {
+                "LEAD-101",
+                "القيادة الفعّالة",
+                "برنامج متخصص في تطوير المهارات القيادية",
+                "القيادة والإدارة، المهارات الشخصية",
+                "حضوري",
+                "المدراء ورؤساء الأقسام",
+                "5 أيام",
+                "د. محمد العامري",
+                "قاعة التدريب الرئيسية",
+                "فهم أساسيات القيادة | تطوير مهارات التواصل",
+                "مقدمة في القيادة | إدارة الفرق | حل المشكلات",
+                "لا يوجد"
+            };
+            for (int i = 0; i < example.Length; i++)
+            {
+                ws.Cell(2, i + 1).Value = example[i];
+            }
+
+            ws.Columns().AdjustToContents();
+            ws.Column(1).Width = 15;
+            for (int i = 2; i <= TemplateHeaders.Length; i++)
+            {
+                if (ws.Column(i).Width > 40) ws.Column(i).Width = 40;
+            }
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return File(stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"program-import-template-{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+
+        // معاينة ملف Excel المرفوع قبل الاستيراد
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public IActionResult ImportPreview(IFormFile? file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                TempData["Error"] = "الرجاء اختيار ملف Excel صالح";
+                return RedirectToAction(nameof(Create));
+            }
+
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (ext != ".xlsx" && ext != ".xls")
+            {
+                TempData["Error"] = "صيغة الملف غير مدعومة. الرجاء رفع ملف بصيغة .xlsx";
+                return RedirectToAction(nameof(Create));
+            }
+
+            List<ProgramImportRow> rows;
+            try
+            {
+                rows = ParseExcel(file);
+            }
+            catch
+            {
+                TempData["Error"] = "تعذّر قراءة الملف. تأكد من استخدام القالب الصحيح";
+                return RedirectToAction(nameof(Create));
+            }
+
+            if (rows.Count == 0)
+            {
+                TempData["Error"] = "الملف لا يحتوي على بيانات برامج";
+                return RedirectToAction(nameof(Create));
+            }
+
+            return View("ImportPreview", rows);
+        }
+
+        // تأكيد الاستيراد وحفظ الصفوف الصالحة
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> ImportConfirm(List<ProgramImportRow> rows)
+        {
+            if (rows == null || rows.Count == 0)
+            {
+                TempData["Error"] = "لا توجد بيانات للاستيراد";
+                return RedirectToAction(nameof(Create));
+            }
+
+            int imported = 0;
+            foreach (var row in rows)
+            {
+                Validate(row);
+                if (!row.IsValid) continue;
+
+                var program = new TrainingProgram
+                {
+                    ProgramCode = row.ProgramCode?.Trim(),
+                    Title = row.Title!.Trim(),
+                    Description = row.Description!.Trim(),
+                    Categories = row.Categories?.Trim(),
+                    ProgramType = row.ProgramType?.Trim(),
+                    TargetAudience = row.TargetAudience?.Trim(),
+                    Duration = row.Duration!.Trim(),
+                    Instructor = row.Instructor!.Trim(),
+                    Location = row.Location!.Trim(),
+                    Objectives = row.Objectives?.Trim(),
+                    Topics = row.Topics?.Trim(),
+                    Prerequisites = row.Prerequisites?.Trim(),
+                    Status = ProgramStatus.Active,
+                    CreatedAt = DateTime.Now,
+                    ReferenceNumber = await GenerateReferenceNumberAsync()
+                };
+
+                _context.TrainingPrograms.Add(program);
+                await _context.SaveChangesAsync();
+                imported++;
+            }
+
+            if (imported > 0)
+            {
+                TempData["Success"] = $"تم استيراد {imported} برنامج بنجاح";
+            }
+            else
+            {
+                TempData["Error"] = "لم يتم استيراد أي برنامج. تحقق من صحة البيانات";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // قراءة صفوف Excel وتحويلها إلى قائمة
+        private List<ProgramImportRow> ParseExcel(IFormFile file)
+        {
+            var rows = new List<ProgramImportRow>();
+
+            using var stream = new MemoryStream();
+            file.CopyTo(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var ws = workbook.Worksheet(1);
+            var range = ws.RangeUsed();
+            if (range == null) return rows;
+
+            var lastRow = range.RowCount();
+            // نبدأ من الصف الثاني (بعد الترويسة)
+            for (int r = 2; r <= lastRow; r++)
+            {
+                string Cell(int c) => ws.Cell(r, c).GetString().Trim();
+
+                var row = new ProgramImportRow
+                {
+                    RowNumber = r,
+                    ProgramCode = Cell(1),
+                    Title = Cell(2),
+                    Description = Cell(3),
+                    Categories = Cell(4),
+                    ProgramType = Cell(5),
+                    TargetAudience = Cell(6),
+                    Duration = Cell(7),
+                    Instructor = Cell(8),
+                    Location = Cell(9),
+                    Objectives = Cell(10),
+                    Topics = Cell(11),
+                    Prerequisites = Cell(12)
+                };
+
+                // تجاهل الصفوف الفارغة تماماً
+                if (string.IsNullOrWhiteSpace(row.Title) &&
+                    string.IsNullOrWhiteSpace(row.Description) &&
+                    string.IsNullOrWhiteSpace(row.Duration) &&
+                    string.IsNullOrWhiteSpace(row.Instructor) &&
+                    string.IsNullOrWhiteSpace(row.Location))
+                {
+                    continue;
+                }
+
+                Validate(row);
+                rows.Add(row);
+            }
+
+            return rows;
+        }
+
+        // التحقق من الحقول المطلوبة
+        private void Validate(ProgramImportRow row)
+        {
+            row.Errors.Clear();
+
+            if (string.IsNullOrWhiteSpace(row.Title))
+                row.Errors.Add("عنوان البرنامج مطلوب");
+            if (string.IsNullOrWhiteSpace(row.Description))
+                row.Errors.Add("وصف البرنامج مطلوب");
+            if (string.IsNullOrWhiteSpace(row.Duration))
+                row.Errors.Add("المدة مطلوبة");
+            if (string.IsNullOrWhiteSpace(row.Instructor))
+                row.Errors.Add("المدرب مطلوب");
+            if (string.IsNullOrWhiteSpace(row.Location))
+                row.Errors.Add("الموقع مطلوب");
+
+            row.IsValid = row.Errors.Count == 0;
         }
 
         // تعديل برنامج - SuperAdmin و Admin فقط
@@ -79,26 +344,37 @@ namespace TrainingSystem.Controllers
                 return NotFound();
             }
 
+            var existingProgram = await _context.TrainingPrograms.FindAsync(id);
+            if (existingProgram == null)
+            {
+                return NotFound();
+            }
+
             if (ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(program);
-                    await _context.SaveChangesAsync();
-                    TempData["Success"] = "تم تحديث البرنامج بنجاح";
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!await _context.TrainingPrograms.AnyAsync(p => p.Id == id))
-                    {
-                        return NotFound();
-                    }
-                    throw;
-                }
+                existingProgram.ProgramCode = program.ProgramCode?.Trim();
+                existingProgram.Title = program.Title.Trim();
+                existingProgram.Description = program.Description.Trim();
+                existingProgram.Categories = program.Categories?.Trim();
+                existingProgram.ProgramType = program.ProgramType?.Trim();
+                existingProgram.TargetAudience = program.TargetAudience?.Trim();
+                existingProgram.Duration = program.Duration.Trim();
+                existingProgram.Instructor = program.Instructor.Trim();
+                existingProgram.Location = program.Location.Trim();
+                existingProgram.Logo = program.Logo?.Trim();
+                existingProgram.Objectives = program.Objectives?.Trim();
+                existingProgram.Topics = program.Topics?.Trim();
+                existingProgram.Prerequisites = program.Prerequisites?.Trim();
+                // ReferenceNumber و CreatedAt و Status لا تُقبل من نموذج التعديل.
 
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم تحديث البرنامج بنجاح";
                 return RedirectToAction(nameof(Index));
             }
 
+            program.ReferenceNumber = existingProgram.ReferenceNumber;
+            program.CreatedAt = existingProgram.CreatedAt;
+            program.Status = existingProgram.Status;
             return View(program);
         }
 
@@ -111,6 +387,13 @@ namespace TrainingSystem.Controllers
             var program = await _context.TrainingPrograms.FindAsync(id);
             if (program != null)
             {
+                var hasBatches = await _context.Batches.AnyAsync(b => b.TrainingProgramId == id);
+                if (hasBatches)
+                {
+                    TempData["Error"] = "لا يمكن حذف برنامج مرتبط بدفعات. يمكنك إيقاف البرنامج بدلاً من ذلك.";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 _context.TrainingPrograms.Remove(program);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "تم حذف البرنامج بنجاح";
@@ -139,211 +422,6 @@ namespace TrainingSystem.Controllers
             }
 
             return RedirectToAction(nameof(Index));
-        }
-
-        // ===== استيراد البرامج عبر ملف Excel =====
-
-        // ترتيب أعمدة القالب (نفس توزيعة النظام)
-        private static readonly string[] TemplateHeaders = new[]
-        {
-            "عنوان البرنامج",
-            "وصف البرنامج",
-            "التصنيفات",
-            "نوع البرنامج",
-            "الفئة المستهدفة",
-            "المدة",
-            "المدرب",
-            "الموقع",
-            "الأهداف",
-            "المحاور",
-            "المتطلبات المسبقة",
-            "بداية فترة الترشيح",
-            "نهاية فترة الترشيح"
-        };
-
-        // تحميل قالب Excel فارغ - SuperAdmin و Admin فقط
-        [Authorize(Roles = "SuperAdmin,Admin")]
-        public IActionResult DownloadTemplate()
-        {
-            using var workbook = new XLWorkbook();
-            var ws = workbook.Worksheets.Add("البرامج");
-            ws.RightToLeft = true;
-
-            // رأس الأعمدة
-            for (int i = 0; i < TemplateHeaders.Length; i++)
-            {
-                var cell = ws.Cell(1, i + 1);
-                cell.Value = TemplateHeaders[i];
-                cell.Style.Font.Bold = true;
-                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e88e5");
-                cell.Style.Font.FontColor = XLColor.White;
-                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            }
-
-            // صف مثال توضيحي
-            var example = new[]
-            {
-                "القيادة الفعّالة",
-                "برنامج تدريبي لتطوير المهارات القيادية",
-                "إدارية، قيادية",
-                "حضوري",
-                "المشرفين والمدراء",
-                "5 أيام",
-                "أ. محمد العامري",
-                "قاعة التدريب الرئيسية",
-                "فهم أساسيات القيادة | تطوير مهارات التواصل",
-                "أنماط القيادة | إدارة الفرق | حل المشكلات",
-                "خبرة سنتين | موافقة المدير المباشر",
-                DateTime.Today.ToString("yyyy-MM-dd"),
-                DateTime.Today.AddDays(14).ToString("yyyy-MM-dd")
-            };
-            for (int i = 0; i < example.Length; i++)
-            {
-                ws.Cell(2, i + 1).Value = example[i];
-            }
-
-            ws.Columns().AdjustToContents();
-
-            using var stream = new MemoryStream();
-            workbook.SaveAs(stream);
-            var content = stream.ToArray();
-
-            return File(
-                content,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "قالب_البرامج_التدريبية.xlsx");
-        }
-
-        // رفع ملف Excel واستيراد البرامج - SuperAdmin و Admin فقط
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "SuperAdmin,Admin")]
-        public async Task<IActionResult> Import(IFormFile? file)
-        {
-            if (file == null || file.Length == 0)
-            {
-                TempData["Error"] = "الرجاء اختيار ملف Excel صالح";
-                return RedirectToAction(nameof(Index));
-            }
-
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (extension != ".xlsx" && extension != ".xls")
-            {
-                TempData["Error"] = "صيغة الملف غير مدعومة. الرجاء رفع ملف بصيغة .xlsx";
-                return RedirectToAction(nameof(Index));
-            }
-
-            var imported = new List<TrainingProgram>();
-            var errors = new List<string>();
-
-            try
-            {
-                using var stream = new MemoryStream();
-                await file.CopyToAsync(stream);
-                stream.Position = 0;
-
-                using var workbook = new XLWorkbook(stream);
-                var ws = workbook.Worksheet(1);
-                var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
-
-                // نبدأ من الصف الثاني (بعد رأس الأعمدة)
-                for (int row = 2; row <= lastRow; row++)
-                {
-                    string Get(int col) => ws.Cell(row, col).GetString().Trim();
-
-                    var title = Get(1);
-                    var description = Get(2);
-                    var duration = Get(6);
-                    var instructor = Get(7);
-                    var location = Get(8);
-
-                    // تجاهل الصفوف الفارغة تماماً
-                    if (string.IsNullOrWhiteSpace(title) &&
-                        string.IsNullOrWhiteSpace(description) &&
-                        string.IsNullOrWhiteSpace(instructor))
-                    {
-                        continue;
-                    }
-
-                    // التحقق من الحقول المطلوبة
-                    if (string.IsNullOrWhiteSpace(title) ||
-                        string.IsNullOrWhiteSpace(description) ||
-                        string.IsNullOrWhiteSpace(duration) ||
-                        string.IsNullOrWhiteSpace(instructor) ||
-                        string.IsNullOrWhiteSpace(location))
-                    {
-                        errors.Add($"الصف {row}: نقص في الحقول المطلوبة (العنوان/الوصف/المدة/المدرب/الموقع)");
-                        continue;
-                    }
-
-                    var program = new TrainingProgram
-                    {
-                        Title = title,
-                        Description = description,
-                        Categories = NormalizeList(Get(3)),
-                        ProgramType = string.IsNullOrWhiteSpace(Get(4)) ? null : Get(4),
-                        TargetAudience = string.IsNullOrWhiteSpace(Get(5)) ? null : Get(5),
-                        Duration = duration,
-                        Instructor = instructor,
-                        Location = location,
-                        Objectives = NormalizeList(Get(9)),
-                        Topics = NormalizeList(Get(10)),
-                        Prerequisites = NormalizeList(Get(11)),
-                        RegistrationStartDate = ParseDate(Get(12)),
-                        RegistrationEndDate = ParseDate(Get(13)),
-                        Status = ProgramStatus.Active,
-                        CreatedAt = DateTime.Now
-                    };
-
-                    imported.Add(program);
-                }
-
-                if (imported.Count > 0)
-                {
-                    _context.TrainingPrograms.AddRange(imported);
-                    await _context.SaveChangesAsync();
-                }
-
-                if (imported.Count > 0 && errors.Count == 0)
-                {
-                    TempData["Success"] = $"تم استيراد {imported.Count} برنامج تدريبي بنجاح";
-                }
-                else if (imported.Count > 0 && errors.Count > 0)
-                {
-                    TempData["Success"] = $"تم استيراد {imported.Count} برنامج، مع تجاهل {errors.Count} صف: {string.Join(" - ", errors)}";
-                }
-                else
-                {
-                    TempData["Error"] = errors.Count > 0
-                        ? $"لم يتم استيراد أي برنامج. {string.Join(" - ", errors)}"
-                        : "لم يتم العثور على بيانات صالحة في الملف";
-                }
-            }
-            catch (Exception)
-            {
-                TempData["Error"] = "تعذّر قراءة الملف. تأكد أنه ملف Excel صالح بنفس القالب المطلوب";
-            }
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        // توحيد قوائم العناصر (تصنيفات/أهداف/محاور) إلى سطور مفصولة
-        private static string? NormalizeList(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return null;
-            var items = value
-                .Split(new[] { '|', '\n', '،', ',', '؛', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim())
-                .Where(s => s.Length > 0);
-            return string.Join("\n", items);
-        }
-
-        // تحويل نص التاريخ إلى DateTime إن أمكن
-        private static DateTime? ParseDate(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return null;
-            if (DateTime.TryParse(value, out var date)) return date;
-            return null;
         }
     }
 }

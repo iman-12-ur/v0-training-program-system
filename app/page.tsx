@@ -774,6 +774,7 @@ export default function TrainingManagementSystem() {
       <PublicRegistrationModal
         program={selectedProgram}
         selectedBatch={selectedBatch}
+        existingRegistrations={registrations}
         isOpen={isRegistrationModalOpen}
         onClose={() => {
           setIsRegistrationModalOpen(false);

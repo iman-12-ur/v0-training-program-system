@@ -1,0 +1,206 @@
+@model TrainingProgram
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">البرامج التدريبية</a></li>
+        <li class="breadcrumb-item active">@Model.Title</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Program Header -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h2 class="fw-bold mb-0">@Model.Title</h2>
+                    @if (!string.IsNullOrEmpty(Model.ProgramType))
+                    {
+                        <span class="badge bg-primary fs-6">@Model.ProgramType</span>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Categories))
+                {
+                    <div class="mb-3">
+                        @foreach (var cat in Model.Categories.Split(','))
+                        {
+                            <span class="badge bg-secondary me-1">@cat.Trim()</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-file-text text-primary me-2"></i> وصف البرنامج</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">@Model.Description</p>
+            </div>
+        </div>
+
+        <!-- Target Audience -->
+        @if (!string.IsNullOrEmpty(Model.TargetAudience))
+        {
+            <div class="card border-0 shadow-sm mb-4 bg-primary bg-opacity-10">
+                <div class="card-body">
+                    <h5><i class="bi bi-people text-primary me-2"></i> الفئة المستهدفة</h5>
+                    <p class="mb-0">@Model.TargetAudience</p>
+                </div>
+            </div>
+        }
+
+        <!-- Objectives -->
+        @if (!string.IsNullOrEmpty(Model.Objectives))
+        {
+            <div class="card border-0 shadow-sm mb-4 border-success" style="border-right: 4px solid #198754 !important;">
+                <div class="card-header bg-success bg-opacity-10">
+                    <h5 class="mb-0 text-success"><i class="bi bi-bullseye me-2"></i> أهداف البرنامج</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var obj in Model.Objectives.Split('\n').Where(o => !string.IsNullOrWhiteSpace(o)))
+                        {
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                @obj.Trim()
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
+        <!-- Topics -->
+        @if (!string.IsNullOrEmpty(Model.Topics))
+        {
+            <div class="card border-0 shadow-sm mb-4 border-info" style="border-right: 4px solid #0dcaf0 !important;">
+                <div class="card-header bg-info bg-opacity-10">
+                    <h5 class="mb-0 text-info"><i class="bi bi-book me-2"></i> محاور البرنامج</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var topic in Model.Topics.Split('\n').Where(t => !string.IsNullOrWhiteSpace(t)))
+                        {
+                            <li class="mb-2">
+                                <i class="bi bi-circle-fill text-info me-2" style="font-size: 0.5rem;"></i>
+                                @topic.Trim()
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
+        <!-- Prerequisites -->
+        @if (!string.IsNullOrEmpty(Model.Prerequisites))
+        {
+            <div class="card border-0 shadow-sm mb-4 border-warning" style="border-right: 4px solid #ffc107 !important;">
+                <div class="card-header bg-warning bg-opacity-10">
+                    <h5 class="mb-0 text-warning"><i class="bi bi-exclamation-triangle me-2"></i> المتطلبات المسبقة</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var prereq in Model.Prerequisites.Split('\n').Where(p => !string.IsNullOrWhiteSpace(p)))
+                        {
+                            <li class="mb-2">
+                                <i class="bi bi-arrow-left-circle text-warning me-2"></i>
+                                @prereq.Trim()
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Program Info Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i> معلومات البرنامج</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="bi bi-clock text-primary"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">المدة</small>
+                            <strong>@Model.Duration</strong>
+                        </div>
+                    </li>
+                    <li class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="bi bi-person text-primary"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">المدرب</small>
+                            <strong>@Model.Instructor</strong>
+                        </div>
+                    </li>
+                    <li class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="bi bi-geo-alt text-primary"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">الموقع</small>
+                            <strong>@Model.Location</strong>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Available Batches -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i> الدفعات المتاحة</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.Batches?.Any(b => b.Status == BatchStatus.Upcoming) == true)
+                {
+                    @foreach (var batch in Model.Batches.Where(b => b.Status == BatchStatus.Upcoming))
+                    {
+                        var isFull = batch.CurrentParticipants >= batch.MaxParticipants;
+                        <div class="border rounded p-3 mb-3">
+                            <h6 class="fw-bold mb-2">@batch.Name</h6>
+                            <div class="small text-muted mb-2">
+                                <i class="bi bi-calendar me-1"></i>
+                                @batch.StartDate.ToString("yyyy/MM/dd") - @batch.EndDate.ToString("yyyy/MM/dd")
+                            </div>
+                            <div class="small text-muted mb-3">
+                                <i class="bi bi-people me-1"></i>
+                                @batch.CurrentParticipants / @batch.MaxParticipants مشارك
+                            </div>
+                            @if (isFull)
+                            {
+                                <span class="badge bg-danger">مكتمل العدد</span>
+                            }
+                            else
+                            {
+                                <a asp-action="Register" asp-route-programId="@Model.Id" asp-route-batchId="@batch.Id" 
+                                   class="btn btn-success btn-sm w-100">
+                                    <i class="bi bi-pencil-square me-1"></i> التسجيل في هذه الدفعة
+                                </a>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        لا توجد دفعات متاحة حالياً
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

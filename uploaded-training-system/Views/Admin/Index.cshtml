@@ -1,0 +1,156 @@
+@model IEnumerable<Registration>
+@{
+    ViewData["Title"] = "لوحة التحكم";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-title">لوحة التحكم</h1>
+    <p class="page-subtitle">مرحباً بك في نظام إدارة البرامج التدريبية</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon primary">
+            <i class="bi bi-book"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@ViewBag.TotalPrograms</div>
+            <div class="stat-label">البرامج التدريبية</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <i class="bi bi-calendar-check"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@ViewBag.TotalBatches</div>
+            <div class="stat-label">الدفعات</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon info">
+            <i class="bi bi-people"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@ViewBag.TotalRegistrations</div>
+            <div class="stat-label">إجمالي الطلبات</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">@ViewBag.PendingRegistrations</div>
+            <div class="stat-label">قيد المراجعة</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="stats-grid mb-4">
+    <a href="@Url.Action("Create", "Programs")" class="stat-card" style="text-decoration: none;">
+        <div class="stat-icon primary">
+            <i class="bi bi-plus-circle"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value" style="font-size: 1.125rem;">إضافة برنامج</div>
+            <div class="stat-label">إضافة برنامج تدريبي جديد</div>
+        </div>
+    </a>
+    
+    <a href="@Url.Action("Create", "Batches")" class="stat-card" style="text-decoration: none;">
+        <div class="stat-icon success">
+            <i class="bi bi-calendar-plus"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value" style="font-size: 1.125rem;">إضافة دفعة</div>
+            <div class="stat-label">إضافة دفعة جديدة لبرنامج</div>
+        </div>
+    </a>
+    
+    <a href="@Url.Action("Index", "Registrations")" class="stat-card" style="text-decoration: none;">
+        <div class="stat-icon warning">
+            <i class="bi bi-clipboard-check"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value" style="font-size: 1.125rem;">طلبات الترشيح</div>
+            <div class="stat-label">إدارة طلبات الترشيح</div>
+        </div>
+    </a>
+</div>
+
+<!-- Recent Registrations -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-clock-history me-2"></i>
+            آخر الطلبات
+        </h3>
+        <a href="@Url.Action("Index", "Registrations")" class="btn btn-primary btn-sm">
+            عرض الكل
+            <i class="bi bi-arrow-left ms-1"></i>
+        </a>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Any())
+        {
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>البرنامج</th>
+                            <th>الدفعة</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reg in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@reg.VisitorName</strong>
+                                    <br /><small class="text-muted">@reg.EmployeeId</small>
+                                </td>
+                                <td>@reg.Batch?.TrainingProgram?.Title</td>
+                                <td>@reg.Batch?.Name</td>
+                                <td>@reg.RegisteredAt.ToString("yyyy/MM/dd")</td>
+                                <td>
+                                    @switch (reg.Status)
+                                    {
+                                        case RegistrationStatus.Pending:
+                                            <span class="badge badge-warning">قيد المراجعة</span>
+                                            break;
+                                        case RegistrationStatus.Approved:
+                                            <span class="badge badge-success">مقبول</span>
+                                            break;
+                                        case RegistrationStatus.Rejected:
+                                            <span class="badge badge-danger">مرفوض</span>
+                                            break;
+                                        case RegistrationStatus.Completed:
+                                            <span class="badge badge-info">مكتمل</span>
+                                            break;
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center p-4" style="color: var(--muted-foreground);">
+                <i class="bi bi-inbox" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
+                <p>لا توجد طلبات حتى الآن</p>
+            </div>
+        }
+    </div>
+</div>

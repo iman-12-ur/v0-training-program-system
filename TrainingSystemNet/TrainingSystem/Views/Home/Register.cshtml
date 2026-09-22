@@ -51,7 +51,20 @@
                         <!-- Employee ID -->
                         <div class="col-md-6">
                             <label asp-for="EmployeeId" class="form-label">الرقم الوظيفي <span class="text-danger">*</span></label>
-                            <input asp-for="EmployeeId" class="form-control" placeholder="أدخل الرقم الوظيفي (أرقام إنجليزية)" />
+                            <div class="input-group" dir="ltr">
+                                <span class="input-group-text fw-bold" aria-label="بداية الرقم الوظيفي الثابتة">192</span>
+                                <input name="employeeIdSuffix"
+                                       value="@(Model.EmployeeId.StartsWith("192") ? Model.EmployeeId[3..] : string.Empty)"
+                                       class="form-control"
+                                       inputmode="numeric"
+                                       pattern="[0-9]+"
+                                       autocomplete="off"
+                                       aria-label="الأرقام المتبقية من الرقم الوظيفي"
+                                       aria-describedby="employeeIdHelp"
+                                       placeholder="أدخل الأرقام المتبقية"
+                                       required />
+                            </div>
+                            <div id="employeeIdHelp" class="form-text">الأرقام الثلاثة الأولى ثابتة: 192</div>
                             <span asp-validation-for="EmployeeId" class="text-danger small"></span>
                         </div>
 
@@ -86,12 +99,8 @@
                         <!-- Phone -->
                         <div class="col-md-6">
                             <label asp-for="Phone" class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
-                            <div class="input-group" dir="ltr">
-                                <span class="input-group-text">968+</span>
-                                <input asp-for="Phone" class="form-control" placeholder="9xxxxxxx" maxlength="8" />
-                            </div>
+                            <input asp-for="Phone" class="form-control" placeholder="مثال: 9xxxxxxx (رقم عُماني - 8 أرقام)" maxlength="11" />
                             <span asp-validation-for="Phone" class="text-danger small"></span>
-                            <small class="text-muted">رقم عُماني يبدأ بـ 7 أو 9 (8 أرقام)</small>
                         </div>
                     </div>
 

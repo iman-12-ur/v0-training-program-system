@@ -38,6 +38,11 @@ namespace TrainingSystem.Controllers
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> UpdateSettings(SystemSettings model)
         {
+            if (!ModelState.IsValid)
+            {
+                return View("Index", model);
+            }
+
             var settings = await _context.SystemSettings.FirstOrDefaultAsync();
 
             if (settings == null)
@@ -93,6 +98,16 @@ namespace TrainingSystem.Controllers
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> CreateUser(CreateUserViewModel model)
         {
+            if (!SystemRoles.AllRoles.Contains(model.Role))
+            {
+                ModelState.AddModelError(nameof(model.Role), "الدور المحدد غير صالح");
+            }
+
+            if (model.Role == SystemRoles.SuperAdmin && !User.IsInRole(SystemRoles.SuperAdmin))
+            {
+                ModelState.AddModelError(nameof(model.Role), "إنشاء مدير نظام متاح لمدير النظام فقط");
+            }
+
             if (!ModelState.IsValid)
             {
                 ViewBag.AllRoles = SystemRoles.AllRoles;
@@ -114,10 +129,17 @@ namespace TrainingSystem.Controllers
             var result = await _userManager.CreateAsync(user, model.Password);
             if (result.Succeeded)
             {
-                // إضافة الدور
-                if (!string.IsNullOrEmpty(model.Role))
+                var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
+                if (!roleResult.Succeeded)
                 {
-                    await _userManager.AddToRoleAsync(user, model.Role);
+                    await _userManager.DeleteAsync(user);
+                    foreach (var error in roleResult.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
+
+                    ViewBag.AllRoles = SystemRoles.AllRoles;
+                    return View(model);
                 }
 
                 TempData["Success"] = "تم إضافة المستخدم بنجاح";
@@ -172,7 +194,30 @@ namespace TrainingSystem.Controllers
             var user = await _userManager.FindByIdAsync(model.Id);
             if (user == null) return NotFound();
 
-            user.FullName = model.FullName;
+            var currentUser = await _userManager.GetUserAsync(User);
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            var targetIsSuperAdmin = currentRoles.Contains(SystemRoles.SuperAdmin);
+
+            if (!SystemRoles.AllRoles.Contains(model.Role))
+            {
+                ModelState.AddModelError(nameof(model.Role), "الدور المحدد غير صالح");
+            }
+            if ((targetIsSuperAdmin || model.Role == SystemRoles.SuperAdmin)
+                && !User.IsInRole(SystemRoles.SuperAdmin))
+            {
+                ModelState.AddModelError(string.Empty, "تعديل حسابات مدير النظام متاح لمدير النظام فقط");
+            }
+            if (currentUser?.Id == user.Id && !model.IsActive)
+            {
+                ModelState.AddModelError(nameof(model.IsActive), "لا يمكنك إيقاف حسابك أثناء استخدامه");
+            }
+            if (!ModelState.IsValid)
+            {
+                ViewBag.AllRoles = SystemRoles.AllRoles;
+                return View(model);
+            }
+
+            user.FullName = model.FullName.Trim();
             user.UserName = model.Username;
             user.Email = model.Email;
             user.PhoneNumber = model.PhoneNumber;
@@ -192,23 +237,39 @@ namespace TrainingSystem.Controllers
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
             {
-                // تحديث الدور
-                var currentRoles = await _userManager.GetRolesAsync(user);
-                await _userManager.RemoveFromRolesAsync(user, currentRoles);
-                
-                if (!string.IsNullOrEmpty(model.Role))
+                // تحديث الدور فقط عند تغيّره، مع التحقق من نتيجة Identity.
+                if (!currentRoles.Contains(model.Role) || currentRoles.Count != 1)
                 {
-                    await _userManager.AddToRoleAsync(user, model.Role);
+                    var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                    if (!removeResult.Succeeded)
+                    {
+                        AddIdentityErrors(removeResult);
+                        ViewBag.AllRoles = SystemRoles.AllRoles;
+                        return View(model);
+                    }
+
+                    var addResult = await _userManager.AddToRoleAsync(user, model.Role);
+                    if (!addResult.Succeeded)
+                    {
+                        AddIdentityErrors(addResult);
+                        ViewBag.AllRoles = SystemRoles.AllRoles;
+                        return View(model);
+                    }
                 }
 
-                // تحديث كلمة المرور إذا تم إدخالها
                 if (!string.IsNullOrEmpty(model.NewPassword))
                 {
                     var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                    await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
+                    var passwordResult = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
+                    if (!passwordResult.Succeeded)
+                    {
+                        AddIdentityErrors(passwordResult);
+                        ViewBag.AllRoles = SystemRoles.AllRoles;
+                        return View(model);
+                    }
                 }
 
-                TempData["Success"] = "تم تحديث بيانات الم��تخدم بنجاح";
+                TempData["Success"] = "تم تحديث بيانات المستخدم بنجاح";
                 return RedirectToAction(nameof(Users));
             }
 
@@ -229,9 +290,24 @@ namespace TrainingSystem.Controllers
             var user = await _userManager.FindByIdAsync(userId);
             if (user != null)
             {
+                var currentUser = await _userManager.GetUserAsync(User);
+                var roles = await _userManager.GetRolesAsync(user);
+                if (currentUser?.Id == user.Id)
+                {
+                    TempData["Error"] = "لا يمكنك تغيير حالة حسابك أثناء استخدامه";
+                    return RedirectToAction(nameof(Users));
+                }
+                if (roles.Contains(SystemRoles.SuperAdmin) && !User.IsInRole(SystemRoles.SuperAdmin))
+                {
+                    TempData["Error"] = "تغيير حالة مدير النظام متاح لمدير النظام فقط";
+                    return RedirectToAction(nameof(Users));
+                }
+
                 user.IsActive = !user.IsActive;
-                await _userManager.UpdateAsync(user);
-                TempData["Success"] = user.IsActive ? "تم تفعيل المستخدم" : "تم إيقاف المستخدم";
+                var result = await _userManager.UpdateAsync(user);
+                TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded
+                    ? (user.IsActive ? "تم تفعيل المستخدم" : "تم إيقاف المستخدم")
+                    : "تعذر تغيير حالة المستخدم";
             }
 
             return RedirectToAction(nameof(Users));
@@ -252,11 +328,28 @@ namespace TrainingSystem.Controllers
             var user = await _userManager.FindByIdAsync(userId);
             if (user != null)
             {
-                await _userManager.DeleteAsync(user);
-                TempData["Success"] = "تم حذف المستخدم";
+                var roles = await _userManager.GetRolesAsync(user);
+                if (roles.Contains(SystemRoles.SuperAdmin) && !User.IsInRole(SystemRoles.SuperAdmin))
+                {
+                    TempData["Error"] = "حذف مدير النظام متاح لمدير النظام فقط";
+                    return RedirectToAction(nameof(Users));
+                }
+
+                var result = await _userManager.DeleteAsync(user);
+                TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded
+                    ? "تم حذف المستخدم"
+                    : "تعذر حذف المستخدم";
             }
 
             return RedirectToAction(nameof(Users));
+        }
+
+        private void AddIdentityErrors(IdentityResult result)
+        {
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
         }
 
         // ==================== عرض الصلاحيات ====================
