@@ -161,6 +161,14 @@ namespace TrainingSystem.Controllers
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
+            // منع الوصول غير المصرّح لكائن حساب مدير/مدير نظام عبر تمرير معرّفه (IDOR)
+            var actor = await _userManager.GetUserAsync(User);
+            if (!await CanManageTargetAsync(user, actor))
+            {
+                TempData["Error"] = "إدارة حسابات المدراء ومدير النظام متاحة لمدير النظام فقط";
+                return RedirectToAction(nameof(Users));
+            }
+
             var roles = await _userManager.GetRolesAsync(user);
 
             var model = new EditUserViewModel
@@ -197,15 +205,20 @@ namespace TrainingSystem.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
             var currentRoles = await _userManager.GetRolesAsync(user);
             var targetIsSuperAdmin = currentRoles.Contains(SystemRoles.SuperAdmin);
+            var targetIsAdmin = currentRoles.Contains(SystemRoles.Admin);
+            var isSelf = currentUser?.Id == user.Id;
 
             if (!SystemRoles.AllRoles.Contains(model.Role))
             {
                 ModelState.AddModelError(nameof(model.Role), "الدور المحدد غير صالح");
             }
-            if ((targetIsSuperAdmin || model.Role == SystemRoles.SuperAdmin)
-                && !User.IsInRole(SystemRoles.SuperAdmin))
+            // لا يجوز لغير مدير النظام التصرّف في حساب مدير/مدير نظام آخر أو ترقية أحد إلى هذين الدورين (IDOR/تصعيد صلاحيات)
+            if (!User.IsInRole(SystemRoles.SuperAdmin)
+                && (((targetIsSuperAdmin || targetIsAdmin) && !isSelf)
+                    || model.Role == SystemRoles.SuperAdmin
+                    || (model.Role == SystemRoles.Admin && !targetIsAdmin)))
             {
-                ModelState.AddModelError(string.Empty, "تعديل حسابات مدير النظام متاح لمدير النظام فقط");
+                ModelState.AddModelError(string.Empty, "إدارة حسابات المدراء ومدير النظام أو الترقية إليها متاحة لمدير النظام فقط");
             }
             if (currentUser?.Id == user.Id && !model.IsActive)
             {
@@ -297,9 +310,10 @@ namespace TrainingSystem.Controllers
                     TempData["Error"] = "لا يمكنك تغيير حالة حسابك أثناء استخدامه";
                     return RedirectToAction(nameof(Users));
                 }
-                if (roles.Contains(SystemRoles.SuperAdmin) && !User.IsInRole(SystemRoles.SuperAdmin))
+                if ((roles.Contains(SystemRoles.SuperAdmin) || roles.Contains(SystemRoles.Admin))
+                    && !User.IsInRole(SystemRoles.SuperAdmin))
                 {
-                    TempData["Error"] = "تغيير حالة مدير النظام متاح لمدير النظام فقط";
+                    TempData["Error"] = "تغيير حالة حسابات المدراء ومدير النظام متاح لمدير النظام فقط";
                     return RedirectToAction(nameof(Users));
                 }
 
@@ -329,9 +343,10 @@ namespace TrainingSystem.Controllers
             if (user != null)
             {
                 var roles = await _userManager.GetRolesAsync(user);
-                if (roles.Contains(SystemRoles.SuperAdmin) && !User.IsInRole(SystemRoles.SuperAdmin))
+                if ((roles.Contains(SystemRoles.SuperAdmin) || roles.Contains(SystemRoles.Admin))
+                    && !User.IsInRole(SystemRoles.SuperAdmin))
                 {
-                    TempData["Error"] = "حذف مدير النظام متاح لمدير النظام فقط";
+                    TempData["Error"] = "حذف حسابات المدراء ومدير النظام متاح لمدير النظام فقط";
                     return RedirectToAction(nameof(Users));
                 }
 
@@ -350,6 +365,18 @@ namespace TrainingSystem.Controllers
             {
                 ModelState.AddModelError(string.Empty, error.Description);
             }
+        }
+
+        // التحقق من صلاحية التصرّف في حساب مُحدَّد لمنع الوصول غير المباشر غير المصرّح (IDOR):
+        // مدير النظام يدير الجميع، وأي مستخدم يدير حسابه، أما حسابات المدراء/مدير النظام فلا يمسّها إلا مدير النظام.
+        private async Task<bool> CanManageTargetAsync(ApplicationUser target, ApplicationUser? actor)
+        {
+            if (User.IsInRole(SystemRoles.SuperAdmin)) return true;
+            if (actor != null && actor.Id == target.Id) return true;
+
+            var targetRoles = await _userManager.GetRolesAsync(target);
+            return !targetRoles.Contains(SystemRoles.SuperAdmin)
+                && !targetRoles.Contains(SystemRoles.Admin);
         }
 
         // ==================== عرض الصلاحيات ====================
