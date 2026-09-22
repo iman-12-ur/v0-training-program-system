@@ -136,7 +136,7 @@
                 <input type="hidden" name="rows[@idx].Objectives" value="@row.Objectives" />
                 <input type="hidden" name="rows[@idx].Topics" value="@row.Topics" />
                 <input type="hidden" name="rows[@idx].Prerequisites" value="@row.Prerequisites" />
-                @{ idx++; }
+                 idx++; 
             }
             <button type="submit" class="btn btn-primary btn-lg" @(validCount == 0 ? "disabled" : "")>
                 <i class="bi bi-check-lg me-2"></i>

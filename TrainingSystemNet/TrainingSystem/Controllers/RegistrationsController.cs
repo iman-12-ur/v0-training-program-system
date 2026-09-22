@@ -32,8 +32,8 @@ namespace TrainingSystem.Controllers
 
             // قائمة البرامج للفلترة
             ViewBag.Programs = await _context.TrainingPrograms
-                .OrderBy(p => p.Title)
-                .Select(p => new { p.Id, p.Title })
+                .OrderByDescending(p => p.Id)
+                .Select(p => new { p.Title, p.Id })
                 .ToListAsync();
 
             // عدد المقبولين والعدد المطلوب لكل دفعة (لعرض عدّاد المقاعد في الجدول)

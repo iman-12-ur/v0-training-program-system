@@ -40,7 +40,7 @@
                         foreach (var p in ViewBag.Programs)
                         {
                             int pid = (int)p.Id;
-                            <option value="@pid" @(currentProgramId == pid ? "selected" : "")>@p.Title</option>
+                            <option value="@pid" selected="@(currentProgramId == pid ? "selected" : null)">@p.Title</option>
                         }
                     }
                 </select>
@@ -49,11 +49,15 @@
                 <label class="form-label">الحالة</label>
                 <select name="status" class="form-select">
                     <option value="">جميع الحالات</option>
-                    <option value="Pending" @(ViewBag.CurrentStatus == "Pending" ? "selected" : "")>قيد المراجعة</option>
-                    <option value="Approved" @(ViewBag.CurrentStatus == "Approved" ? "selected" : "")>مقبول</option>
-                    <option value="Rejected" @(ViewBag.CurrentStatus == "Rejected" ? "selected" : "")>مرفوض</option>
+                    <option value="Rejected" selected="@(ViewBag.CurrentStatus == "Rejected" ? "selected" : null)">مرفوض</option>
+                    <option value="Pending" selected="@(ViewBag.CurrentStatus == "Pending" ? "selected" : null)">قيد المراجعة</option>
+                    <option value="Approved" selected="@(ViewBag.CurrentStatus == "Approved" ? "selected" :null)">مقبول</option>
+
                 </select>
             </div>
+          
+
+       
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-search me-2"></i> بحث
