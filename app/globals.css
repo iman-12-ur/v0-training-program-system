@@ -26,6 +26,8 @@
   --warning-foreground: oklch(1 0 0);
   --info: oklch(0.55 0.18 255);
   --info-foreground: oklch(1 0 0);
+  --brand: oklch(0.28 0.09 264);
+  --brand-foreground: oklch(1 0 0);
   --border: oklch(0.9 0.01 240);
   --input: oklch(0.9 0.01 240);
   --ring: oklch(0.55 0.18 240);
@@ -105,6 +107,8 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
