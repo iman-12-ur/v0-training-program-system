@@ -14,7 +14,6 @@ import { EditProgramForm } from '@/components/edit-program-form';
 import { BatchesManager } from '@/components/batches-manager';
 import { ReportsView } from '@/components/reports-view';
 import { TrainingNeedsView } from '@/components/training-needs-view';
-import { Phase2Panel } from '@/components/phase2-panel';
 import { TrainingNeedsSummary } from '@/components/training-needs-summary';
 import { UsersManager } from '@/components/users-manager';
 import {
@@ -669,9 +668,6 @@ export default function TrainingManagementSystem() {
 
       case 'training-needs':
         return <TrainingNeedsView />;
-
-      case 'budget-impact':
-        return <Phase2Panel />;
 
       case 'settings':
         return (

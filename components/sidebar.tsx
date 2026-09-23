@@ -8,7 +8,6 @@ import {
   ClipboardList,
   BarChart3,
   ClipboardPlus,
-  Wallet,
   Settings,
   GraduationCap,
   LogOut,
@@ -75,12 +74,6 @@ const navItems: NavItem[] = [
     id: 'training-needs',
     label: 'الاحتياجات التدريبية',
     icon: <ClipboardPlus className="h-5 w-5" />,
-    roles: ['admin'],
-  },
-  {
-    id: 'budget-impact',
-    label: 'الموازنة والأثر',
-    icon: <Wallet className="h-5 w-5" />,
     roles: ['admin'],
   },
   {
