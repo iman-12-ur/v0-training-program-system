@@ -1,0 +1,157 @@
+@model List<TrainingSystem.Models.TrainingNeedImportRow>
+@{
+    ViewData["Title"] = "معاينة استيراد الاحتياجات";
+    var validCount = Model.Count(r => r.IsValid);
+    var invalidCount = Model.Count - validCount;
+    var fileName = ViewBag.FileName as string;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">معاينة استيراد الاحتياجات</h4>
+        <p class="text-muted mb-0">راجع البيانات وتحقق منها قبل الحفظ النهائي</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-right me-2"></i> رجوع
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <p class="text-muted mb-1 small">إجمالي الصفوف</p>
+                    <h3 class="mb-0">@Model.Count</h3>
+                </div>
+                <i class="bi bi-list-ul text-primary fs-3"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <p class="text-muted mb-1 small">صفوف صالحة</p>
+                    <h3 class="mb-0 text-success">@validCount</h3>
+                </div>
+                <i class="bi bi-check-circle text-success fs-3"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <p class="text-muted mb-1 small">صفوف بها أخطاء</p>
+                    <h3 class="mb-0 text-danger">@invalidCount</h3>
+                </div>
+                <i class="bi bi-exclamation-triangle text-danger fs-3"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (validCount == 0)
+        {
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                لا توجد صفوف صالحة للاستيراد. الرجاء تصحيح الأخطاء وإعادة الرفع.
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                سيتم استيراد <strong>@validCount</strong> احتياج صالح.
+                @if (invalidCount > 0)
+                {
+                    <span>الصفوف التي بها أخطاء (@invalidCount) سيتم تجاهلها.</span>
+                }
+            </div>
+        }
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>الحالة</th>
+                        <th>الموظف</th>
+                        <th>الدائرة</th>
+                        <th>المهارة</th>
+                        <th class="text-center">المطلوب</th>
+                        <th class="text-center">الحالي</th>
+                        <th>الملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model)
+                    {
+                        <tr class="@(row.IsValid ? "" : "table-danger")">
+                            <td>@row.RowNumber</td>
+                            <td>
+                                @if (row.IsValid)
+                                {
+                                    <span class="badge bg-success">صالح</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">خطأ</span>
+                                }
+                            </td>
+                            <td>
+                                <strong>@row.EmployeeName</strong>
+                                @if (!string.IsNullOrEmpty(row.EmployeeNumber))
+                                {
+                                    <br /><small class="text-muted">@row.EmployeeNumber</small>
+                                }
+                            </td>
+                            <td>@row.Department</td>
+                            <td>@row.SkillName</td>
+                            <td class="text-center">@row.RequiredLevel</td>
+                            <td class="text-center">@row.CurrentLevel</td>
+                            <td>
+                                @if (row.Errors.Any())
+                                {
+                                    <small class="text-danger">@string.Join("، ", row.Errors)</small>
+                                }
+                                else
+                                {
+                                    <small class="text-success">جاهز للاستيراد</small>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <form asp-action="ImportConfirm" method="post" class="d-flex gap-2 pt-3 mt-3 border-top">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="fileName" value="@fileName" />
+            @{ var idx = 0; }
+            @foreach (var row in Model.Where(r => r.IsValid))
+            {
+                <input type="hidden" name="rows[@idx].RowNumber" value="@row.RowNumber" />
+                <input type="hidden" name="rows[@idx].EmployeeNumber" value="@row.EmployeeNumber" />
+                <input type="hidden" name="rows[@idx].EmployeeName" value="@row.EmployeeName" />
+                <input type="hidden" name="rows[@idx].Department" value="@row.Department" />
+                <input type="hidden" name="rows[@idx].SkillName" value="@row.SkillName" />
+                <input type="hidden" name="rows[@idx].Category" value="@row.Category" />
+                <input type="hidden" name="rows[@idx].RequiredLevel" value="@row.RequiredLevel" />
+                <input type="hidden" name="rows[@idx].CurrentLevel" value="@row.CurrentLevel" />
+                <input type="hidden" name="rows[@idx].Notes" value="@row.Notes" />
+                idx++;
+            }
+            <button type="submit" class="btn btn-primary btn-lg" @(validCount == 0 ? "disabled" : "")>
+                <i class="bi bi-check-lg me-2"></i> تأكيد واستيراد @validCount احتياج
+            </button>
+            <a asp-action="Index" class="btn btn-secondary btn-lg">
+                <i class="bi bi-x-lg me-2"></i> إلغاء
+            </a>
+        </form>
+    </div>
+</div>

@@ -1,487 +1,279 @@
-@using TrainingSystem.Controllers
-@model TrainingNeedsViewModel
+@model TrainingSystem.Controllers.TrainingNeedsIndexViewModel
+@using TrainingSystem.Models
 @{
     ViewData["Title"] = "الاحتياجات التدريبية";
-
-    string PriorityBadge(GapPriority p)
-        => $"<span class=\"badge bg-{TrainingNeedsHelper.PriorityColor(p)}\">{TrainingNeedsHelper.PriorityLabel(p)}</span>";
 }
 
-<div class="page-header">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-        <h1 class="page-title">الاحتياجات التدريبية</h1>
-        <p class="text-muted mb-0">رحلة تشخيصية ذكية لتحديد الفجوات ومساري التطوير — تبدأ من المشكلة وتنتهي بالحل</p>
+        <h4 class="fw-bold mb-1">الاحتياجات التدريبية</h4>
+        <p class="text-muted mb-0">
+            @if (Model.IsPrivileged)
+            {
+                <span>إدارة الاحتياجات التدريبية لجميع الدوائر</span>
+            }
+            else
+            {
+                <span>احتياجات دائرة: <strong>@(Model.CurrentDepartment ?? "غير محددة")</strong></span>
+            }
+        </p>
     </div>
-    <div class="text-muted small text-start">
-        <div><i class="bi bi-person-badge me-1"></i>@Model.Employee.Name</div>
-        <div><i class="bi bi-calendar-check me-1"></i>آخر تقييم: @Model.Employee.LastAssessment.ToString("yyyy/MM/dd")</div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-action="DownloadTemplate" class="btn btn-outline-success">
+            <i class="bi bi-download me-2"></i> قالب Excel
+        </a>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
+            <i class="bi bi-file-earmark-arrow-up me-2"></i> رفع ملف Excel
+        </button>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i> إضافة احتياج
+        </a>
     </div>
 </div>
 
-<!-- شريط مراحل الرحلة التشخيصية -->
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <p class="text-muted mb-1 small">إجمالي الاحتياجات</p>
+                    <h3 class="mb-0">@Model.TotalNeeds</h3>
+                </div>
+                <i class="bi bi-list-check text-primary fs-3"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <p class="text-muted mb-1 small">عدد الموظفين</p>
+                    <h3 class="mb-0">@Model.EmployeeCount</h3>
+                </div>
+                <i class="bi bi-people text-info fs-3"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <p class="text-muted mb-1 small">أولوية عالية</p>
+                    <h3 class="mb-0 text-danger">@Model.HighPriorityCount</h3>
+                </div>
+                <i class="bi bi-exclamation-triangle text-danger fs-3"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <p class="text-muted mb-1 small">نسبة الجاهزية</p>
+                    <h3 class="mb-0 text-success">@Model.Readiness%</h3>
+                </div>
+                <i class="bi bi-speedometer2 text-success fs-3"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
 <div class="card mb-4">
     <div class="card-body">
-        <div class="journey-stepper" id="journeyStepper">
-            @{
-                var steps = new (string Icon, string Label)[]
-                {
-                    ("bi-person-lines-fill", "الملف الوظيفي"),
-                    ("bi-list-task", "المهام والتحديات"),
-                    ("bi-clipboard-data", "تقييم المهارات"),
-                    ("bi-diagram-3", "تحليل الفجوات"),
-                    ("bi-lightbulb", "التوصيات والمسار"),
-                    ("bi-graph-up-arrow", "قياس الأثر"),
-                };
-            }
-            @for (int i = 0; i < steps.Length; i++)
+        <form asp-action="Index" method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">البحث</label>
+                <input type="text" name="search" class="form-control" placeholder="اسم الموظف أو الرقم الوظيفي أو المهارة..." value="@Model.Search" />
+            </div>
+            @if (Model.IsPrivileged)
             {
-                <div class="journey-step @(i == 0 ? "active" : "")" data-step="@i">
-                    <div class="journey-dot"><i class="bi @steps[i].Icon"></i></div>
-                    <span>@steps[i].Label</span>
+                <div class="col-md-4">
+                    <label class="form-label">الدائرة</label>
+                    <select name="department" class="form-select">
+                        <option value="">جميع الدوائر</option>
+                        @foreach (var dept in Model.Departments)
+                        {
+                            <option value="@dept" selected="@(Model.CurrentDepartment == dept ? "selected" : null)">@dept</option>
+                        }
+                    </select>
                 </div>
-                @if (i < steps.Length - 1)
-                {
-                    <div class="journey-line"></div>
-                }
             }
-        </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-2"></i> بحث
+                </button>
+            </div>
+            <div class="col-md-1">
+                <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- 1) الملف الوظيفي -->
-<section class="tn-section" data-step="0">
-    <div class="row g-4">
-        <div class="col-lg-8">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-person-lines-fill me-2 text-primary"></i>الملف الوظيفي</h5></div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6"><span class="text-muted small d-block">الاسم</span><strong>@Model.Employee.Name</strong></div>
-                        <div class="col-md-6"><span class="text-muted small d-block">المسمى الوظيفي</span><strong>@Model.Employee.JobTitle</strong></div>
-                        <div class="col-md-6"><span class="text-muted small d-block">الإدارة</span><strong>@Model.Employee.Department</strong></div>
-                        <div class="col-md-6"><span class="text-muted small d-block">الرقم الوظيفي</span><strong>@Model.Employee.EmployeeId</strong></div>
-                        <div class="col-md-6"><span class="text-muted small d-block">الدرجة</span><strong>@Model.Employee.Grade</strong></div>
-                        <div class="col-md-6"><span class="text-muted small d-block">المدير المباشر</span><strong>@Model.Employee.Manager</strong></div>
-                        <div class="col-md-6"><span class="text-muted small d-block">سنوات في الدور الحالي</span><strong>@Model.Employee.YearsInRole سنوات</strong></div>
-                        <div class="col-md-6"><span class="text-muted small d-block">عدد المهارات المطلوبة</span><strong>@Model.TotalSkills مهارة</strong></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-speedometer2 me-2 text-primary"></i>مؤشر الجاهزية</h5></div>
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <div class="readiness-ring" id="readinessRing" style="--val:@Model.Readiness">
-                        <span id="readinessValue">@Model.Readiness%</span>
-                    </div>
-                    <p class="text-muted small mt-3 mb-0 text-center">نسبة تغطية المهارات الحالية للمستوى المطلوب</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- 2) المهام والتحديات -->
-<section class="tn-section" data-step="1">
-    <div class="card">
-        <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-list-task me-2 text-primary"></i>المهام الوظيفية ومستوى التحدي</h5></div>
-        <div class="card-body">
-            <div class="row g-3">
-                @foreach (var task in Model.Tasks)
-                {
-                    <div class="col-md-6">
-                        <div class="border rounded p-3 h-100">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h6 class="mb-0">@task.Title</h6>
-                                <span class="badge bg-@(task.ChallengeLevel >= 4 ? "danger" : task.ChallengeLevel == 3 ? "warning" : "success")">تحدٍ @task.ChallengeLevel/5</span>
-                            </div>
-                            <p class="text-muted small mb-2">@task.Description</p>
-                            <div class="d-flex align-items-center gap-2 small">
-                                <i class="bi bi-exclamation-triangle text-warning"></i>
-                                <span class="text-muted">العائق:</span>
-                                <span>@task.Obstacle</span>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- 3) تقييم المهارات (تفاعلي) -->
-<section class="tn-section" data-step="2">
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0"><i class="bi bi-clipboard-data me-2 text-primary"></i>تقييم المهارات</h5>
-            <span class="text-muted small">اضغط لتعديل المستوى الحالي — تُحدَّث الفجوات والجاهزية فوراً</span>
-        </div>
-        <div class="card-body">
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        @if (Model.Needs.Any())
+        {
             <div class="table-responsive">
-                <table class="table align-middle tn-skills-table">
+                <table class="table table-hover mb-0 align-middle">
                     <thead>
                         <tr>
+                            <th>الموظف</th>
+                            <th>الدائرة</th>
                             <th>المهارة</th>
-                            <th class="text-center">النوع</th>
                             <th class="text-center">المطلوب</th>
-                            <th class="text-center">المستوى الحالي</th>
+                            <th class="text-center">الحالي</th>
                             <th class="text-center">الفجوة</th>
-                            <th class="text-center">الأولوية</th>
+                            <th>الأولوية</th>
+                            <th>الحالة</th>
+                            <th style="width: 120px">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @for (int i = 0; i < Model.Skills.Count; i++)
-                        {
-                            var s = Model.Skills[i];
-                            <tr data-skill-index="@i" data-required="@s.RequiredLevel" data-category="@((int)s.Category)">
-                                <td>
-                                    <strong>@s.Name</strong>
-                                    @if (!string.IsNullOrEmpty(s.Cause))
-                                    {
-                                        <span class="d-block text-muted small tn-cause" style="@(s.Gap > 0 ? "" : "display:none")">
-                                            <i class="bi bi-info-circle me-1"></i>@s.Cause
-                                        </span>
-                                    }
-                                </td>
-                                <td class="text-center"><span class="badge bg-light text-dark">@TrainingNeedsHelper.CategoryLabel(s.Category)</span></td>
-                                <td class="text-center"><span class="badge bg-primary">@s.RequiredLevel</span></td>
-                                <td class="text-center">
-                                    <div class="tn-level-selector" role="group" aria-label="المستوى الحالي لمهارة @s.Name">
-                                        @for (int lvl = 1; lvl <= 5; lvl++)
-                                        {
-                                            <button type="button"
-                                                    class="tn-level-btn @(lvl <= s.CurrentLevel ? "on" : "")"
-                                                    data-level="@lvl"
-                                                    title="@TrainingNeedsHelper.LevelLabel(lvl)"
-                                                    aria-label="@TrainingNeedsHelper.LevelLabel(lvl)"></button>
-                                        }
-                                    </div>
-                                </td>
-                                <td class="text-center"><span class="tn-gap fw-bold">@s.Gap</span></td>
-                                <td class="text-center tn-priority">@Html.Raw(PriorityBadge(s.Priority))</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- 4) تحليل الفجوات -->
-<section class="tn-section" data-step="3">
-    <div class="row g-4 mb-4">
-        <div class="col-md-3">
-            <div class="stats-card">
-                <div class="stats-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a);"><i class="bi bi-check2-circle"></i></div>
-                <div class="stats-info"><h3 id="kpiMastered">@Model.MasteredSkills</h3><p>مهارات متقنة</p></div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <div class="stats-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);"><i class="bi bi-exclamation-octagon"></i></div>
-                <div class="stats-info"><h3 id="kpiHigh">@Model.HighGaps</h3><p>فجوات عالية</p></div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <div class="stats-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="bi bi-exclamation-triangle"></i></div>
-                <div class="stats-info"><h3 id="kpiMedium">@Model.MediumGaps</h3><p>فجوات متوسطة</p></div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <div class="stats-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);"><i class="bi bi-info-circle"></i></div>
-                <div class="stats-info"><h3 id="kpiLow">@Model.LowGaps</h3><p>فجوات منخفضة</p></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-bar-chart-line me-2 text-primary"></i>المطلوب مقابل الحالي</h5></div>
-        <div class="card-body">
-            @foreach (var s in Model.Skills)
-            {
-                <div class="tn-bar-row" data-bar-required="@s.RequiredLevel">
-                    <div class="tn-bar-label">@s.Name</div>
-                    <div class="tn-bar-track">
-                        <div class="tn-bar-required" style="width:@(s.RequiredLevel * 20)%"></div>
-                        <div class="tn-bar-current" style="width:@(s.CurrentLevel * 20)%"></div>
-                    </div>
-                    <div class="tn-bar-value"><span class="tn-bar-current-val">@s.CurrentLevel</span>/@s.RequiredLevel</div>
-                </div>
-            }
-            <div class="d-flex gap-4 mt-3 small text-muted">
-                <span><span class="tn-legend tn-legend-required"></span> المستوى المطلوب</span>
-                <span><span class="tn-legend tn-legend-current"></span> المستوى الحالي</span>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- 5) التوصيات والمسار -->
-<section class="tn-section" data-step="4">
-    <!-- محرك التوصية -->
-    <div class="card mb-4">
-        <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-lightbulb me-2 text-warning"></i>محرك التوصيات — لكل فجوة تدخّل مناسب</h5></div>
-        <div class="card-body">
-            <div id="recoList">
-                @foreach (var s in Model.Skills.Where(x => x.Gap > 0).OrderByDescending(x => x.Gap))
-                {
-                    <div class="tn-reco">
-                        <div class="tn-reco-head">
-                            <span class="fw-bold">@s.Name</span>
-                            @Html.Raw(PriorityBadge(s.Priority))
-                            <span class="badge bg-light text-dark">@s.InterventionType</span>
-                        </div>
-                        <p class="mb-1">@s.Recommendation</p>
-                        <p class="text-muted small mb-0"><i class="bi bi-arrow-return-right me-1"></i>السبب: @s.Cause</p>
-                    </div>
-                }
-            </div>
-            <div id="recoEmpty" class="text-center text-muted py-4" style="display:none">
-                <i class="bi bi-emoji-smile display-5"></i>
-                <p class="mt-2 mb-0">لا توجد فجوات — جميع المهارات ضمن المستوى المطلوب.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- صوت الموظف -->
-    <div class="card mb-4">
-        <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-chat-quote me-2 text-primary"></i>صوت الموظف</h5></div>
-        <div class="card-body">
-            <div class="row g-3">
-                @foreach (var v in Model.Voice)
-                {
-                    <div class="col-md-4">
-                        <div class="border rounded p-3 h-100">
-                            <i class="bi @v.Icon text-primary fs-4"></i>
-                            <p class="fw-semibold mt-2 mb-1 small">@v.Question</p>
-                            <p class="text-muted small mb-0">@v.Answer</p>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-
-    <!-- المسار المقترح -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0"><i class="bi bi-signpost-split me-2 text-primary"></i>مساري التطويري المقترح</h5>
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal">
-                <i class="bi bi-check2-circle me-1"></i>اعتماد المسار
-            </button>
-        </div>
-        <div class="card-body">
-            <div class="tn-timeline">
-                @foreach (var step in Model.LearningPath)
-                {
-                    <div class="tn-timeline-item">
-                        <div class="tn-timeline-dot bg-@TrainingNeedsHelper.PriorityColor(step.Priority)">@step.Order</div>
-                        <div class="tn-timeline-content">
-                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                                <h6 class="mb-1">@step.Title</h6>
-                                @Html.Raw(PriorityBadge(step.Priority))
-                            </div>
-                            <div class="d-flex gap-3 small text-muted flex-wrap">
-                                <span><i class="bi bi-mortarboard me-1"></i>@step.Type</span>
-                                <span><i class="bi bi-clock me-1"></i>@step.Duration</span>
-                                <span><i class="bi bi-bullseye me-1"></i>@step.TargetSkill</span>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-
-    <!-- سجل التعلّم السابق -->
-    <div class="card">
-        <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-journal-check me-2 text-primary"></i>سجل التعلّم السابق</h5></div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead><tr><th>البرنامج</th><th class="text-center">النوع</th><th class="text-center">تاريخ الإكمال</th><th class="text-center">الدرجة</th><th class="text-center">تم التطبيق</th></tr></thead>
-                    <tbody>
-                        @foreach (var p in Model.PreviousLearning)
+                        @foreach (var n in Model.Needs)
                         {
                             <tr>
-                                <td>@p.Title</td>
-                                <td class="text-center"><span class="badge bg-light text-dark">@p.Type</span></td>
-                                <td class="text-center">@p.CompletedAt.ToString("yyyy/MM/dd")</td>
-                                <td class="text-center"><span class="badge bg-@(p.Score >= 85 ? "success" : p.Score >= 70 ? "warning" : "danger")">@p.Score%</span></td>
+                                <td>
+                                    <strong>@n.EmployeeName</strong>
+                                    @if (!string.IsNullOrEmpty(n.EmployeeNumber))
+                                    {
+                                        <br /><small class="text-muted">@n.EmployeeNumber</small>
+                                    }
+                                </td>
+                                <td><small>@n.Department</small></td>
+                                <td>
+                                    @n.SkillName
+                                    @if (!string.IsNullOrEmpty(n.Category))
+                                    {
+                                        <br /><small class="text-muted">@n.Category</small>
+                                    }
+                                </td>
+                                <td class="text-center">@n.RequiredLevel</td>
+                                <td class="text-center">@n.CurrentLevel</td>
                                 <td class="text-center">
-                                    @if (p.Applied) { <span class="text-success"><i class="bi bi-check-circle-fill"></i></span> }
-                                    else { <span class="text-muted"><i class="bi bi-dash-circle"></i></span> }
+                                    <span class="badge bg-secondary">@n.Gap</span>
+                                </td>
+                                <td>
+                                    @switch (n.Priority)
+                                    {
+                                        case TrainingNeedPriority.High:
+                                            <span class="badge bg-danger">عالية</span>
+                                            break;
+                                        case TrainingNeedPriority.Medium:
+                                            <span class="badge bg-warning text-dark">متوسطة</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-success">منخفضة</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @switch (n.Status)
+                                    {
+                                        case TrainingNeedStatus.Completed:
+                                            <span class="badge bg-info">مكتمل</span>
+                                            break;
+                                        case TrainingNeedStatus.InProgress:
+                                            <span class="badge bg-primary">قيد المعالجة</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-light text-dark border">جديد</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <a asp-action="Edit" asp-route-id="@n.Id" class="btn btn-sm btn-outline-primary" title="تعديل">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="حذف"
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal@(n.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="modal fade" id="deleteModal@(n.Id)" tabindex="-1">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">تأكيد الحذف</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>هل أنت متأكد من حذف احتياج "<strong>@n.SkillName</strong>" للموظف "<strong>@n.EmployeeName</strong>"؟</p>
+                                                    <p class="text-muted small mb-0">لا يمكن التراجع عن هذا الإجراء.</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                    <form asp-action="Delete" asp-route-id="@n.Id" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-danger">
+                                                            <i class="bi bi-trash me-1"></i> حذف
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
-</section>
-
-<!-- 6) قياس الأثر (PDCA) -->
-<section class="tn-section" data-step="5">
-    <div class="row g-4">
-        <div class="col-lg-7">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>قياس الأثر (30/60/90 يوم)</h5></div>
-                <div class="card-body">
-                    <div class="tn-timeline">
-                        @foreach (var m in Model.ImpactMetrics)
-                        {
-                            <div class="tn-timeline-item">
-                                <div class="tn-timeline-dot bg-primary"><i class="bi bi-flag"></i></div>
-                                <div class="tn-timeline-content">
-                                    <h6 class="mb-1">@m.Stage</h6>
-                                    <p class="mb-1 small">@m.Metric</p>
-                                    <p class="text-muted small mb-0"><i class="bi bi-bullseye me-1"></i>المستهدف: @m.Target</p>
-                                </div>
-                            </div>
-                        }
-                    </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="bi bi-clipboard-data text-muted" style="font-size: 3rem;"></i>
                 </div>
+                <h5 class="text-muted">لا توجد احتياجات تدريبية</h5>
+                <p class="text-muted">ابدأ بإضافة احتياج يدوياً أو رفع ملف Excel لدائرتك</p>
             </div>
-        </div>
-        <div class="col-lg-5">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-arrow-repeat me-2 text-primary"></i>دورة التحسين المستمر (PDCA)</h5></div>
-                <div class="card-body">
-                    <div class="tn-pdca">
-                        <div class="tn-pdca-cell" style="background:#eff6ff"><span class="tn-pdca-letter text-primary">P</span><strong>خطّط</strong><small class="text-muted d-block">تحديد الفجوات وبناء المسار</small></div>
-                        <div class="tn-pdca-cell" style="background:#f0fdf4"><span class="tn-pdca-letter text-success">D</span><strong>نفّذ</strong><small class="text-muted d-block">حضور التدخلات التدريبية</small></div>
-                        <div class="tn-pdca-cell" style="background:#fffbeb"><span class="tn-pdca-letter text-warning">C</span><strong>تحقّق</strong><small class="text-muted d-block">قياس الأثر بعد 30/60/90</small></div>
-                        <div class="tn-pdca-cell" style="background:#fef2f2"><span class="tn-pdca-letter text-danger">A</span><strong>حسّن</strong><small class="text-muted d-block">تحديث الخطة وإعادة التقييم</small></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- مودال اعتماد المسار -->
-<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">اعتماد المسار التطويري</h5>
-                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="إغلاق"></button>
-            </div>
-            <div class="modal-body" id="approveBody">
-                <p>سيتم اعتماد المسار المقترح المكوّن من <strong>@Model.LearningPath.Count</strong> تدخّلات تطويرية للموظف <strong>@Model.Employee.Name</strong>.</p>
-                <p class="text-muted small mb-0">هذا عرض تجريبي — لن يتم حفظ أي بيانات في قاعدة البيانات.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn btn-primary" id="confirmApprove"><i class="bi bi-check2 me-1"></i>تأكيد الاعتماد</button>
-            </div>
-        </div>
+        }
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        (function () {
-            const CATEGORY = { 0: 'Technical', 1: 'Behavioral', 2: 'Leadership' };
-
-            function priorityInfo(gap) {
-                if (gap <= 0) return { label: 'متقن', color: 'success' };
-                if (gap === 1) return { label: 'أولوية منخفضة', color: 'info' };
-                if (gap === 2) return { label: 'أولوية متوسطة', color: 'warning' };
-                return { label: 'أولوية عالية', color: 'danger' };
-            }
-
-            function recompute() {
-                let mastered = 0, high = 0, medium = 0, low = 0, coverSum = 0, count = 0;
-
-                document.querySelectorAll('tr[data-skill-index]').forEach(function (row) {
-                    const required = parseInt(row.dataset.required, 10);
-                    const current = row.querySelectorAll('.tn-level-btn.on').length;
-                    const gap = Math.max(0, required - current);
-
-                    if (gap === 0) mastered++;
-                    else if (gap >= 3) high++;
-                    else if (gap === 2) medium++;
-                    else low++;
-
-                    coverSum += Math.min(1, current / Math.max(1, required));
-                    count++;
-
-                    row.querySelector('.tn-gap').textContent = gap;
-                    const pi = priorityInfo(gap);
-                    row.querySelector('.tn-priority').innerHTML =
-                        '<span class="badge bg-' + pi.color + '">' + pi.label + '</span>';
-
-                    const cause = row.querySelector('.tn-cause');
-                    if (cause) cause.style.display = gap > 0 ? '' : 'none';
-                });
-
-                document.getElementById('kpiMastered').textContent = mastered;
-                document.getElementById('kpiHigh').textContent = high;
-                document.getElementById('kpiMedium').textContent = medium;
-                document.getElementById('kpiLow').textContent = low;
-
-                const readiness = count ? Math.round((coverSum / count) * 100) : 0;
-                const ring = document.getElementById('readinessRing');
-                ring.style.setProperty('--val', readiness);
-                document.getElementById('readinessValue').textContent = readiness + '%';
-            }
-
-            // مُنتقي المستوى: الضغط على زر يضبط المستوى الحالي
-            document.querySelectorAll('.tn-level-selector').forEach(function (group) {
-                group.querySelectorAll('.tn-level-btn').forEach(function (btn) {
-                    btn.addEventListener('click', function () {
-                        const level = parseInt(btn.dataset.level, 10);
-                        group.querySelectorAll('.tn-level-btn').forEach(function (b) {
-                            b.classList.toggle('on', parseInt(b.dataset.level, 10) <= level);
-                        });
-                        const row = group.closest('tr[data-skill-index]');
-                        const required = parseInt(row.dataset.required, 10);
-                        // تحديث شريط المقارنة المرتبط
-                        const bars = document.querySelectorAll('.tn-bar-row');
-                        const idx = parseInt(row.dataset.skillIndex, 10);
-                        if (bars[idx]) {
-                            bars[idx].querySelector('.tn-bar-current').style.width = (level * 20) + '%';
-                            bars[idx].querySelector('.tn-bar-current-val').textContent = level;
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="ImportPreview" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title">رفع ملف الاحتياجات (Excel)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        استخدم قالب Excel الرسمي. ستظهر معاينة للبيانات قبل الحفظ النهائي.
+                        @if (!Model.IsPrivileged)
+                        {
+                            <div class="mt-1">سيتم إسناد جميع السجلات إلى دائرتك تلقائياً.</div>
                         }
-                        recompute();
-                    });
-                });
-            });
-
-            recompute();
-
-            // اعتماد المسار (عرض تجريبي)
-            const confirmBtn = document.getElementById('confirmApprove');
-            if (confirmBtn) {
-                confirmBtn.addEventListener('click', function () {
-                    document.getElementById('approveBody').innerHTML =
-                        '<div class="text-center py-3"><i class="bi bi-check-circle-fill text-success" style="font-size:3rem"></i>' +
-                        '<p class="mt-3 mb-0 fw-semibold">تم اعتماد المسار بنجاح</p>' +
-                        '<p class="text-muted small mb-0">(عرض تجريبي — لم تُحفظ أي بيانات)</p></div>';
-                    confirmBtn.style.display = 'none';
-                });
-            }
-
-            // تتبّع القسم الظاهر لتفعيل مراحل الرحلة
-            const sections = Array.from(document.querySelectorAll('.tn-section'));
-            const stepEls = Array.from(document.querySelectorAll('#journeyStepper .journey-step'));
-            const io = new IntersectionObserver(function (entries) {
-                entries.forEach(function (e) {
-                    if (e.isIntersecting) {
-                        const step = parseInt(e.target.dataset.step, 10);
-                        stepEls.forEach(function (el, i) {
-                            el.classList.toggle('active', i <= step);
-                        });
-                    }
-                });
-            }, { rootMargin: '-40% 0px -55% 0px' });
-            sections.forEach(function (s) { io.observe(s); });
-        })();
-    </script>
-}
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">ملف Excel (.xlsx)</label>
+                        <input type="file" name="file" accept=".xlsx,.xls" class="form-control" required />
+                    </div>
+                    <a asp-action="DownloadTemplate" class="small">
+                        <i class="bi bi-download me-1"></i> تنزيل القالب
+                    </a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-eye me-1"></i> معاينة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

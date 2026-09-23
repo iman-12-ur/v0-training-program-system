@@ -15,6 +15,8 @@ namespace TrainingSystem.Data
         public DbSet<Batch> Batches { get; set; }
         public DbSet<Registration> Registrations { get; set; }
         public DbSet<SystemSettings> SystemSettings { get; set; }
+        public DbSet<TrainingNeed> TrainingNeeds { get; set; }
+        public DbSet<TrainingNeedBatch> TrainingNeedBatches { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -60,6 +62,30 @@ namespace TrainingSystem.Data
             builder.Entity<SystemSettings>(entity =>
             {
                 entity.HasKey(e => e.Id);
+            });
+
+            // Configure TrainingNeedBatch - دفعة رفع الاحتياجات
+            builder.Entity<TrainingNeedBatch>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Department).IsRequired().HasMaxLength(100);
+            });
+
+            // Configure TrainingNeed - سجل الاحتياج التدريبي
+            builder.Entity<TrainingNeed>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.EmployeeName).IsRequired().HasMaxLength(150);
+                entity.Property(e => e.Department).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.SkillName).IsRequired().HasMaxLength(150);
+
+                entity.HasOne(e => e.Batch)
+                      .WithMany(b => b.Needs)
+                      .HasForeignKey(e => e.BatchId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                // فهرس على الدائرة لتسريع التصفية حسب الدائرة
+                entity.HasIndex(e => e.Department);
             });
         }
     }
