@@ -67,7 +67,13 @@
                     <dt class="col-sm-3 text-muted">تاريخ الإنشاء</dt><dd class="col-sm-3">@Model.CreatedAt.ToString("yyyy/MM/dd")</dd>
                     <dt class="col-sm-3 text-muted">تاريخ الاعتماد</dt><dd class="col-sm-3">@(Model.ApprovalDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
 
-                    <dt class="col-sm-3 text-muted">مبرر الاحتياج</dt><dd class="col-sm-9">@(Model.Justification ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">مبرر طلب التدريب</dt><dd class="col-sm-9">@(Model.TrainingReason?.DisplayName() ?? "—")</dd>
+                    @if (Model.TrainingReason == TrainingSystem.Models.TrainingReason.PerformanceWeakness)
+                    {
+                        <dt class="col-sm-3 text-muted">رقم الهدف المتعثر</dt><dd class="col-sm-3">@(Model.FailedGoalNumber ?? "—")</dd>
+                        <dt class="col-sm-3 text-muted">وصف الفجوة في الأداء</dt><dd class="col-sm-3">@(Model.PerformanceGapDescription ?? "—")</dd>
+                    }
+                    <dt class="col-sm-3 text-muted">مبرر إضافي</dt><dd class="col-sm-9">@(Model.Justification ?? "—")</dd>
                     <dt class="col-sm-3 text-muted">وصف الاحتياج</dt><dd class="col-sm-9">@(Model.NeedDescription ?? "—")</dd>
                     <dt class="col-sm-3 text-muted">ملاحظات</dt><dd class="col-sm-9">@(Model.Notes ?? "—")</dd>
                 </dl>

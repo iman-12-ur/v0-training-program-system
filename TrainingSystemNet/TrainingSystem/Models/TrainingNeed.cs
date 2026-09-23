@@ -33,6 +33,62 @@ namespace TrainingSystem.Models
         TrainingCompleted = 8   // اكتمل التدريب (بانتظار تقييم الأثر)
     }
 
+    // مبرر طلب التدريب (قائمة ثابتة على مستوى المنظومة)
+    public enum TrainingReason
+    {
+        [Display(Name = "ضعف في تقييم الأداء السنوي")]
+        PerformanceWeakness = 1,
+
+        [Display(Name = "تعثر في تحقيق هدف وظيفي")]
+        GoalFailure = 2,
+
+        [Display(Name = "استحداث نظام أو تقنية جديدة")]
+        NewSystem = 3,
+
+        [Display(Name = "تغيير تشريعي أو تنظيمي")]
+        RegulatoryChange = 4,
+
+        [Display(Name = "ترقية مستهدفة")]
+        TargetedPromotion = 5,
+
+        [Display(Name = "إعداد الصف الثاني")]
+        SecondLinePreparation = 6,
+
+        [Display(Name = "متطلبات وظيفة جديدة")]
+        NewJobRequirements = 7,
+
+        [Display(Name = "فجوة مهارية مكتشفة")]
+        DiscoveredSkillGap = 8,
+
+        [Display(Name = "متطلب إلزامي")]
+        MandatoryRequirement = 9,
+
+        [Display(Name = "تطوير مستقبلي")]
+        FutureDevelopment = 10,
+
+        [Display(Name = "أخرى")]
+        Other = 99
+    }
+
+    public static class TrainingReasonExtensions
+    {
+        public static string DisplayName(this TrainingReason reason) => reason switch
+        {
+            TrainingReason.PerformanceWeakness => "ضعف في تقييم الأداء السنوي",
+            TrainingReason.GoalFailure => "تعثر في تحقيق هدف وظيفي",
+            TrainingReason.NewSystem => "استحداث نظام أو تقنية جديدة",
+            TrainingReason.RegulatoryChange => "تغيير تشريعي أو تنظيمي",
+            TrainingReason.TargetedPromotion => "ترقية مستهدفة",
+            TrainingReason.SecondLinePreparation => "إعداد الصف الثاني",
+            TrainingReason.NewJobRequirements => "متطلبات وظيفة جديدة",
+            TrainingReason.DiscoveredSkillGap => "فجوة مهارية مكتشفة",
+            TrainingReason.MandatoryRequirement => "متطلب إلزامي",
+            TrainingReason.FutureDevelopment => "تطوير مستقبلي",
+            TrainingReason.Other => "أخرى",
+            _ => reason.ToString()
+        };
+    }
+
     // سجل احتياج تدريبي لموظف في مهارة محددة
     public class TrainingNeed
     {
@@ -114,7 +170,21 @@ namespace TrainingSystem.Models
         [MaxLength(50)]
         public string? Grade { get; set; }
 
-        [Display(Name = "مبرر الاحتياج / سبب التدريب")]
+        // مبرر طلب التدريب (إلزامي — من القائمة الثابتة)
+        [Required(ErrorMessage = "يجب اختيار مبرر طلب التدريب")]
+        [Display(Name = "مبرر طلب التدريب")]
+        public TrainingReason? TrainingReason { get; set; }
+
+        // حقول شرطية تظهر عند اختيار "ضعف في تقييم الأداء السنوي"
+        [Display(Name = "رقم الهدف المتعثر")]
+        [MaxLength(100)]
+        public string? FailedGoalNumber { get; set; }
+
+        [Display(Name = "وصف الفجوة في الأداء")]
+        [MaxLength(1000)]
+        public string? PerformanceGapDescription { get; set; }
+
+        [Display(Name = "مبرر إضافي / تفاصيل المبرر")]
         [MaxLength(1000)]
         public string? Justification { get; set; }
 

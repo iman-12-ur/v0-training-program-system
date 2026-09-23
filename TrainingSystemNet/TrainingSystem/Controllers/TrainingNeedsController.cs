@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using TrainingSystem.Data;
 using TrainingSystem.Models;
 using TrainingSystem.Services;
@@ -194,6 +195,9 @@ namespace TrainingSystem.Controllers
                 Category = model.Category?.Trim(),
                 JobTitle = model.JobTitle?.Trim(),
                 Grade = model.Grade?.Trim(),
+                TrainingReason = model.TrainingReason,
+                FailedGoalNumber = model.TrainingReason == Models.TrainingReason.PerformanceWeakness ? model.FailedGoalNumber?.Trim() : null,
+                PerformanceGapDescription = model.TrainingReason == Models.TrainingReason.PerformanceWeakness ? model.PerformanceGapDescription?.Trim() : null,
                 Justification = model.Justification?.Trim(),
                 NeedDescription = model.NeedDescription?.Trim(),
                 GapType = model.GapType,
@@ -277,6 +281,9 @@ namespace TrainingSystem.Controllers
                 Category = need.Category,
                 JobTitle = need.JobTitle,
                 Grade = need.Grade,
+                TrainingReason = need.TrainingReason,
+                FailedGoalNumber = need.FailedGoalNumber,
+                PerformanceGapDescription = need.PerformanceGapDescription,
                 Justification = need.Justification,
                 NeedDescription = need.NeedDescription,
                 GapType = need.GapType,
@@ -372,6 +379,9 @@ namespace TrainingSystem.Controllers
             need.Category = model.Category?.Trim();
             need.JobTitle = model.JobTitle?.Trim();
             need.Grade = model.Grade?.Trim();
+            need.TrainingReason = model.TrainingReason;
+            need.FailedGoalNumber = model.TrainingReason == Models.TrainingReason.PerformanceWeakness ? model.FailedGoalNumber?.Trim() : null;
+            need.PerformanceGapDescription = model.TrainingReason == Models.TrainingReason.PerformanceWeakness ? model.PerformanceGapDescription?.Trim() : null;
             need.Justification = model.Justification?.Trim();
             need.NeedDescription = model.NeedDescription?.Trim();
             need.GapType = model.GapType;
@@ -1667,6 +1677,12 @@ namespace TrainingSystem.Controllers
         public int? SkillId { get; set; }
         public string? JobTitle { get; set; }
         public string? Grade { get; set; }
+
+        [Required(ErrorMessage = "يجب اختيار مبرر طلب التدريب")]
+        public TrainingReason? TrainingReason { get; set; }
+        public string? FailedGoalNumber { get; set; }
+        public string? PerformanceGapDescription { get; set; }
+
         public string? Justification { get; set; }
         public string? SuggestedTimeframe { get; set; }
         public bool SubmitForApproval { get; set; }

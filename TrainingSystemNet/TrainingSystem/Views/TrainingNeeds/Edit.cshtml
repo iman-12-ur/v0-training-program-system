@@ -137,9 +137,26 @@
                     <input asp-for="SuggestedTimeframe" class="form-control" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">مبرر الاحتياج / سبب التدريب</label>
+                    <label class="form-label">مبرر طلب التدريب <span class="text-danger">*</span></label>
+                    <select asp-for="TrainingReason" class="form-select" id="trainingReason" asp-items="Html.GetEnumSelectList<TrainingSystem.Models.TrainingReason>()">
+                        <option value="">— اختر المبرر —</option>
+                    </select>
+                    <span asp-validation-for="TrainingReason" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">مبرر إضافي / تفاصيل</label>
                     <input asp-for="Justification" class="form-control" />
                 </div>
+
+                <div class="col-md-6 performance-weakness-field" style="display:none;">
+                    <label class="form-label">رقم الهدف المتعثر</label>
+                    <input asp-for="FailedGoalNumber" class="form-control" placeholder="مثال: هدف رقم 3" />
+                </div>
+                <div class="col-md-6 performance-weakness-field" style="display:none;">
+                    <label class="form-label">وصف الفجوة في الأداء</label>
+                    <input asp-for="PerformanceGapDescription" class="form-control" placeholder="اشرح الفجوة في الأداء" />
+                </div>
+
                 <div class="col-12">
                     <label class="form-label">وصف الاحتياج</label>
                     <textarea asp-for="NeedDescription" class="form-control" rows="2"></textarea>
@@ -242,6 +259,21 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        // إظهار حقلي "رقم الهدف المتعثر" و"وصف الفجوة في الأداء" عند اختيار ضعف تقييم الأداء
+        (function () {
+            var reason = document.getElementById('trainingReason');
+            if (!reason) return;
+            var pwValue = '@((int)TrainingSystem.Models.TrainingReason.PerformanceWeakness)';
+            var fields = document.querySelectorAll('.performance-weakness-field');
+            function toggle() {
+                var show = reason.value === pwValue;
+                fields.forEach(function (f) { f.style.display = show ? '' : 'none'; });
+            }
+            reason.addEventListener('change', toggle);
+            toggle();
+        })();
+    </script>
     <script>
         // تعبئة بيانات الموظف تلقائياً عبر الربط (FK) عند الاختيار — دون تكرار الإدخال
         (function () {
