@@ -100,14 +100,14 @@
 
                     <dt class="col-sm-3 text-muted">تاريخ الإنجاز</dt><dd class="col-sm-3">@(Model.CompletionDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
                     <dt class="col-sm-3 text-muted">عدد المشاركين</dt><dd class="col-sm-3">@Model.ParticipantsCount</dd>
-                    <dt class="col-sm-3 text-muted">درجة الأولوية</dt>
+                    <dt class="col-sm-3 text-muted">درجة الأولوية المحسوبة</dt>
                     <dd class="col-sm-3">
-                        <span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(Model.ApprovalStatus)">@Model.PriorityScore / 100</span>
+                        <span class="badge bg-@TrainingNeed.GetPriorityBadge(Model.Priority)">@Model.PriorityScore / 100</span>
                         <span class="small text-muted ms-1">(@TrainingNeed.GetPriorityDisplayName(Model.Priority))</span>
                     </dd>
 
-                    <dt class="col-sm-3 text-muted">الأثر على العمل</dt><dd class="col-sm-3">@Model.ImpactScore / 4</dd>
-                    <dt class="col-sm-3 text-muted">درجة المخاطر</dt><dd class="col-sm-3">@Model.RiskScore / 4</dd>
+                    <dt class="col-sm-3 text-muted">تأثير الفجوة على العمل</dt><dd class="col-sm-3">@Model.ImpactScore – @TrainingNeed.ImpactRiskName(Model.ImpactScore)</dd>
+                    <dt class="col-sm-3 text-muted">مستوى المخاطر</dt><dd class="col-sm-3">@Model.RiskScore – @TrainingNeed.ImpactRiskName(Model.RiskScore)</dd>
 
                     <dt class="col-sm-3 text-muted">امتثال إلزامي</dt>
                     <dd class="col-sm-9">

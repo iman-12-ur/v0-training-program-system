@@ -233,20 +233,20 @@
                     <input asp-for="ParticipantsCount" type="number" min="1" class="form-control" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">الأثر على العمل (1-4)</label>
+                    <label class="form-label">تأثير الفجوة على العمل</label>
                     <select asp-for="ImpactScore" class="form-select">
                         @for (int i = 1; i <= 4; i++)
                         {
-                            <option value="@i">@i</option>
+                            <option value="@i">@i – @TrainingSystem.Models.TrainingNeed.ImpactRiskName(i)</option>
                         }
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">درجة المخاطر (1-4)</label>
+                    <label class="form-label">مستوى المخاطر</label>
                     <select asp-for="RiskScore" class="form-select">
                         @for (int i = 1; i <= 4; i++)
                         {
-                            <option value="@i">@i</option>
+                            <option value="@i">@i – @TrainingSystem.Models.TrainingNeed.ImpactRiskName(i)</option>
                         }
                     </select>
                 </div>
@@ -258,7 +258,7 @@
                 </div>
 
                 <div class="col-12">
-                    <label class="form-label">ملاحظات</label>
+                    <label class="form-label">م��احظات</label>
                     <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
                 </div>
 

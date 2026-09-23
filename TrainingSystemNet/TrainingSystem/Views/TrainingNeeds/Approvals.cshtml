@@ -28,7 +28,7 @@
                 }
                 @foreach (var n in managerQueue)
                 {
-                    var prBadge = n.Priority == TrainingNeedPriority.High ? "danger" : n.Priority == TrainingNeedPriority.Medium ? "warning" : "success";
+                        var prBadge = TrainingNeed.GetPriorityBadge(n.Priority);
                     <tr>
                         <td>@n.EmployeeName</td>
                         <td>@n.Department</td>
@@ -63,7 +63,7 @@
                 }
                 @foreach (var n in hrQueue)
                 {
-                    var prBadge = n.Priority == TrainingNeedPriority.High ? "danger" : n.Priority == TrainingNeedPriority.Medium ? "warning" : "success";
+                        var prBadge = TrainingNeed.GetPriorityBadge(n.Priority);
                     <tr>
                         <td>@n.EmployeeName</td>
                         <td>@n.Department</td>

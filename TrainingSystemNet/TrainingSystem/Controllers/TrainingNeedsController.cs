@@ -95,7 +95,7 @@ namespace TrainingSystem.Controllers
                 EmployeeCount = needs
                     .Select(n => (n.EmployeeNumber ?? "") + "|" + n.EmployeeName)
                     .Distinct().Count(),
-                HighPriorityCount = needs.Count(n => n.Priority == TrainingNeedPriority.High),
+                HighPriorityCount = needs.Count(n => n.Priority == TrainingNeedPriority.High || n.Priority == TrainingNeedPriority.Critical),
                 InProgressCount = needs.Count(n => n.Status == TrainingNeedStatus.InProgress),
                 Readiness = totalRequired > 0
                     ? (int)Math.Round(100.0 * totalCurrent / totalRequired)
@@ -767,7 +767,7 @@ namespace TrainingSystem.Controllers
             {
                 TotalNeeds = needs.Count,
                 EmployeeCount = needs.Select(n => (n.EmployeeNumber ?? "") + "|" + n.EmployeeName).Distinct().Count(),
-                HighPriorityCount = needs.Count(n => n.Priority == TrainingNeedPriority.High),
+                HighPriorityCount = needs.Count(n => n.Priority == TrainingNeedPriority.High || n.Priority == TrainingNeedPriority.Critical),
                 PendingApprovals = needs.Count(n => n.ApprovalStatus == TrainingNeedApprovalStatus.SubmittedToManager ||
                                                     n.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved),
                 ApprovedCount = needs.Count(n => n.ApprovalStatus == TrainingNeedApprovalStatus.HRApproved),
@@ -783,6 +783,7 @@ namespace TrainingSystem.Controllers
                     .ToList(),
                 PriorityDistribution = new Dictionary<string, int>
                 {
+                    ["حرجة جداً"] = needs.Count(n => n.Priority == TrainingNeedPriority.Critical),
                     ["عالية"] = needs.Count(n => n.Priority == TrainingNeedPriority.High),
                     ["متوسطة"] = needs.Count(n => n.Priority == TrainingNeedPriority.Medium),
                     ["منخفضة"] = needs.Count(n => n.Priority == TrainingNeedPriority.Low),
@@ -900,7 +901,7 @@ namespace TrainingSystem.Controllers
             var myDept = actor?.Department;
 
             var query = _context.TrainingNeeds
-                .Where(n => n.Priority == TrainingNeedPriority.High);
+                .Where(n => n.Priority == TrainingNeedPriority.High || n.Priority == TrainingNeedPriority.Critical);
             if (!IsPrivileged)
                 query = query.Where(n => n.Department == myDept);
             else if (!string.IsNullOrWhiteSpace(department))
@@ -1350,7 +1351,7 @@ namespace TrainingSystem.Controllers
         private static string CurrentFinancialYear()
         {
             var y = DateTime.Now.Year;
-            // السنة المالية تبدأ يناير — يمكن تعديلها لاحقاً لتبدأ من شهر آخر
+            // السنة المالية تبدأ يناير — يمكن تعديلها لاحقاً لتبدأ من ��هر آخر
             return $"{y}/{y + 1}";
         }
 

@@ -55,7 +55,7 @@
                 }
                 @foreach (var n in Model)
                 {
-                    var prBadge = n.Priority == TrainingNeedPriority.High ? "danger" : n.Priority == TrainingNeedPriority.Medium ? "warning" : "success";
+                            var prBadge = TrainingNeed.GetPriorityBadge(n.Priority);
                     var gapPct = (int)Math.Round(100.0 * n.Gap / 5);
                     var gapColor = n.Gap >= 3 ? "bg-danger" : n.Gap == 2 ? "bg-warning" : "bg-success";
                     suggestions.TryGetValue(n.Id, out var sug);

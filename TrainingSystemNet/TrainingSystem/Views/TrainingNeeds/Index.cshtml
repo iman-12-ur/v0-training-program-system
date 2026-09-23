@@ -224,18 +224,11 @@
                                     <span class="badge bg-secondary">@n.Gap</span>
                                 </td>
                                 <td>
-                                    @switch (n.Priority)
-                                    {
-                                        case TrainingNeedPriority.High:
-                                            <span class="badge bg-danger">عالية</span>
-                                            break;
-                                        case TrainingNeedPriority.Medium:
-                                            <span class="badge bg-warning text-dark">متوسطة</span>
-                                            break;
-                                        default:
-                                            <span class="badge bg-success">منخفضة</span>
-                                            break;
+                                    @{
+                                        var prBadge = TrainingNeed.GetPriorityBadge(n.Priority);
+                                        var prText = prBadge == "warning" ? "text-dark" : "";
                                     }
+                                    <span class="badge bg-@prBadge @prText">@TrainingNeed.GetPriorityDisplayName(n.Priority)</span>
                                 </td>
                                 <td style="max-width: 220px;">
                                     @{

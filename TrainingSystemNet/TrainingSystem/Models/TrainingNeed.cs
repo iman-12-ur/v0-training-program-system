@@ -6,9 +6,10 @@ namespace TrainingSystem.Models
     // أولوية الاحتياج التدريبي (تُحسب من فجوة المهارة)
     public enum TrainingNeedPriority
     {
-        Low = 0,     // منخفضة
-        Medium = 1,  // متوسطة
-        High = 2     // عالية
+        Low = 0,       // منخفضة
+        Medium = 1,    // متوسطة
+        High = 2,      // عالية
+        Critical = 3   // حرجة جداً
     }
 
     // حالة معالجة الاحتياج
@@ -349,6 +350,16 @@ namespace TrainingSystem.Models
             _ => level.ToString()
         };
 
+        // تسمية مقياس الأثر/المخاطر (1 منخفض .. 4 حرج)
+        public static string ImpactRiskName(int level) => level switch
+        {
+            1 => "منخفض",
+            2 => "متوسط",
+            3 => "مرتفع",
+            4 => "حرج",
+            _ => level.ToString()
+        };
+
         // حساب الأولوية من الفجوة (منطق موحّد للخادم والاستيراد)
         public static TrainingNeedPriority ComputePriority(int requiredLevel, int currentLevel)
         {
@@ -358,29 +369,39 @@ namespace TrainingSystem.Models
             return TrainingNeedPriority.Low;
         }
 
-        // درجة الأولوية الموزونة (0-100).
-        // الأوزان ثابتة حالياً — يمكن نقلها لاحقاً إلى SystemSettings لجعلها قابلة للإعداد.
+        // درجة الأولوية الموزونة (0-100) وفق الصيغة:
+        // PriorityScore = (Gap × wGap) + (Impact × wImpact) + (Risk × wRisk) + (Compliance × wCompliance)
+        // العوامل مُطبّعة إلى نسبة (0-1) ثم مضروبة بوزنها، والأوزان مأخوذة من PriorityScoringSettings
+        // ليسهل تعديلها من إعدادات النظام مستقبلاً.
         public static int ComputePriorityScore(int requiredLevel, int currentLevel,
             int impact, int risk, bool isCompliance)
         {
-            var gap = Math.Max(0, requiredLevel - currentLevel);          // 0-5
-            var gapComponent = Math.Min(gap, 3) / 3.0 * 30.0;             // حتى 30
-            var impactComponent = (Math.Clamp(impact, 1, 4) - 1) / 3.0 * 20.0; // حتى 20
-            var riskComponent = (Math.Clamp(risk, 1, 4) - 1) / 3.0 * 20.0;     // حتى 20
-            var complianceComponent = isCompliance ? 30.0 : 0.0;          // 30
-            return (int)Math.Round(gapComponent + impactComponent + riskComponent + complianceComponent);
+            var gap = Math.Max(0, requiredLevel - currentLevel);
+            var gapRatio = Math.Min(gap, PriorityScoringSettings.MaxGap) / (double)PriorityScoringSettings.MaxGap;
+            var impactRatio = (Math.Clamp(impact, 1, PriorityScoringSettings.MaxImpact) - 1) / (double)(PriorityScoringSettings.MaxImpact - 1);
+            var riskRatio = (Math.Clamp(risk, 1, PriorityScoringSettings.MaxRisk) - 1) / (double)(PriorityScoringSettings.MaxRisk - 1);
+            var complianceRatio = isCompliance ? 1.0 : 0.0;
+
+            var score = gapRatio * PriorityScoringSettings.GapWeight
+                      + impactRatio * PriorityScoringSettings.ImpactWeight
+                      + riskRatio * PriorityScoringSettings.RiskWeight
+                      + complianceRatio * PriorityScoringSettings.ComplianceWeight;
+
+            return Math.Clamp((int)Math.Round(score), 0, 100);
         }
 
-        // تصنيف الأولوية من الدرجة الموزونة
+        // تصنيف الأولوية من الدرجة الموزونة وفق حدود قابلة للتعديل
         public static TrainingNeedPriority ClassifyByScore(int score)
         {
-            if (score >= 60) return TrainingNeedPriority.High;
-            if (score >= 40) return TrainingNeedPriority.Medium;
+            if (score >= PriorityScoringSettings.CriticalThreshold) return TrainingNeedPriority.Critical;
+            if (score >= PriorityScoringSettings.HighThreshold) return TrainingNeedPriority.High;
+            if (score >= PriorityScoringSettings.MediumThreshold) return TrainingNeedPriority.Medium;
             return TrainingNeedPriority.Low;
         }
 
         public static string GetPriorityDisplayName(TrainingNeedPriority p) => p switch
         {
+            TrainingNeedPriority.Critical => "حرجة جداً",
             TrainingNeedPriority.High => "عالية",
             TrainingNeedPriority.Medium => "متوسطة",
             _ => "منخفضة"
@@ -388,6 +409,7 @@ namespace TrainingSystem.Models
 
         public static string GetPriorityBadge(TrainingNeedPriority p) => p switch
         {
+            TrainingNeedPriority.Critical => "dark",
             TrainingNeedPriority.High => "danger",
             TrainingNeedPriority.Medium => "warning",
             _ => "success"

@@ -134,7 +134,7 @@
             @foreach (var kv in Model.PriorityDistribution)
             {
                 var pct = totalPr > 0 ? (int)Math.Round(100.0 * kv.Value / totalPr) : 0;
-                var col = kv.Key == "عالية" ? "bg-danger" : kv.Key == "متوسطة" ? "bg-warning" : "bg-success";
+                var col = kv.Key == "حرجة جداً" ? "bg-dark" : kv.Key == "عالية" ? "bg-danger" : kv.Key == "متوسطة" ? "bg-warning" : "bg-success";
                 <div class="mb-3">
                     <div class="d-flex justify-content-between small mb-1">
                         <span>@kv.Key</span>
@@ -192,8 +192,7 @@
                 }
                 @foreach (var n in Model.RecentNeeds)
                 {
-                    var prBadge = n.Priority == TrainingSystem.Models.TrainingNeedPriority.High ? "danger"
-                        : n.Priority == TrainingSystem.Models.TrainingNeedPriority.Medium ? "warning" : "success";
+                            var prBadge = TrainingSystem.Models.TrainingNeed.GetPriorityBadge(n.Priority);
                     <tr>
                         <td><a asp-action="Details" asp-route-id="@n.Id" class="text-decoration-none">@n.EmployeeName</a></td>
                         <td>@n.Department</td>
