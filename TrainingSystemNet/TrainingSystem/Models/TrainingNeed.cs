@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -449,6 +452,109 @@ namespace TrainingSystem.Models
             TrainingNeedApprovalStatus.TrainingScheduled => "primary",
             TrainingNeedApprovalStatus.TrainingCompleted => "success",
             _ => "secondary"
+        };
+
+        // --- المرحلة 10: دورة الاعتماد الموحّدة (11 مرحلة) ---
+        // تُشتق حالة كل مرحلة من ApprovalStatus والحقول الموجودة (بدون أعمدة جديدة).
+        public List<WorkflowStage> GetWorkflowStages()
+        {
+            var meta = new (string Title, string Actor)[]
+            {
+                ("إنشاء طلب الاحتياج", "الموظف / المدير"),
+                ("التحقق من اكتمال البيانات", "النظام"),
+                ("حساب الفجوة والأولوية تلقائياً", "النظام"),
+                ("مراجعة واعتماد / رفض / طلب تعديل", "المدير المباشر"),
+                ("تحليل الطلب", "الموارد البشرية"),
+                ("ربط الاحتياج ببرنامج تدريبي", "الموارد البشرية"),
+                ("التحقق من الميزانية", "الموارد البشرية"),
+                ("الاعتماد النهائي", "الموارد البشرية"),
+                ("إدراج الموظف في البرنامج التدريبي", "النظام"),
+                ("تقييم أثر التدريب", "الموظف / المدير"),
+                ("تقييم الأثر بعد 90 يوماً", "النظام (تلقائي)"),
+            };
+
+            int current;
+            bool rejectedAtManager = false, rejectedAtHR = false;
+            switch (ApprovalStatus)
+            {
+                case TrainingNeedApprovalStatus.Draft: current = 2; break;
+                case TrainingNeedApprovalStatus.SubmittedToManager: current = 4; break;
+                case TrainingNeedApprovalStatus.ManagerApproved: current = 5; break;
+                case TrainingNeedApprovalStatus.ManagerRejected: current = 4; rejectedAtManager = true; break;
+                case TrainingNeedApprovalStatus.BudgetReview: current = 7; break;
+                case TrainingNeedApprovalStatus.HRApproved: current = 9; break;
+                case TrainingNeedApprovalStatus.HRRejected: current = 8; rejectedAtHR = true; break;
+                case TrainingNeedApprovalStatus.TrainingScheduled: current = 10; break;
+                case TrainingNeedApprovalStatus.TrainingCompleted: current = 11; break;
+                default: current = 1; break;
+            }
+
+            bool impactDone = ImpactAssessments != null && ImpactAssessments.Any(a => a.IsCompleted);
+
+            var list = new List<WorkflowStage>();
+            for (int i = 1; i <= 11; i++)
+            {
+                WorkflowStageState state;
+                if ((rejectedAtManager && i == 4) || (rejectedAtHR && i == 8))
+                    state = WorkflowStageState.Rejected;
+                else if (i < current)
+                    state = WorkflowStageState.Completed;
+                else if (i == current && !rejectedAtManager && !rejectedAtHR)
+                    state = WorkflowStageState.Current;
+                else
+                    state = WorkflowStageState.Pending;
+
+                // ترقيات مبنية على البيانات الفعلية
+                if (i == 6 && LinkedTrainingProgramId != null && state == WorkflowStageState.Pending)
+                    state = WorkflowStageState.Completed;
+                if (i == 10 && impactDone)
+                    state = WorkflowStageState.Completed;
+
+                list.Add(new WorkflowStage
+                {
+                    Number = i,
+                    Title = meta[i - 1].Title,
+                    Actor = meta[i - 1].Actor,
+                    State = state
+                });
+            }
+            return list;
+        }
+    }
+
+    // حالة مرحلة في دورة الاعتماد
+    public enum WorkflowStageState { Pending, Current, Completed, Rejected }
+
+    // مرحلة واحدة ضمن دورة الاعتماد الموحّدة
+    public class WorkflowStage
+    {
+        public int Number { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Actor { get; set; } = string.Empty;
+        public WorkflowStageState State { get; set; }
+
+        public string BadgeClass => State switch
+        {
+            WorkflowStageState.Completed => "success",
+            WorkflowStageState.Current => "primary",
+            WorkflowStageState.Rejected => "danger",
+            _ => "secondary"
+        };
+
+        public string Icon => State switch
+        {
+            WorkflowStageState.Completed => "bi-check-lg",
+            WorkflowStageState.Current => "bi-arrow-repeat",
+            WorkflowStageState.Rejected => "bi-x-lg",
+            _ => ""
+        };
+
+        public string StateLabel => State switch
+        {
+            WorkflowStageState.Completed => "مكتملة",
+            WorkflowStageState.Current => "الحالية",
+            WorkflowStageState.Rejected => "مرفوضة",
+            _ => "قيد الانتظار"
         };
     }
 

@@ -172,7 +172,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خار���������� دائرته
+            // المشرف لا يضيف احتياجاً لموظف خا������������ دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -591,6 +591,47 @@ namespace TrainingSystem.Controllers
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "تم رفض الاحتياج";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // طلب تعديل من المدير المباشر — يعيد الطلب لمقدّمه كمسودة مع بيان المطلوب تعديله
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ManagerRequestChanges(int id, string? comment)
+        {
+            var need = await _context.TrainingNeeds.FindAsync(id);
+            if (need == null) return NotFound();
+            if (!await CanAccessAsync(need))
+            {
+                TempData["Error"] = "لا تملك صلاحية الوصول لهذا السجل";
+                return RedirectToAction(nameof(Index));
+            }
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.SubmittedToManager)
+            {
+                TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد المدير";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+            if (string.IsNullOrWhiteSpace(comment))
+            {
+                TempData["Error"] = "يرجى بيان التعديل المطلوب";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            need.ApprovalStatus = TrainingNeedApprovalStatus.Draft;
+            need.ManagerUserId = actor?.Id;
+            need.ManagerActionAt = DateTime.Now;
+            need.ManagerComment = comment.Trim();
+            AddHistory(need, need.ApprovalStatus, "طلب تعديل من المدير المباشر", comment, actor);
+
+            if (!string.IsNullOrEmpty(need.CreatedByUserId))
+                NotificationHelper.Add(_context, need.CreatedByUserId,
+                    $"طلب المدير تعديل احتياجك: {need.SkillName} — {comment.Trim()}",
+                    NotificationType.Warning, need.Id);
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "تمت إعادة الاحتياج لمقدّمه لطلب تعديل";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -1347,7 +1388,7 @@ namespace TrainingSystem.Controllers
             return deptSupervisors.Concat(hr).Distinct().ToList();
         }
 
-        // السنة المالية الحالية (تقويمية) بصيغة 2025/2026
+        // السنة المالية الحالية (تقويم��ة) بصيغة 2025/2026
         private static string CurrentFinancialYear()
         {
             var y = DateTime.Now.Year;
@@ -1355,7 +1396,7 @@ namespace TrainingSystem.Controllers
             return $"{y}/{y + 1}";
         }
 
-        // الموازنة المركزية للسنة المالية الحالية (قد تكون null إن لم تُعرّف)
+        // الموازنة المركزية للسن�� المالية الحالية (قد تكون null إن لم تُعرّف)
         private async Task<TrainingBudget?> GetOrmCurrentBudgetAsync()
         {
             var fy = CurrentFinancialYear();
@@ -1395,7 +1436,7 @@ namespace TrainingSystem.Controllers
             if (employee == null)
                 return Json(new { ok = false });
 
-            // المشرف يرى موظفي دائرته فقط
+            // المشر�� يرى موظفي دائرته فقط
             if (!IsPrivileged)
             {
                 var actor = await _userManager.GetUserAsync(User);
