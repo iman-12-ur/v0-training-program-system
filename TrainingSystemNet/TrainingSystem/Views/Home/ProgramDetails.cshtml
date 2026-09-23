@@ -166,10 +166,10 @@
             <div class="card-body">
                 @if (Model.Batches?.Any(b => b.Status == BatchStatus.Upcoming) == true)
                 {
-                    @{
+                    
                         var approvedCounts = ViewBag.ApprovedCounts as Dictionary<int, int>;
-                    }
-                    @foreach (var batch in Model.Batches.Where(b => b.Status == BatchStatus.Upcoming))
+                    
+                    foreach (var batch in Model.Batches.Where(b => b.Status == BatchStatus.Upcoming))
                     {
                         var approved = (approvedCounts != null && approvedCounts.ContainsKey(batch.Id)) ? approvedCounts[batch.Id] : 0;
                         var seatsFull = approved >= batch.MaxParticipants;

@@ -768,3 +768,164 @@ body {
 ::-webkit-scrollbar-track { background: var(--muted); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+
+/* ============================================================
+   الاحتياجات التدريبية (Training Needs) — مكوّنات مخصّصة
+   ============================================================ */
+
+.tn-section { margin-bottom: 1.5rem; }
+
+/* شريط مراحل الرحلة */
+.journey-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+.journey-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    white-space: nowrap;
+    transition: color .3s ease;
+}
+.journey-dot {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    border: 2px solid var(--border);
+    transition: all .3s ease;
+    flex: 0 0 auto;
+}
+.journey-step.active { color: var(--primary); font-weight: 600; }
+.journey-step.active .journey-dot {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+.journey-line {
+    flex: 1 1 20px;
+    min-width: 20px;
+    height: 2px;
+    background: var(--border);
+}
+
+/* مؤشر الجاهزية الدائري */
+.readiness-ring {
+    --val: 0;
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    background: conic-gradient(var(--primary) calc(var(--val) * 1%), var(--muted) 0);
+    display: flex; align-items: center; justify-content: center;
+    transition: background .5s ease;
+}
+.readiness-ring span {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: var(--card);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.75rem; font-weight: 700;
+    color: var(--primary);
+}
+
+/* مُنتقي مستوى المهارة */
+.tn-level-selector {
+    display: inline-flex;
+    gap: 4px;
+    direction: rtl;
+}
+.tn-level-btn {
+    width: 26px; height: 14px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--muted);
+    cursor: pointer;
+    padding: 0;
+    transition: background .15s ease, border-color .15s ease;
+}
+.tn-level-btn:hover { border-color: var(--primary); }
+.tn-level-btn.on { background: var(--primary); border-color: var(--primary); }
+.tn-skills-table td { vertical-align: middle; }
+
+/* أشرطة المقارنة (المطلوب مقابل الحالي) */
+.tn-bar-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 60px;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+.tn-bar-label { font-size: 0.85rem; }
+.tn-bar-track {
+    position: relative;
+    height: 22px;
+    background: var(--muted);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.tn-bar-required {
+    position: absolute; inset-inline-start: 0; top: 0; height: 100%;
+    background: repeating-linear-gradient(45deg, #cbd5e1, #cbd5e1 6px, #e2e8f0 6px, #e2e8f0 12px);
+}
+.tn-bar-current {
+    position: absolute; inset-inline-start: 0; top: 0; height: 100%;
+    background: var(--primary);
+    border-radius: 6px;
+    transition: width .4s ease;
+}
+.tn-bar-value { font-size: 0.85rem; font-weight: 600; text-align: center; }
+.tn-legend { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin-inline-start: 4px; }
+.tn-legend-required { background: repeating-linear-gradient(45deg, #cbd5e1, #cbd5e1 4px, #e2e8f0 4px, #e2e8f0 8px); }
+.tn-legend-current { background: var(--primary); }
+
+@media (max-width: 768px) {
+    .tn-bar-row { grid-template-columns: 110px 1fr 50px; }
+}
+
+/* بطاقة التوصية */
+.tn-reco {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+.tn-reco-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+
+/* الخط الزمني */
+.tn-timeline { position: relative; padding-inline-start: 2.25rem; }
+.tn-timeline::before {
+    content: ""; position: absolute; inset-inline-start: 18px; top: 4px; bottom: 4px;
+    width: 2px; background: var(--border);
+}
+.tn-timeline-item { position: relative; margin-bottom: 1.25rem; }
+.tn-timeline-item:last-child { margin-bottom: 0; }
+.tn-timeline-dot {
+    position: absolute; inset-inline-start: -2.25rem; top: 0;
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 0.9rem;
+}
+.tn-timeline-content {
+    background: var(--muted);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+}
+
+/* دورة PDCA */
+.tn-pdca {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+.tn-pdca-cell {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem;
+}
+.tn-pdca-letter { font-size: 1.5rem; font-weight: 800; display: block; line-height: 1; margin-bottom: 0.25rem; }

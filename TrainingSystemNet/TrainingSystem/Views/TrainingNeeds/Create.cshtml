@@ -1,0 +1,121 @@
+@model TrainingSystem.Controllers.TrainingNeedFormViewModel
+@{
+    ViewData["Title"] = "إضافة احتياج تدريبي";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">إضافة احتياج تدريبي</h4>
+        <p class="text-muted mb-0">سجّل احتياجاً تدريبياً لموظف في مهارة محددة</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-right me-2"></i> رجوع
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">اختر موظفاً من النظام (اختياري)</label>
+                    <select asp-for="EmployeeUserId" class="form-select" id="employeeSelect"
+                            asp-items="Model.Employees">
+                        <option value="">— إدخال يدوي —</option>
+                    </select>
+                    <small class="text-muted">عند الاختيار تُملأ بيانات الموظف تلقائياً.</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">اسم الموظف <span class="text-danger">*</span></label>
+                    <input asp-for="EmployeeName" class="form-control" id="employeeName" />
+                    <span asp-validation-for="EmployeeName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">الرقم الوظيفي</label>
+                    <input asp-for="EmployeeNumber" class="form-control" id="employeeNumber" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الدائرة <span class="text-danger">*</span></label>
+                    @if (!Model.IsPrivileged)
+                    {
+                        <input class="form-control" value="@Model.LockedDepartment" readonly />
+                        <input type="hidden" asp-for="Department" value="@Model.LockedDepartment" />
+                        <small class="text-muted">مقيّدة بدائرتك.</small>
+                    }
+                    else
+                    {
+                        <input asp-for="Department" class="form-control" id="department" />
+                        <span asp-validation-for="Department" class="text-danger"></span>
+                    }
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">المهارة <span class="text-danger">*</span></label>
+                    <input asp-for="SkillName" class="form-control" placeholder="مثال: إدارة المشاريع" />
+                    <span asp-validation-for="SkillName" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">التصنيف</label>
+                    <input asp-for="Category" class="form-control" placeholder="تقنية / سلوكية / قيادية" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">المستوى المطلوب <span class="text-danger">*</span></label>
+                    <select asp-for="RequiredLevel" class="form-select">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <option value="@i">@i</option>
+                        }
+                    </select>
+                    <span asp-validation-for="RequiredLevel" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">المستوى الحالي <span class="text-danger">*</span></label>
+                    <select asp-for="CurrentLevel" class="form-select">
+                        @for (int i = 0; i <= 5; i++)
+                        {
+                            <option value="@i">@i</option>
+                        }
+                    </select>
+                    <span asp-validation-for="CurrentLevel" class="text-danger"></span>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">ملاحظات</label>
+                    <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4 pt-3 border-top">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-2"></i> حفظ
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // ملء بيانات الموظف تلقائياً عند الاختيار من القائمة
+        (function () {
+            var select = document.getElementById('employeeSelect');
+            if (!select) return;
+            select.addEventListener('change', function () {
+                var text = this.options[this.selectedIndex].text;
+                var nameField = document.getElementById('employeeName');
+                if (this.value && text.indexOf('—') !== -1) {
+                    nameField.value = text.split('—')[0].trim();
+                } else if (this.value) {
+                    nameField.value = text.trim();
+                }
+            });
+        })();
+    </script>
+}
