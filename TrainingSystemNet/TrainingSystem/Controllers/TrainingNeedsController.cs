@@ -172,7 +172,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خا�������������� دائرته
+            // المشرف لا يضيف احتياجاً لموظف خا���������������� دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -474,6 +474,10 @@ namespace TrainingSystem.Controllers
                     .Select(u => u.FullName)
                     .FirstOrDefaultAsync();
             }
+
+            // حالة الميزانية المركزية للسنة المالية الحالية (للعرض ومقارنة تكلفة الطلب)
+            ViewBag.CurrentBudget = await GetOrmCurrentBudgetAsync();
+            ViewBag.NeedBudgetCost = GetNeedBudgetCost(need);
             return View(need);
         }
 
@@ -651,6 +655,29 @@ namespace TrainingSystem.Controllers
             }
 
             var actor = await _userManager.GetUserAsync(User);
+            var cost = GetNeedBudgetCost(need);
+            var budget = await GetOrmCurrentBudgetAsync();
+
+            // فحص الميزانية: إن تجاوزت التكلفة التقديرية المتبقي يُنقل الطلب لمراجعة الميزانية بدل الاعتماد المباشر
+            if (budget != null && cost > 0 && cost > budget.RemainingBudget)
+            {
+                need.ApprovalStatus = TrainingNeedApprovalStatus.BudgetReview;
+                need.HRUserId = actor?.Id;
+                need.HRActionAt = DateTime.Now;
+                need.HRComment = comment?.Trim();
+                AddHistory(need, need.ApprovalStatus,
+                    $"تجاوز التكلفة التقديرية ({cost:N0}) المتبقي من الميزانية ({budget.RemainingBudget:N0}) — يتطلب مراجعة الميزانية",
+                    comment, actor);
+
+                foreach (var hrId in await GetHRUserIdsAsync())
+                    NotificationHelper.Add(_context, hrId,
+                        $"احتياج يتجاوز الميزانية المتاحة ويتطلب مراجعة: {need.SkillName}",
+                        NotificationType.Warning, need.Id);
+
+                await _context.SaveChangesAsync();
+                TempData["Error"] = $"التكلفة التقديرية ({cost:N0}) تتجاوز المتبقي من الميزانية ({budget.RemainingBudget:N0}). تم نقل الطلب إلى مراجعة الميزانية.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
 
             need.ApprovalStatus = TrainingNeedApprovalStatus.HRApproved;
             need.HRUserId = actor?.Id;
@@ -659,7 +686,12 @@ namespace TrainingSystem.Controllers
             need.HRComment = comment?.Trim();
             need.Status = TrainingNeedStatus.InProgress;
 
-            // الموازنة مؤجّلة في المرحلة الحالية — لا يُخصم منها هنا
+            // ضمن الميزانية → التزام المبلغ التقديري على الموازنة المركزية
+            if (budget != null && cost > 0)
+            {
+                budget.CommittedBudget += cost;
+                budget.UpdatedAt = DateTime.Now;
+            }
 
             AddHistory(need, need.ApprovalStatus, "اعتماد دائرة التدريب (نهائي)", comment, actor);
 
@@ -671,6 +703,78 @@ namespace TrainingSystem.Controllers
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "تم اعتماد الاحتياج نهائياً";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // اعتماد نهائي رغم تجاوز الميزانية (تجاوز مخوّل) — من مرحلة مراجعة الميزانية
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> BudgetReviewApprove(int id, string? comment)
+        {
+            var need = await _context.TrainingNeeds.FindAsync(id);
+            if (need == null) return NotFound();
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.BudgetReview)
+            {
+                TempData["Error"] = "هذا الاحتياج ليس في مرحلة مراجعة الميزانية";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            var cost = GetNeedBudgetCost(need);
+            var budget = await GetOrmCurrentBudgetAsync();
+
+            need.ApprovalStatus = TrainingNeedApprovalStatus.HRApproved;
+            need.HRUserId = actor?.Id;
+            need.HRActionAt = DateTime.Now;
+            need.ApprovalDate = DateTime.Now;
+            need.HRComment = comment?.Trim();
+            need.Status = TrainingNeedStatus.InProgress;
+
+            if (budget != null && cost > 0)
+            {
+                budget.CommittedBudget += cost; // قد يتجاوز المخصص (متابعة فقط)
+                budget.UpdatedAt = DateTime.Now;
+            }
+
+            AddHistory(need, need.ApprovalStatus, "اعتماد نهائي رغم تجاوز الميزانية (تجاوز مخوّل)", comment, actor);
+
+            if (!string.IsNullOrEmpty(need.CreatedByUserId))
+                NotificationHelper.Add(_context, need.CreatedByUserId,
+                    $"تم اعتماد احتياجك نهائياً: {need.SkillName}", NotificationType.Success, need.Id);
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تم الاعتماد النهائي رغم تجاوز الميزانية";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // رفض الطلب في مرحلة مراجعة الميزانية
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> BudgetReviewReject(int id, string? comment)
+        {
+            var need = await _context.TrainingNeeds.FindAsync(id);
+            if (need == null) return NotFound();
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.BudgetReview)
+            {
+                TempData["Error"] = "هذا الاحتياج ليس في مرحلة مراجعة الميزانية";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            need.ApprovalStatus = TrainingNeedApprovalStatus.HRRejected;
+            need.HRUserId = actor?.Id;
+            need.HRActionAt = DateTime.Now;
+            need.HRComment = comment?.Trim();
+            AddHistory(need, need.ApprovalStatus, "رفض لتجاوز الميزانية", comment, actor);
+
+            if (!string.IsNullOrEmpty(need.CreatedByUserId))
+                NotificationHelper.Add(_context, need.CreatedByUserId,
+                    $"تم رفض احتياجك لتجاوز الميزانية: {need.SkillName}", NotificationType.Danger, need.Id);
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تم رفض الاحتياج";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -753,6 +857,20 @@ namespace TrainingSystem.Controllers
             var actor = await _userManager.GetUserAsync(User);
             need.ApprovalStatus = TrainingNeedApprovalStatus.TrainingCompleted;
             need.Status = TrainingNeedStatus.Completed;
+
+            // تسوية الميزانية: نقل المبلغ الملتزم به إلى المصروف الفعلي
+            var committed = GetNeedBudgetCost(need);
+            if (committed > 0)
+            {
+                var budget = await GetOrmCurrentBudgetAsync();
+                if (budget != null)
+                {
+                    var actual = need.ActualCost > 0 ? need.ActualCost : committed;
+                    budget.CommittedBudget = Math.Max(0, budget.CommittedBudget - committed);
+                    budget.ActualSpending += actual;
+                    budget.UpdatedAt = DateTime.Now;
+                }
+            }
 
             AddHistory(need, need.ApprovalStatus, "إنهاء التدريب", null, actor);
 
@@ -1429,6 +1547,10 @@ namespace TrainingSystem.Controllers
             return await _context.TrainingBudgets
                 .FirstOrDefaultAsync(b => b.FinancialYear == fy);
         }
+
+        // تكلفة الاحتياج المعتمدة لأغراض الميزانية (التقديرية أولاً ثم المخططة)
+        private static decimal GetNeedBudgetCost(TrainingNeed need)
+            => need.EstimatedCost > 0 ? need.EstimatedCost : need.PlannedCost;
 
         // يضمن اتساق سلسلة: البرنامج ← الدفعة. إن اختيرت دفعة، يُشتق برنامجها تلقائياً.
         private async Task AlignBatchToProgramAsync(TrainingNeed need)

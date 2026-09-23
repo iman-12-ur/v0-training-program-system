@@ -276,6 +276,22 @@
                     @if (isPrivileged)
                     {
                         <p class="small text-muted">بانتظار اعتماد دائرة التدريب.</p>
+                        @{
+                            var hrBudget = ViewBag.CurrentBudget as TrainingBudget;
+                            var hrCost = (decimal)(ViewBag.NeedBudgetCost ?? 0m);
+                        }
+                        @if (hrBudget != null && hrCost > 0)
+                        {
+                            var over = hrCost > hrBudget.RemainingBudget;
+                            <div class="alert @(over ? "alert-warning" : "alert-info") py-2 px-3 small mb-2">
+                                <i class="bi @(over ? "bi-exclamation-triangle" : "bi-info-circle") me-1"></i>
+                                التكلفة التقديرية @hrCost.ToString("N0") — المتبقي من الميزانية @hrBudget.RemainingBudget.ToString("N0")
+                                @if (over)
+                                {
+                                    <span class="fw-bold d-block mt-1">التكلفة تتجاوز المتاح؛ سيُنقل الطلب تلقائياً لمراجعة الميزانية.</span>
+                                }
+                            </div>
+                        }
                         <form asp-action="HRApprove" asp-route-id="@Model.Id" method="post" class="mb-2">
                             @Html.AntiForgeryToken()
                             <input name="comment" class="form-control form-control-sm mb-2" placeholder="تعليق (اختياري)" />
@@ -294,6 +310,41 @@
                     else
                     {
                         <p class="small text-muted mb-0">اعتمده المدير — بانتظار دائرة التدريب.</p>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview)
+                {
+                    <div class="alert alert-warning mb-2">
+                        <i class="bi bi-cash-coin me-1"></i> يتطلب مراجعة الميزانية
+                        @{
+                            var budget = ViewBag.CurrentBudget as TrainingBudget;
+                            var cost = (decimal)(ViewBag.NeedBudgetCost ?? 0m);
+                        }
+                        @if (budget != null)
+                        {
+                            <div class="small mt-1">التكلفة التقديرية: @cost.ToString("N0") — المتبقي من الميزانية: @budget.RemainingBudget.ToString("N0")</div>
+                        }
+                    </div>
+                    @if (isPrivileged)
+                    {
+                        <form asp-action="BudgetReviewApprove" asp-route-id="@Model.Id" method="post" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="مبرر التجاوز (اختياري)" />
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-check2-all me-1"></i> اعتماد رغم التجاوز
+                            </button>
+                        </form>
+                        <form asp-action="BudgetReviewReject" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="سبب الرفض" />
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-x-lg me-1"></i> رفض لتجاوز الميزانية
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="small text-muted mb-0">الطلب قيد مراجعة الميزانية لدى دائرة التدريب.</p>
                     }
                 }
                 else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.HRApproved)
