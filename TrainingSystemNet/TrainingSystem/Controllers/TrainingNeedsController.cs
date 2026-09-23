@@ -63,6 +63,29 @@ namespace TrainingSystem.Controllers
             var totalRequired = needs.Sum(n => n.RequiredLevel);
             var totalCurrent = needs.Sum(n => Math.Min(n.CurrentLevel, n.RequiredLevel));
 
+            // اقتراح البرنامج التدريبي الأنسب لكل احتياج من البرامج النشطة (قراءة فقط، دون أي تعديل على القاعدة)
+            var activePrograms = await _context.TrainingPrograms
+                .Where(p => p.Status == ProgramStatus.Active)
+                .Select(p => new { p.Title, p.Categories })
+                .ToListAsync();
+
+            var suggestions = new Dictionary<int, ProgramSuggestion>();
+            foreach (var n in needs)
+            {
+                suggestions[n.Id] = SuggestProgram(n, activePrograms.Select(p => (p.Title, p.Categories)).ToList());
+            }
+
+            // متوسط الفجوة لكل دائرة (لرسم الأعمدة)
+            var gapByDept = needs
+                .GroupBy(n => n.Department)
+                .Select(g => new DepartmentGap
+                {
+                    Department = g.Key,
+                    AverageGap = Math.Round(g.Average(x => (double)Math.Max(0, x.RequiredLevel - x.CurrentLevel)), 1)
+                })
+                .OrderByDescending(d => d.AverageGap)
+                .ToList();
+
             var vm = new TrainingNeedsIndexViewModel
             {
                 Needs = needs,
@@ -71,13 +94,16 @@ namespace TrainingSystem.Controllers
                     .Select(n => (n.EmployeeNumber ?? "") + "|" + n.EmployeeName)
                     .Distinct().Count(),
                 HighPriorityCount = needs.Count(n => n.Priority == TrainingNeedPriority.High),
+                InProgressCount = needs.Count(n => n.Status == TrainingNeedStatus.InProgress),
                 Readiness = totalRequired > 0
                     ? (int)Math.Round(100.0 * totalCurrent / totalRequired)
                     : 0,
                 IsPrivileged = IsPrivileged,
                 CurrentDepartment = IsPrivileged ? department : myDept,
                 Search = search,
-                Departments = await GetDepartmentsAsync()
+                Departments = await GetDepartmentsAsync(),
+                Suggestions = suggestions,
+                GapByDepartment = gapByDept
             };
 
             return View(vm);
@@ -517,6 +543,31 @@ namespace TrainingSystem.Controllers
             return rows;
         }
 
+        // مطابقة الاحتياج بأنسب برنامج: أولاً بالتصنيف ثم بالكلمات المفتاحية في العنوان
+        private static ProgramSuggestion SuggestProgram(TrainingNeed need, List<(string Title, string? Categories)> programs)
+        {
+            if (!string.IsNullOrWhiteSpace(need.Category))
+            {
+                var byCategory = programs.FirstOrDefault(p =>
+                    !string.IsNullOrWhiteSpace(p.Categories) &&
+                    p.Categories!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Any(c => string.Equals(c, need.Category, StringComparison.OrdinalIgnoreCase)));
+                if (byCategory.Title != null)
+                    return new ProgramSuggestion { Title = byCategory.Title, Matched = true };
+            }
+
+            var words = (need.SkillName ?? "")
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Where(w => w.Length > 2)
+                .ToList();
+            var byKeyword = programs.FirstOrDefault(p =>
+                words.Any(w => p.Title.Contains(w, StringComparison.OrdinalIgnoreCase)));
+            if (byKeyword.Title != null)
+                return new ProgramSuggestion { Title = byKeyword.Title, Matched = true };
+
+            return new ProgramSuggestion { Title = "لا يوجد برنامج مطابق — يُنصح بإضافة برنامج", Matched = false };
+        }
+
         private void Validate(TrainingNeedImportRow row)
         {
             row.Errors.Clear();
@@ -544,11 +595,26 @@ namespace TrainingSystem.Controllers
         public int TotalNeeds { get; set; }
         public int EmployeeCount { get; set; }
         public int HighPriorityCount { get; set; }
+        public int InProgressCount { get; set; }
         public int Readiness { get; set; }
         public bool IsPrivileged { get; set; }
         public string? CurrentDepartment { get; set; }
         public string? Search { get; set; }
         public List<string> Departments { get; set; } = new();
+        public Dictionary<int, ProgramSuggestion> Suggestions { get; set; } = new();
+        public List<DepartmentGap> GapByDepartment { get; set; } = new();
+    }
+
+    public class ProgramSuggestion
+    {
+        public string Title { get; set; } = string.Empty;
+        public bool Matched { get; set; }
+    }
+
+    public class DepartmentGap
+    {
+        public string Department { get; set; } = string.Empty;
+        public double AverageGap { get; set; }
     }
 
     public class TrainingNeedFormViewModel
