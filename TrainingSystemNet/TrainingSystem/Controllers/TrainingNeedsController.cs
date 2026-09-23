@@ -171,7 +171,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خار�������� دائرته
+            // المشرف لا يضيف احتياجاً لموظف خار���������� دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -839,6 +839,34 @@ namespace TrainingSystem.Controllers
 
             var needs = await query
                 .OrderByDescending(n => n.RequiredLevel - n.CurrentLevel)
+                .ThenBy(n => n.Department)
+                .ToListAsync();
+
+            ViewBag.IsPrivileged = IsPrivileged;
+            ViewBag.Departments = await GetDepartmentsAsync();
+            ViewBag.CurrentDepartment = IsPrivileged ? department : myDept;
+            return View(needs);
+        }
+
+        // البرامج التدريبية المرتبطة بالاحتياجات — عرض الاحتياجات المربوطة ببرامج/دفعات
+        [HttpGet]
+        public async Task<IActionResult> LinkedPrograms(string? department)
+        {
+            var actor = await _userManager.GetUserAsync(User);
+            var myDept = actor?.Department;
+
+            var query = _context.TrainingNeeds
+                .Include(n => n.LinkedTrainingProgram)
+                .Include(n => n.TrainingBatch)
+                    .ThenInclude(b => b!.TrainingProgram)
+                .Where(n => n.LinkedTrainingProgramId != null);
+            if (!IsPrivileged)
+                query = query.Where(n => n.Department == myDept);
+            else if (!string.IsNullOrWhiteSpace(department))
+                query = query.Where(n => n.Department == department);
+
+            var needs = await query
+                .OrderBy(n => n.LinkedTrainingProgram!.Title)
                 .ThenBy(n => n.Department)
                 .ToListAsync();
 

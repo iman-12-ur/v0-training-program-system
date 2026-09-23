@@ -82,31 +82,21 @@
                     var inTna = tnaController == "TrainingNeeds";
                 }
 
-                <div class="nav-section-label">تحليل الاحتياجات التدريبية</div>
+                <div class="nav-section-label">الاحتياجات التدريبية</div>
 
                 <a href="@Url.Action("Dashboard", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "Dashboard" ? "active" : "")">
                     <i class="bi bi-speedometer2"></i>
-                    <span>لوحة المؤشرات</span>
-                </a>
-
-                <a href="@Url.Action("Index", "Kpi")" class="nav-item @(tnaController == "Kpi" ? "active" : "")">
-                    <i class="bi bi-graph-up-arrow"></i>
-                    <span>محرك مؤشرات الأداء</span>
+                    <span>لوحة مؤشرات الاحتياجات التدريبية</span>
                 </a>
 
                 <a href="@Url.Action("Index", "TrainingNeeds")" class="nav-item @(inTna && (tnaAction == "Index" || tnaAction == "Create" || tnaAction == "Edit" || tnaAction == "Details") ? "active" : "")">
                     <i class="bi bi-clipboard-pulse"></i>
-                    <span>سجل الاحتياجات</span>
-                </a>
-
-                <a href="@Url.Action("Approvals", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "Approvals" ? "active" : "")">
-                    <i class="bi bi-check2-square"></i>
-                    <span>الاعتمادات</span>
+                    <span>طلبات الاحتياجات التدريبية</span>
                 </a>
 
                 <a href="@Url.Action("GapAnalysis", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "GapAnalysis" ? "active" : "")">
                     <i class="bi bi-graph-down-arrow"></i>
-                    <span>تحليل الفجوات</span>
+                    <span>تحليل الفجوات المهارية</span>
                 </a>
 
                 <a href="@Url.Action("SkillsMatrix", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "SkillsMatrix" ? "active" : "")">
@@ -116,14 +106,26 @@
 
                 <a href="@Url.Action("Priorities", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "Priorities" ? "active" : "")">
                     <i class="bi bi-exclamation-triangle"></i>
-                    <span>الأولويات العالية</span>
+                    <span>الأولويات</span>
+                </a>
+
+                <a href="@Url.Action("Approvals", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "Approvals" ? "active" : "")">
+                    <i class="bi bi-check2-square"></i>
+                    <span>الاعتمادات</span>
+                </a>
+
+                @* الميزانية — مؤجّلة في المرحلة الحالية *@
+
+                <a href="@Url.Action("LinkedPrograms", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "LinkedPrograms" ? "active" : "")">
+                    <i class="bi bi-diagram-3"></i>
+                    <span>البرامج التدريبية المرتبطة بالاحتياجات</span>
                 </a>
 
                 @* تقييم أثر التدريب — مؤجّل في المرحلة الحالية *@
 
                 <a href="@Url.Action("Reports", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "Reports" ? "active" : "")">
                     <i class="bi bi-file-earmark-bar-graph"></i>
-                    <span>تقارير الاحتياجات</span>
+                    <span>التقارير</span>
                 </a>
 
                 @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
