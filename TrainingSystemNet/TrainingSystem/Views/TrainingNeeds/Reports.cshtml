@@ -1,3 +1,4 @@
+@using TrainingSystem.Models
 @model TrainingSystem.Controllers.TnaReportsViewModel
 @{
     ViewData["Title"] = "تقارير الاحتياجات التدريبية";
@@ -6,10 +7,10 @@
     if (maxSkill < 1) maxSkill = 1;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 no-print">
     <div>
         <h4 class="fw-bold mb-1">تقارير الاحتياجات التدريبية</h4>
-        <p class="text-muted mb-0">ملخصات تحليلية حسب الدائرة والتصنيف والمهارة</p>
+        <p class="text-muted mb-0">ملخصات تحليلية شاملة حسب الدائرة والتصنيف والمهارة والميزانية والأثر</p>
     </div>
     <div class="d-flex gap-2">
         @if (Model.IsPrivileged)
@@ -27,6 +28,39 @@
         <a asp-action="ExportNeeds" asp-route-department="@Model.CurrentDepartment" class="btn btn-sm btn-success">
             <i class="bi bi-file-earmark-excel me-1"></i> تصدير Excel
         </a>
+        <button type="button" class="btn btn-sm btn-danger" onclick="window.print()">
+            <i class="bi bi-file-earmark-pdf me-1"></i> تصدير PDF / طباعة
+        </button>
+    </div>
+</div>
+
+<div class="print-header d-none">
+    <h4 class="fw-bold mb-0">تقارير الاحتياجات التدريبية</h4>
+    <div class="small text-muted">
+        @(string.IsNullOrWhiteSpace(Model.CurrentDepartment) ? "كل الدوائر" : Model.CurrentDepartment)
+        — تاريخ الإصدار: @DateTime.Now.ToString("yyyy/MM/dd")
+    </div>
+    <hr />
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small">إجمالي الاحتياجات</div>
+            <div class="h3 fw-bold mb-0">@Model.TotalNeeds</div>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small">إجمالي التكلفة التقديرية</div>
+            <div class="h3 fw-bold mb-0">@Model.TotalEstimatedCost.ToString("N0")</div>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small">احتياجات الامتثال الإلزامية</div>
+            <div class="h3 fw-bold mb-0 text-danger">@Model.ComplianceNeeds</div>
+        </div></div>
     </div>
 </div>
 
@@ -126,3 +160,179 @@
         </div>
     </div>
 </div>
+
+<div class="row g-3 mt-1">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">التوزيع حسب الأولوية</h6></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>الأولوية</th><th class="text-center">العدد</th></tr></thead>
+                    <tbody>
+                        @if (!Model.ByPriority.Any())
+                        {
+                            <tr><td colspan="2" class="text-center text-muted py-4">لا توجد بيانات</td></tr>
+                        }
+                        @foreach (var p in Model.ByPriority)
+                        {
+                            <tr>
+                                <td><span class="badge bg-@p.Color">@p.Label</span></td>
+                                <td class="text-center fw-bold">@p.Count</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">التوزيع حسب حالة الاعتماد</h6></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>الحالة</th><th class="text-center">العدد</th></tr></thead>
+                    <tbody>
+                        @if (!Model.ByStatus.Any())
+                        {
+                            <tr><td colspan="2" class="text-center text-muted py-4">لا توجد بيانات</td></tr>
+                        }
+                        @foreach (var s in Model.ByStatus)
+                        {
+                            <tr>
+                                <td><span class="badge bg-@s.Color">@s.Label</span></td>
+                                <td class="text-center fw-bold">@s.Count</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header bg-white"><h6 class="fw-bold mb-0">التكلفة التقديرية حسب الدائرة</h6></div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>الدائرة</th><th class="text-center">الاحتياجات</th><th class="text-center">التكلفة التقديرية</th></tr></thead>
+            <tbody>
+                @if (!Model.CostByDepartment.Any())
+                {
+                    <tr><td colspan="3" class="text-center text-muted py-4">لا توجد بيانات</td></tr>
+                }
+                @foreach (var c in Model.CostByDepartment)
+                {
+                    <tr>
+                        <td class="fw-semibold">@c.Department</td>
+                        <td class="text-center">@c.NeedsCount</td>
+                        <td class="text-center">@c.EstimatedCost.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (Model.BudgetCompliance.Any())
+{
+    <div class="card mt-3">
+        <div class="card-header bg-white"><h6 class="fw-bold mb-0">الالتزام بالميزانية</h6></div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>الدائرة</th><th class="text-center">المخصص</th><th class="text-center">الملتزم</th>
+                        <th class="text-center">الفعلي</th><th class="text-center">المتبقي</th><th style="min-width:140px;">نسبة الاستهلاك</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in Model.BudgetCompliance)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@b.Department</td>
+                            <td class="text-center">@b.Allocated.ToString("N0")</td>
+                            <td class="text-center">@b.Committed.ToString("N0")</td>
+                            <td class="text-center">@b.Actual.ToString("N0")</td>
+                            <td class="text-center @(b.Remaining < 0 ? "text-danger fw-bold" : "")">@b.Remaining.ToString("N0")</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 8px;">
+                                        <div class="progress-bar @(b.Utilization >= 90 ? "bg-danger" : b.Utilization >= 70 ? "bg-warning" : "bg-success")" style="width: @Math.Min(b.Utilization, 100)%"></div>
+                                    </div>
+                                    <span class="small fw-bold">@b.Utilization%</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (Model.ImpactResults.Any())
+{
+    <div class="card mt-3">
+        <div class="card-header bg-white"><h6 class="fw-bold mb-0">نتائج تقييم الأثر</h6></div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>نوع التقييم</th><th class="text-center">مكتمل</th><th class="text-center">قيد الانتظار</th>
+                        <th class="text-center">متوسط الدرجة (من 5)</th><th class="text-center">متوسط التحسّن %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var i in Model.ImpactResults)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@i.Type</td>
+                            <td class="text-center">@i.Completed</td>
+                            <td class="text-center">@i.Pending</td>
+                            <td class="text-center">@i.AverageScore</td>
+                            <td class="text-center text-success fw-bold">@i.AverageImprovement%</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="card mt-3 mb-4">
+    <div class="card-header bg-white"><h6 class="fw-bold mb-0">أعلى 10 فجوات على مستوى الموظف</h6></div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>الموظف</th><th>الدائرة</th><th>المهارة</th><th class="text-center">الفجوة</th><th class="text-center">درجة الأولوية</th></tr>
+            </thead>
+            <tbody>
+                @if (!Model.TopEmployeeGaps.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">لا توجد بيانات</td></tr>
+                }
+                @foreach (var g in Model.TopEmployeeGaps)
+                {
+                    <tr>
+                        <td class="fw-semibold">@g.EmployeeName</td>
+                        <td>@g.Department</td>
+                        <td>@g.SkillName</td>
+                        <td class="text-center"><span class="badge bg-danger-subtle text-danger">@g.Gap</span></td>
+                        <td class="text-center">@g.PriorityScore</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    @@media print {
+        .sidebar, .no-print, form, .btn { display: none !important; }
+        .print-header { display: block !important; }
+        .main-content, main, body { margin: 0 !important; padding: 0 !important; }
+        .card { break-inside: avoid; box-shadow: none !important; border: 1px solid #ddd !important; }
+        a[href]:after { content: none !important; }
+    }
+</style>

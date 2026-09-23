@@ -171,7 +171,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خارج دائرته
+            // المشرف لا يضيف احتياجاً لموظف خار�� دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -346,7 +346,7 @@ namespace TrainingSystem.Controllers
             need.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-            TempData["Success"] = "تم تحديث الاحتياج التدريبي بنجاح";
+            TempData["Success"] = "تم تحديث الاحتياج التدريب�� بنجاح";
             return RedirectToAction(nameof(Index));
         }
 
@@ -666,7 +666,7 @@ namespace TrainingSystem.Controllers
                 }
             }
 
-            // إنشاء تقييم أثر مباشر + تقييم بعد 90 يوماً (إن لم يوجدا)
+            // إن��اء تقييم أثر مباشر + تقييم بعد 90 يوماً (إن لم يوجدا)
             if (!need.ImpactAssessments.Any(a => a.AssessmentType == ImpactAssessmentType.PostTraining))
             {
                 _context.TrainingImpactAssessments.Add(new TrainingImpactAssessment
@@ -1005,7 +1005,7 @@ namespace TrainingSystem.Controllers
             var validRows = new List<TrainingNeedImportRow>();
             foreach (var row in rows)
             {
-                // المشرف: تُفرض دائرته على كل صف (لا يستورد لدوائر أخرى)
+                // المشرف: تُفرض دائرته على كل صف (لا يستورد ��دوائر أخرى)
                 if (!IsPrivileged) row.Department = myDept;
                 Validate(row);
                 if (row.IsValid) validRows.Add(row);
@@ -1116,11 +1116,110 @@ namespace TrainingSystem.Controllers
                 .Take(10)
                 .ToList();
 
+            // توزيع حسب الأولوية
+            var byPriority = needs
+                .GroupBy(n => n.Priority)
+                .Select(g => new LabelCountRow
+                {
+                    Label = TrainingNeed.GetPriorityDisplayName(g.Key),
+                    Count = g.Count(),
+                    Color = TrainingNeed.GetPriorityBadge(g.Key)
+                })
+                .OrderByDescending(r => r.Count)
+                .ToList();
+
+            // توزيع حسب حالة الاعتماد
+            var byStatus = needs
+                .GroupBy(n => n.ApprovalStatus)
+                .Select(g => new LabelCountRow
+                {
+                    Label = TrainingNeed.GetApprovalStatusDisplayName(g.Key),
+                    Count = g.Count(),
+                    Color = TrainingNeed.GetApprovalStatusBadge(g.Key)
+                })
+                .OrderByDescending(r => r.Count)
+                .ToList();
+
+            // التكلفة التقديرية حسب الدائرة
+            var costByDept = needs
+                .GroupBy(n => n.Department)
+                .Select(g => new CostReportRow
+                {
+                    Department = g.Key,
+                    NeedsCount = g.Count(),
+                    EstimatedCost = g.Sum(x => x.EstimatedCost)
+                })
+                .OrderByDescending(r => r.EstimatedCost)
+                .ToList();
+
+            // أعلى الفجوات على مستوى الموظف
+            var topGaps = needs
+                .Select(n => new EmployeeGapRow
+                {
+                    EmployeeName = n.EmployeeName,
+                    Department = n.Department,
+                    SkillName = n.SkillName,
+                    Gap = Math.Max(0, n.RequiredLevel - n.CurrentLevel),
+                    PriorityScore = n.PriorityScore
+                })
+                .OrderByDescending(r => r.Gap)
+                .ThenByDescending(r => r.PriorityScore)
+                .Take(10)
+                .ToList();
+
+            // الالتزام بالميزانية (كل الميزانيات المعرّفة أو دائرة محددة)
+            var budgetQuery = _context.TrainingBudgets.AsQueryable();
+            if (!IsPrivileged)
+                budgetQuery = budgetQuery.Where(b => b.Department == myDept);
+            else if (!string.IsNullOrWhiteSpace(department))
+                budgetQuery = budgetQuery.Where(b => b.Department == department);
+            var budgetCompliance = await budgetQuery
+                .OrderBy(b => b.Department)
+                .Select(b => new BudgetComplianceRow
+                {
+                    Department = b.Department,
+                    Allocated = b.AllocatedBudget,
+                    Committed = b.CommittedBudget,
+                    Actual = b.ActualSpending
+                })
+                .ToListAsync();
+
+            // نتائج تقييم الأثر
+            var impactQuery = _context.TrainingImpactAssessments
+                .Include(a => a.TrainingNeed)
+                .AsQueryable();
+            if (!IsPrivileged)
+                impactQuery = impactQuery.Where(a => a.TrainingNeed!.Department == myDept);
+            else if (!string.IsNullOrWhiteSpace(department))
+                impactQuery = impactQuery.Where(a => a.TrainingNeed!.Department == department);
+            var assessments = await impactQuery.ToListAsync();
+            var impactResults = assessments
+                .GroupBy(a => a.AssessmentType)
+                .Select(g => new ImpactResultRow
+                {
+                    Type = TrainingImpactAssessment.GetTypeDisplayName(g.Key),
+                    Completed = g.Count(x => x.IsCompleted),
+                    Pending = g.Count(x => !x.IsCompleted),
+                    AverageScore = g.Any(x => x.IsCompleted)
+                        ? Math.Round(g.Where(x => x.IsCompleted).Average(x => x.AverageScore), 1) : 0,
+                    AverageImprovement = g.Any(x => x.IsCompleted)
+                        ? Math.Round(g.Where(x => x.IsCompleted).Average(x => (double)x.ImprovementPercent), 1) : 0
+                })
+                .ToList();
+
             var vm = new TnaReportsViewModel
             {
                 ByDepartment = byDept,
                 ByCategory = byCategory,
                 TopSkills = topSkills,
+                ByPriority = byPriority,
+                ByStatus = byStatus,
+                CostByDepartment = costByDept,
+                BudgetCompliance = budgetCompliance,
+                ImpactResults = impactResults,
+                TopEmployeeGaps = topGaps,
+                ComplianceNeeds = needs.Count(n => n.IsCompliance),
+                TotalEstimatedCost = needs.Sum(n => n.EstimatedCost),
                 TotalNeeds = needs.Count,
                 IsPrivileged = IsPrivileged,
                 CurrentDepartment = IsPrivileged ? department : myDept
@@ -1537,11 +1636,62 @@ namespace TrainingSystem.Controllers
         public double AverageGap { get; set; }
     }
 
+    public class LabelCountRow
+    {
+        public string Label { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public string Color { get; set; } = "secondary";
+    }
+
+    public class CostReportRow
+    {
+        public string Department { get; set; } = string.Empty;
+        public int NeedsCount { get; set; }
+        public decimal EstimatedCost { get; set; }
+    }
+
+    public class BudgetComplianceRow
+    {
+        public string Department { get; set; } = string.Empty;
+        public decimal Allocated { get; set; }
+        public decimal Committed { get; set; }
+        public decimal Actual { get; set; }
+        public decimal Remaining => Allocated - Committed - Actual;
+        public int Utilization => Allocated > 0
+            ? (int)Math.Round(100m * (Committed + Actual) / Allocated) : 0;
+    }
+
+    public class ImpactResultRow
+    {
+        public string Type { get; set; } = string.Empty;
+        public int Completed { get; set; }
+        public int Pending { get; set; }
+        public double AverageScore { get; set; }
+        public double AverageImprovement { get; set; }
+    }
+
+    public class EmployeeGapRow
+    {
+        public string EmployeeName { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public string SkillName { get; set; } = string.Empty;
+        public int Gap { get; set; }
+        public int PriorityScore { get; set; }
+    }
+
     public class TnaReportsViewModel
     {
         public List<DepartmentReportRow> ByDepartment { get; set; } = new();
         public List<CategoryReportRow> ByCategory { get; set; } = new();
         public List<SkillReportRow> TopSkills { get; set; } = new();
+        public List<LabelCountRow> ByPriority { get; set; } = new();
+        public List<LabelCountRow> ByStatus { get; set; } = new();
+        public List<CostReportRow> CostByDepartment { get; set; } = new();
+        public List<BudgetComplianceRow> BudgetCompliance { get; set; } = new();
+        public List<ImpactResultRow> ImpactResults { get; set; } = new();
+        public List<EmployeeGapRow> TopEmployeeGaps { get; set; } = new();
+        public int ComplianceNeeds { get; set; }
+        public decimal TotalEstimatedCost { get; set; }
         public int TotalNeeds { get; set; }
         public bool IsPrivileged { get; set; }
         public string? CurrentDepartment { get; set; }

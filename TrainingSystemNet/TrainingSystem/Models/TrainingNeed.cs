@@ -214,6 +214,13 @@ namespace TrainingSystem.Models
             _ => "منخفضة"
         };
 
+        public static string GetPriorityBadge(TrainingNeedPriority p) => p switch
+        {
+            TrainingNeedPriority.High => "danger",
+            TrainingNeedPriority.Medium => "warning",
+            _ => "success"
+        };
+
         public static string GetStatusDisplayName(TrainingNeedStatus s) => s switch
         {
             TrainingNeedStatus.InProgress => "قيد المعالجة",
