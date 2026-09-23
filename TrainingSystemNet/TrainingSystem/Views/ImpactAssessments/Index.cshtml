@@ -75,7 +75,16 @@ else
                             <td>
                                 @if (a.IsCompleted)
                                 {
-                                    <span class="badge bg-@(a.ImprovementPercent >= 0 ? "success" : "danger")">@a.ImprovementPercent%</span>
+                                    var impClr = a.Improvement > 0 ? "success" : (a.Improvement < 0 ? "danger" : "secondary");
+                                    <span class="badge bg-@impClr">@(a.Improvement > 0 ? "+" : "")@a.Improvement</span>
+                                    @if (a.HasImprovementPercent)
+                                    {
+                                        <span class="small text-@impClr ms-1">(@(a.ImprovementPercent > 0 ? "+" : "")@a.ImprovementPercent%)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="small text-muted ms-1" title="لا تُحسب النسبة عندما يكون تقييم ما قبل التدريب = 0">(النسبة غير متاحة)</span>
+                                    }
                                 }
                                 else
                                 {

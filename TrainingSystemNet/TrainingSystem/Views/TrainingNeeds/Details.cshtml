@@ -133,31 +133,78 @@
                     <ul class="list-unstyled mb-0">
                         @foreach (var a in Model.ImpactAssessments.OrderBy(x => x.AssessmentType))
                         {
-                            <li class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom">
-                                <div>
-                                    <div class="fw-semibold">@TrainingImpactAssessment.GetTypeDisplayName(a.AssessmentType)</div>
-                                    <div class="small text-muted">الاستحقاق: @(a.DueDate?.ToString("yyyy/MM/dd") ?? "—")</div>
-                                </div>
-                                <div class="text-end">
-                                    @if (a.IsCompleted)
-                                    {
-                                        <span class="badge bg-success">@a.AverageScore / 5</span>
-                                        <div class="small text-muted">تحسّن @a.ImprovementPercent%</div>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">قيد الانتظار</span>
-                                        @if (isPrivileged || User.IsInRole("Supervisor"))
+                            <li class="pb-3 mb-3 border-bottom">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <div class="fw-semibold">@TrainingImpactAssessment.GetTypeDisplayName(a.AssessmentType)</div>
+                                        <div class="small text-muted">الاستحقاق: @(a.DueDate?.ToString("yyyy/MM/dd") ?? "—")</div>
+                                    </div>
+                                    <div class="text-end">
+                                        @if (a.IsCompleted)
                                         {
-                                            <div class="mt-1">
-                                                <a asp-controller="ImpactAssessments" asp-action="Complete" asp-route-id="@a.Id"
-                                                   class="btn btn-sm btn-outline-primary py-0 px-2">
-                                                    <i class="bi bi-pencil-square me-1"></i> تعبئة
-                                                </a>
-                                            </div>
+                                            <span class="badge bg-success">متوسط المحاور @a.AverageScore / 5</span>
                                         }
-                                    }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">قيد الانتظار</span>
+                                            @if (isPrivileged || User.IsInRole("Supervisor"))
+                                            {
+                                                <div class="mt-1">
+                                                    <a asp-controller="ImpactAssessments" asp-action="Complete" asp-route-id="@a.Id"
+                                                       class="btn btn-sm btn-outline-primary py-0 px-2">
+                                                        <i class="bi bi-pencil-square me-1"></i> تعبئة
+                                                    </a>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
                                 </div>
+
+                                @if (a.IsCompleted)
+                                {
+                                    <!-- مقارنة قبل/بعد التدريب -->
+                                    <div class="row g-2 text-center align-items-center">
+                                        <div class="col">
+                                            <div class="border rounded p-2 bg-light h-100">
+                                                <div class="small text-muted">قبل التدريب</div>
+                                                <div class="fs-4 fw-bold text-secondary">@a.BeforeScore<span class="fs-6 text-muted">/5</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="bi bi-arrow-left-circle fs-4 text-primary"></i>
+                                        </div>
+                                        <div class="col">
+                                            <div class="border rounded p-2 bg-light h-100">
+                                                <div class="small text-muted">بعد التدريب</div>
+                                                <div class="fs-4 fw-bold text-primary">@a.AfterScore<span class="fs-6 text-muted">/5</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            @{
+                                                var impColor = a.Improvement > 0 ? "success" : (a.Improvement < 0 ? "danger" : "secondary");
+                                                var impIcon = a.Improvement > 0 ? "bi-graph-up-arrow" : (a.Improvement < 0 ? "bi-graph-down-arrow" : "bi-dash");
+                                            }
+                                            <div class="border rounded p-2 bg-@impColor bg-opacity-10 h-100">
+                                                <div class="small text-muted">التحسّن</div>
+                                                <div class="fs-5 fw-bold text-@impColor">
+                                                    <i class="bi @impIcon me-1"></i>@(a.Improvement > 0 ? "+" : "")@a.Improvement
+                                                </div>
+                                                @if (a.HasImprovementPercent)
+                                                {
+                                                    <div class="small text-@impColor fw-semibold">@(a.ImprovementPercent > 0 ? "+" : "")@a.ImprovementPercent%</div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="small text-muted" title="لا تُحسب النسبة عندما يكون تقييم ما قبل التدريب = 0">النسبة غير متاحة</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(a.ManagerNotes))
+                                    {
+                                        <div class="small text-muted mt-2"><i class="bi bi-chat-left-text me-1"></i>@a.ManagerNotes</div>
+                                    }
+                                }
                             </li>
                         }
                     </ul>
@@ -242,7 +289,7 @@
         <partial name="_ApprovalWorkflow" model="Model" />
 
         <div class="card">
-            <div class="card-header bg-white"><h6 class="fw-bold mb-0">إجراءات الاعتماد</h6></div>
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">إجراءات الاعتم��د</h6></div>
             <div class="card-body">
                 @if (Model.ApprovalStatus == TrainingNeedApprovalStatus.Draft ||
                      Model.ApprovalStatus == TrainingNeedApprovalStatus.ManagerRejected ||

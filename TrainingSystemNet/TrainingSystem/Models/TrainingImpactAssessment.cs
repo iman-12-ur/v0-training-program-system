@@ -79,11 +79,19 @@ namespace TrainingSystem.Models
             Math.Round((KnowledgeApplication + SkillImprovement + WorkImpact +
                         ErrorReduction + ProductivityGain + ApplicationAbility) / 6.0, 1);
 
-        // نسبة التحسّن قبل/بعد (تتجنب القسمة على صفر)
+        // الفرق المطلق قبل/بعد: Improvement = AfterScore - BeforeScore
         [NotMapped]
-        public int ImprovementPercent => BeforeScore > 0
+        public int Improvement => AfterScore - BeforeScore;
+
+        // هل يمكن حساب النسبة؟ (لا تُحسب إذا BeforeScore = 0)
+        [NotMapped]
+        public bool HasImprovementPercent => BeforeScore > 0;
+
+        // نسبة التحسّن قبل/بعد = ((After - Before) ÷ Before) × 100 — تتجنب القسمة على صفر
+        [NotMapped]
+        public int ImprovementPercent => HasImprovementPercent
             ? (int)Math.Round(100.0 * (AfterScore - BeforeScore) / BeforeScore)
-            : (AfterScore > 0 ? 100 : 0);
+            : 0;
 
         public static string GetTypeDisplayName(ImpactAssessmentType t) => t switch
         {
