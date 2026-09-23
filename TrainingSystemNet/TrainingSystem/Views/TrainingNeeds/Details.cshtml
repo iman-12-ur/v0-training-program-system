@@ -1,0 +1,168 @@
+@model TrainingSystem.Models.TrainingNeed
+@using TrainingSystem.Models
+@{
+    ViewData["Title"] = "تفاصيل الاحتياج التدريبي";
+    var isPrivileged = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+    var readiness = Model.RequiredLevel > 0
+        ? (int)Math.Round(100.0 * Math.Min(Model.CurrentLevel, Model.RequiredLevel) / Model.RequiredLevel) : 0;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">تفاصيل الاحتياج التدريبي</h4>
+        <p class="text-muted mb-0">@Model.EmployeeName — @Model.SkillName</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i> تعديل
+        </a>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-right me-1"></i> رجوع
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">بيانات الاحتياج</h6>
+                <span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(Model.ApprovalStatus) fs-6">
+                    @TrainingNeed.GetApprovalStatusDisplayName(Model.ApprovalStatus)
+                </span>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3 text-muted">اسم الموظف</dt><dd class="col-sm-3">@Model.EmployeeName</dd>
+                    <dt class="col-sm-3 text-muted">الرقم الوظيفي</dt><dd class="col-sm-3">@(Model.EmployeeNumber ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">المسمى الوظيفي</dt><dd class="col-sm-3">@(Model.JobTitle ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">الدرجة</dt><dd class="col-sm-3">@(Model.Grade ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">الدائرة</dt><dd class="col-sm-3">@Model.Department</dd>
+                    <dt class="col-sm-3 text-muted">التصنيف</dt><dd class="col-sm-3">@(Model.Category ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">المهارة</dt><dd class="col-sm-9">@Model.SkillName</dd>
+
+                    <dt class="col-sm-3 text-muted">الفترة المقترحة</dt><dd class="col-sm-3">@(Model.SuggestedTimeframe ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">تاريخ الإنشاء</dt><dd class="col-sm-3">@Model.CreatedAt.ToString("yyyy/MM/dd")</dd>
+
+                    <dt class="col-sm-3 text-muted">مبرر الاحتياج</dt><dd class="col-sm-9">@(Model.Justification ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">ملاحظات</dt><dd class="col-sm-9">@(Model.Notes ?? "—")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">سجل مراحل الاعتماد</h6></div>
+            <div class="card-body">
+                @if (!Model.StatusHistory.Any())
+                {
+                    <p class="text-muted mb-0">لا يوجد سجل بعد.</p>
+                }
+                else
+                {
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var h in Model.StatusHistory.OrderByDescending(x => x.ActionAt))
+                        {
+                            <li class="d-flex gap-3 pb-3 mb-3 border-bottom">
+                                <div><span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(h.Status) rounded-pill">&nbsp;</span></div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">@h.Action</div>
+                                    @if (!string.IsNullOrWhiteSpace(h.Comment))
+                                    {
+                                        <div class="small text-muted">@h.Comment</div>
+                                    }
+                                    <div class="small text-muted">
+                                        @(h.ActionByName ?? "—") · @h.ActionAt.ToString("yyyy/MM/dd HH:mm")
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-2">مستوى الجاهزية للمهارة</div>
+                <div class="fs-1 fw-bold text-primary">@readiness%</div>
+                <div class="progress my-2" style="height: 10px;">
+                    <div class="progress-bar bg-primary" style="width: @readiness%"></div>
+                </div>
+                <div class="d-flex justify-content-around mt-3">
+                    <div><div class="fw-bold">@Model.CurrentLevel</div><div class="small text-muted">الحالي</div></div>
+                    <div><div class="fw-bold">@Model.RequiredLevel</div><div class="small text-muted">المطلوب</div></div>
+                    <div><div class="fw-bold text-danger">@Model.Gap</div><div class="small text-muted">الفجوة</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">إجراءات الاعتماد</h6></div>
+            <div class="card-body">
+                @if (Model.ApprovalStatus == TrainingNeedApprovalStatus.Draft ||
+                     Model.ApprovalStatus == TrainingNeedApprovalStatus.ManagerRejected ||
+                     Model.ApprovalStatus == TrainingNeedApprovalStatus.HRRejected)
+                {
+                    <form asp-action="Submit" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-send me-1"></i> إرسال لاعتماد المدير
+                        </button>
+                    </form>
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.SubmittedToManager)
+                {
+                    <p class="small text-muted">بانتظار اعتماد المدير المباشر.</p>
+                    <form asp-action="ManagerApprove" asp-route-id="@Model.Id" method="post" class="mb-2">
+                        @Html.AntiForgeryToken()
+                        <input name="comment" class="form-control form-control-sm mb-2" placeholder="تعليق (اختياري)" />
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-check-lg me-1"></i> اعتماد المدير
+                        </button>
+                    </form>
+                    <form asp-action="ManagerReject" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <input name="comment" class="form-control form-control-sm mb-2" placeholder="سبب الرفض" />
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-x-lg me-1"></i> رفض
+                        </button>
+                    </form>
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved)
+                {
+                    @if (isPrivileged)
+                    {
+                        <p class="small text-muted">بانتظار اعتماد الموارد البشرية.</p>
+                        <form asp-action="HRApprove" asp-route-id="@Model.Id" method="post" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="تعليق (اختياري)" />
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-check2-all me-1"></i> اعتماد الموارد البشرية
+                            </button>
+                        </form>
+                        <form asp-action="HRReject" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="سبب الرفض" />
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-x-lg me-1"></i> رفض
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="small text-muted mb-0">اعتمده المدير — بانتظار الموارد البشرية.</p>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.HRApproved)
+                {
+                    <div class="alert alert-success mb-0"><i class="bi bi-check-circle me-1"></i> معتمد نهائياً</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

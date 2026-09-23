@@ -1,0 +1,128 @@
+@model TrainingSystem.Controllers.TnaReportsViewModel
+@{
+    ViewData["Title"] = "تقارير الاحتياجات التدريبية";
+    var departments = ViewBag.Departments as List<string> ?? new List<string>();
+    int maxSkill = Model.TopSkills.Any() ? Model.TopSkills.Max(s => s.NeedsCount) : 1;
+    if (maxSkill < 1) maxSkill = 1;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">تقارير الاحتياجات التدريبية</h4>
+        <p class="text-muted mb-0">ملخصات تحليلية حسب الدائرة والتصنيف والمهارة</p>
+    </div>
+    <div class="d-flex gap-2">
+        @if (Model.IsPrivileged)
+        {
+            <form method="get">
+                <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">كل الدوائر</option>
+                    @foreach (var d in departments)
+                    {
+                        <option value="@d" selected="@(d == Model.CurrentDepartment)">@d</option>
+                    }
+                </select>
+            </form>
+        }
+        <a asp-action="ExportNeeds" asp-route-department="@Model.CurrentDepartment" class="btn btn-sm btn-success">
+            <i class="bi bi-file-earmark-excel me-1"></i> تصدير Excel
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-white"><h6 class="fw-bold mb-0">التقرير حسب الدائرة</h6></div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>الدائرة</th>
+                    <th class="text-center">الاحتياجات</th>
+                    <th class="text-center">الموظفون</th>
+                    <th class="text-center">أولوية عالية</th>
+                    <th class="text-center">متوسط الفجوة</th>
+                    <th style="min-width: 140px;">الجاهزية</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.ByDepartment.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">لا توجد بيانات</td></tr>
+                }
+                @foreach (var r in Model.ByDepartment)
+                {
+                    <tr>
+                        <td class="fw-semibold">@r.Department</td>
+                        <td class="text-center">@r.NeedsCount</td>
+                        <td class="text-center">@r.EmployeeCount</td>
+                        <td class="text-center"><span class="badge bg-danger-subtle text-danger">@r.HighPriority</span></td>
+                        <td class="text-center">@r.AverageGap</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 8px;">
+                                    <div class="progress-bar @(r.Readiness >= 80 ? "bg-success" : r.Readiness >= 50 ? "bg-warning" : "bg-danger")" style="width: @r.Readiness%"></div>
+                                </div>
+                                <span class="small fw-bold">@r.Readiness%</span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">التقرير حسب التصنيف</h6></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th>التصنيف</th><th class="text-center">الاحتياجات</th><th class="text-center">أولوية عالية</th><th class="text-center">متوسط الفجوة</th></tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.ByCategory.Any())
+                        {
+                            <tr><td colspan="4" class="text-center text-muted py-4">لا توجد تصنيفات</td></tr>
+                        }
+                        @foreach (var c in Model.ByCategory)
+                        {
+                            <tr>
+                                <td>@c.Category</td>
+                                <td class="text-center">@c.NeedsCount</td>
+                                <td class="text-center">@c.HighPriority</td>
+                                <td class="text-center">@c.AverageGap</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">أكثر 10 مهارات طلباً</h6></div>
+            <div class="card-body">
+                @if (!Model.TopSkills.Any())
+                {
+                    <p class="text-muted mb-0">لا توجد بيانات</p>
+                }
+                @foreach (var s in Model.TopSkills)
+                {
+                    var pct = (int)Math.Round(100.0 * s.NeedsCount / maxSkill);
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>@s.SkillName</span>
+                            <span class="fw-bold">@s.NeedsCount <span class="text-muted">(فجوة @s.AverageGap)</span></span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-primary" style="width: @pct%"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

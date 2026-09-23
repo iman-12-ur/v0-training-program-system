@@ -29,6 +29,24 @@ namespace TrainingSystem.Models
 
         // صلاحيات مخصصة للمشرف (يحددها المدير)
         public string? CustomPermissions { get; set; }
+
+        // --- حقول الموظف (لوحدة تحليل الاحتياجات التدريبية) - كلها اختيارية ---
+
+        [Display(Name = "الرقم الوظيفي")]
+        [MaxLength(50)]
+        public string? EmployeeNumber { get; set; }
+
+        [Display(Name = "المسمى الوظيفي")]
+        [MaxLength(150)]
+        public string? JobTitle { get; set; }
+
+        [Display(Name = "الدرجة الوظيفية")]
+        [MaxLength(50)]
+        public string? Grade { get; set; }
+
+        [Display(Name = "المدير المباشر")]
+        [MaxLength(450)]
+        public string? ManagerUserId { get; set; }
     }
 
     // الصلاحيات المتاحة في النظام

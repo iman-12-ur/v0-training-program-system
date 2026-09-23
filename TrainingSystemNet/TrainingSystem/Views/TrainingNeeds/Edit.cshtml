@@ -37,6 +37,25 @@
                     <input class="form-control" value="@Model.Department" readonly />
                     <small class="text-muted">لا يمكن تغيير الدائرة بعد الإنشاء.</small>
                 </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">المسمى الوظيفي</label>
+                    <input asp-for="JobTitle" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الدرجة الوظيفية</label>
+                    <input asp-for="Grade" class="form-control" />
+                </div>
+
+                @if (Model.Skills.Any())
+                {
+                    <div class="col-md-6">
+                        <label class="form-label">اختر مهارة من المكتبة (اختياري)</label>
+                        <select asp-for="SkillId" class="form-select" asp-items="Model.Skills">
+                            <option value="">— إدخال يدوي —</option>
+                        </select>
+                    </div>
+                }
                 <div class="col-md-6">
                     <label class="form-label">المهارة <span class="text-danger">*</span></label>
                     <input asp-for="SkillName" class="form-control" />
@@ -45,7 +64,13 @@
 
                 <div class="col-md-6">
                     <label class="form-label">التصنيف</label>
-                    <input asp-for="Category" class="form-control" />
+                    <input asp-for="Category" class="form-control" list="categoryList" />
+                    <datalist id="categoryList">
+                        @foreach (var c in Model.Categories)
+                        {
+                            <option value="@c.Text"></option>
+                        }
+                    </datalist>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">الحالة</label>
@@ -75,6 +100,15 @@
                         }
                     </select>
                     <span asp-validation-for="CurrentLevel" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">الفترة الزمنية المقترحة</label>
+                    <input asp-for="SuggestedTimeframe" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">مبرر الاحتياج</label>
+                    <input asp-for="Justification" class="form-control" />
                 </div>
 
                 <div class="col-12">

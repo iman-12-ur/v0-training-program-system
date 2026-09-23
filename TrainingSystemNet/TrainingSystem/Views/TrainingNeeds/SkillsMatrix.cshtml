@@ -1,0 +1,82 @@
+@model TrainingSystem.Controllers.SkillMatrixViewModel
+@{
+    ViewData["Title"] = "مصفوفة المهارات";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">مصفوفة المهارات</h4>
+        <p class="text-muted mb-0">مستوى كل موظف في كل مهارة (الرقم = الفجوة، الأخضر = جاهز)</p>
+    </div>
+    @if (Model.IsPrivileged)
+    {
+        <form method="get">
+            <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">كل الدوائر</option>
+                @foreach (var d in Model.Departments)
+                {
+                    <option value="@d" selected="@(d == Model.CurrentDepartment)">@d</option>
+                }
+            </select>
+        </form>
+    }
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2 d-flex flex-wrap gap-3 small align-items-center">
+        <span class="fw-semibold">دليل الألوان:</span>
+        <span><span class="badge bg-success">&nbsp;</span> لا توجد فجوة</span>
+        <span><span class="badge bg-warning">&nbsp;</span> فجوة متوسطة (1-2)</span>
+        <span><span class="badge bg-danger">&nbsp;</span> فجوة عالية (3+)</span>
+        <span><span class="badge bg-light text-muted border">&nbsp;</span> لا يوجد احتياج</span>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle mb-0 text-center">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-start" style="min-width: 180px;">الموظف</th>
+                    @foreach (var s in Model.Skills)
+                    {
+                        <th style="min-width: 90px; font-size: 0.8rem;">@s</th>
+                    }
+                    <th style="min-width: 90px;">الجاهزية</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Rows.Any())
+                {
+                    <tr><td colspan="@(Model.Skills.Count + 2)" class="text-muted py-4">لا توجد بيانات</td></tr>
+                }
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td class="text-start">
+                            <div class="fw-semibold">@row.EmployeeName</div>
+                            <div class="small text-muted">@row.Department</div>
+                        </td>
+                        @foreach (var s in Model.Skills)
+                        {
+                            if (row.Cells.TryGetValue(s, out var cell))
+                            {
+                                var col = cell.Gap >= 3 ? "bg-danger text-white" : cell.Gap >= 1 ? "bg-warning" : "bg-success text-white";
+                                <td class="@col" title="الحالي @cell.CurrentLevel من @cell.RequiredLevel">@cell.Gap</td>
+                            }
+                            else
+                            {
+                                <td class="text-muted">—</td>
+                            }
+                        }
+                        <td>
+                            <span class="badge @(row.AverageReadiness >= 80 ? "bg-success" : row.AverageReadiness >= 50 ? "bg-warning" : "bg-danger")">
+                                @row.AverageReadiness%
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

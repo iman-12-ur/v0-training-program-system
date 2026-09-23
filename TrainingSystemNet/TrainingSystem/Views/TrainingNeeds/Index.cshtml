@@ -194,8 +194,9 @@
                             <th class="text-center">الفجوة</th>
                             <th>الأولوية</th>
                             <th>البرنامج المقترح</th>
-                            <th>الحالة</th>
-                            <th style="width: 120px">الإجراءات</th>
+                                <th>الحالة</th>
+                                <th>الاعتماد</th>
+                                <th style="width: 150px">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -262,7 +263,15 @@
                                     }
                                 </td>
                                 <td>
+                                    <span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(n.ApprovalStatus)">
+                                        @TrainingNeed.GetApprovalStatusDisplayName(n.ApprovalStatus)
+                                    </span>
+                                </td>
+                                <td>
                                     <div class="d-flex gap-1">
+                                        <a asp-action="Details" asp-route-id="@n.Id" class="btn btn-sm btn-outline-secondary" title="التفاصيل">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
                                         <a asp-action="Edit" asp-route-id="@n.Id" class="btn btn-sm btn-outline-primary" title="تعديل">
                                             <i class="bi bi-pencil"></i>
                                         </a>

@@ -19,6 +19,17 @@ namespace TrainingSystem.Models
         Completed = 2    // مكتمل
     }
 
+    // حالة اعتماد الاحتياج (سير العمل: موظف ← مدير ← موارد بشرية)
+    public enum TrainingNeedApprovalStatus
+    {
+        Draft = 0,              // مسودة (لم تُرسل بعد)
+        SubmittedToManager = 1, // بانتظار اعتماد المدير المباشر
+        ManagerApproved = 2,    // اعتمده المدير - بانتظار الموارد البشرية
+        ManagerRejected = 3,    // رفضه المدير
+        HRApproved = 4,         // اعتمدته الموارد البشرية (نهائي)
+        HRRejected = 5          // رفضته الموارد البشرية
+    }
+
     // سجل احتياج تدريبي لموظف في مهارة محددة
     public class TrainingNeed
     {
@@ -74,6 +85,55 @@ namespace TrainingSystem.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+        // --- حقول وحدة TNA (كلها اختيارية للحفاظ على التوافق) ---
+
+        // ربط اختياري بالموظف من جدول المستخدمين
+        [MaxLength(450)]
+        [Display(Name = "الموظف")]
+        public string? EmployeeUserId { get; set; }
+        public ApplicationUser? Employee { get; set; }
+
+        // ربط اختياري بمهارة معرّفة مسبقاً
+        [Display(Name = "المهارة (من القائمة)")]
+        public int? SkillId { get; set; }
+        public Skill? SkillRef { get; set; }
+
+        [Display(Name = "المسمى الوظيفي")]
+        [MaxLength(150)]
+        public string? JobTitle { get; set; }
+
+        [Display(Name = "الدرجة الوظيفية")]
+        [MaxLength(50)]
+        public string? Grade { get; set; }
+
+        [Display(Name = "مبرر الاحتياج")]
+        [MaxLength(1000)]
+        public string? Justification { get; set; }
+
+        [Display(Name = "الفترة الزمنية المقترحة")]
+        [MaxLength(100)]
+        public string? SuggestedTimeframe { get; set; }
+
+        // --- سير الاعتماد ---
+        [Display(Name = "حالة الاعتماد")]
+        public TrainingNeedApprovalStatus ApprovalStatus { get; set; } = TrainingNeedApprovalStatus.Draft;
+
+        [MaxLength(450)]
+        public string? ManagerUserId { get; set; }
+        public DateTime? ManagerActionAt { get; set; }
+        [MaxLength(500)]
+        public string? ManagerComment { get; set; }
+
+        [MaxLength(450)]
+        public string? HRUserId { get; set; }
+        public DateTime? HRActionAt { get; set; }
+        [MaxLength(500)]
+        public string? HRComment { get; set; }
+
+        public DateTime? SubmittedAt { get; set; }
+
+        public List<TrainingNeedStatusHistory> StatusHistory { get; set; } = new();
+
         // الفجوة المحسوبة (لا تُخزّن في قاعدة البيانات)
         [NotMapped]
         public int Gap => Math.Max(0, RequiredLevel - CurrentLevel);
@@ -99,6 +159,29 @@ namespace TrainingSystem.Models
             TrainingNeedStatus.InProgress => "قيد المعالجة",
             TrainingNeedStatus.Completed => "مكتمل",
             _ => "جديد"
+        };
+
+        public static string GetApprovalStatusDisplayName(TrainingNeedApprovalStatus s) => s switch
+        {
+            TrainingNeedApprovalStatus.Draft => "مسودة",
+            TrainingNeedApprovalStatus.SubmittedToManager => "بانتظار المدير",
+            TrainingNeedApprovalStatus.ManagerApproved => "بانتظار الموارد البشرية",
+            TrainingNeedApprovalStatus.ManagerRejected => "مرفوض من المدير",
+            TrainingNeedApprovalStatus.HRApproved => "معتمد نهائياً",
+            TrainingNeedApprovalStatus.HRRejected => "مرفوض من الموارد البشرية",
+            _ => "مسودة"
+        };
+
+        // لون شارة الحالة (Bootstrap)
+        public static string GetApprovalStatusBadge(TrainingNeedApprovalStatus s) => s switch
+        {
+            TrainingNeedApprovalStatus.Draft => "secondary",
+            TrainingNeedApprovalStatus.SubmittedToManager => "info",
+            TrainingNeedApprovalStatus.ManagerApproved => "primary",
+            TrainingNeedApprovalStatus.ManagerRejected => "danger",
+            TrainingNeedApprovalStatus.HRApproved => "success",
+            TrainingNeedApprovalStatus.HRRejected => "danger",
+            _ => "secondary"
         };
     }
 

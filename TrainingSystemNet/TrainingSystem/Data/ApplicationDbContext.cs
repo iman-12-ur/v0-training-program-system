@@ -17,6 +17,9 @@ namespace TrainingSystem.Data
         public DbSet<SystemSettings> SystemSettings { get; set; }
         public DbSet<TrainingNeed> TrainingNeeds { get; set; }
         public DbSet<TrainingNeedBatch> TrainingNeedBatches { get; set; }
+        public DbSet<SkillCategory> SkillCategories { get; set; }
+        public DbSet<Skill> Skills { get; set; }
+        public DbSet<TrainingNeedStatusHistory> TrainingNeedStatusHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -86,6 +89,49 @@ namespace TrainingSystem.Data
 
                 // فهرس على الدائرة لتسريع التصفية حسب الدائرة
                 entity.HasIndex(e => e.Department);
+                entity.HasIndex(e => e.ApprovalStatus);
+
+                // ربط اختياري بالموظف (بدون حذف متسلسل لتفادي مسارات متعددة)
+                entity.HasOne(e => e.Employee)
+                      .WithMany()
+                      .HasForeignKey(e => e.EmployeeUserId)
+                      .OnDelete(DeleteBehavior.NoAction);
+
+                // ربط اختياري بمهارة معرّفة
+                entity.HasOne(e => e.SkillRef)
+                      .WithMany()
+                      .HasForeignKey(e => e.SkillId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Configure SkillCategory - تصنيف المهارات
+            builder.Entity<SkillCategory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            });
+
+            // Configure Skill - مهارة ضمن تصنيف
+            builder.Entity<Skill>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(150);
+
+                entity.HasOne(e => e.SkillCategory)
+                      .WithMany(c => c.Skills)
+                      .HasForeignKey(e => e.SkillCategoryId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Configure TrainingNeedStatusHistory - سجل مراحل الاعتماد
+            builder.Entity<TrainingNeedStatusHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.HasOne(e => e.TrainingNeed)
+                      .WithMany(n => n.StatusHistory)
+                      .HasForeignKey(e => e.TrainingNeedId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

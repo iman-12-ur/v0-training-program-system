@@ -133,8 +133,23 @@ namespace TrainingSystem.Controllers
                 if (employee != null)
                 {
                     model.EmployeeName = employee.FullName;
-                    model.EmployeeNumber = employee.UserName;
+                    model.EmployeeNumber = employee.EmployeeNumber ?? employee.UserName;
                     model.Department = employee.Department;
+                    if (string.IsNullOrWhiteSpace(model.JobTitle)) model.JobTitle = employee.JobTitle;
+                    if (string.IsNullOrWhiteSpace(model.Grade)) model.Grade = employee.Grade;
+                }
+            }
+
+            // إذا اختير المهارة من القائمة، يُشتقّ اسمها وتصنيفها من الخادم
+            if (model.SkillId.HasValue)
+            {
+                var skill = await _context.Skills
+                    .Include(s => s.SkillCategory)
+                    .FirstOrDefaultAsync(s => s.Id == model.SkillId.Value);
+                if (skill != null)
+                {
+                    model.SkillName = skill.Name;
+                    model.Category = skill.SkillCategory?.Name ?? model.Category;
                 }
             }
 
@@ -165,17 +180,26 @@ namespace TrainingSystem.Controllers
                 return View(model);
             }
 
+            var submitting = model.SubmitForApproval;
             var need = new TrainingNeed
             {
                 EmployeeName = model.EmployeeName!.Trim(),
                 EmployeeNumber = model.EmployeeNumber?.Trim(),
+                EmployeeUserId = model.EmployeeUserId,
                 Department = model.Department!.Trim(),
                 SkillName = model.SkillName!.Trim(),
+                SkillId = model.SkillId,
                 Category = model.Category?.Trim(),
+                JobTitle = model.JobTitle?.Trim(),
+                Grade = model.Grade?.Trim(),
+                Justification = model.Justification?.Trim(),
+                SuggestedTimeframe = model.SuggestedTimeframe?.Trim(),
                 RequiredLevel = model.RequiredLevel,
                 CurrentLevel = model.CurrentLevel,
                 Priority = TrainingNeed.ComputePriority(model.RequiredLevel, model.CurrentLevel),
                 Status = TrainingNeedStatus.New,
+                ApprovalStatus = submitting ? TrainingNeedApprovalStatus.SubmittedToManager : TrainingNeedApprovalStatus.Draft,
+                SubmittedAt = submitting ? DateTime.Now : (DateTime?)null,
                 Notes = model.Notes?.Trim(),
                 CreatedByUserId = actor?.Id,
                 CreatedAt = DateTime.Now
@@ -184,7 +208,13 @@ namespace TrainingSystem.Controllers
             _context.TrainingNeeds.Add(need);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "تم إضافة الاحتياج التدريبي بنجاح";
+            AddHistory(need, need.ApprovalStatus,
+                submitting ? "إنشاء وإرسال للاعتماد" : "إنشاء كمسودة", null, actor);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = submitting
+                ? "تم إنشاء الاحتياج وإرساله لاعتماد المدير"
+                : "تم حفظ الاحتياج التدريبي كمسودة";
             return RedirectToAction(nameof(Index));
         }
 
@@ -203,11 +233,17 @@ namespace TrainingSystem.Controllers
             var vm = new TrainingNeedFormViewModel
             {
                 Id = need.Id,
+                EmployeeUserId = need.EmployeeUserId,
                 EmployeeName = need.EmployeeName,
                 EmployeeNumber = need.EmployeeNumber,
                 Department = need.Department,
                 SkillName = need.SkillName,
+                SkillId = need.SkillId,
                 Category = need.Category,
+                JobTitle = need.JobTitle,
+                Grade = need.Grade,
+                Justification = need.Justification,
+                SuggestedTimeframe = need.SuggestedTimeframe,
                 RequiredLevel = need.RequiredLevel,
                 CurrentLevel = need.CurrentLevel,
                 Status = need.Status,
@@ -246,11 +282,29 @@ namespace TrainingSystem.Controllers
                 return View(model);
             }
 
+            // إن اختير مهارة من القائمة، يُشتقّ اسمها/تصنيفها من الخادم
+            if (model.SkillId.HasValue)
+            {
+                var skill = await _context.Skills
+                    .Include(s => s.SkillCategory)
+                    .FirstOrDefaultAsync(s => s.Id == model.SkillId.Value);
+                if (skill != null)
+                {
+                    model.SkillName = skill.Name;
+                    model.Category = skill.SkillCategory?.Name ?? model.Category;
+                }
+            }
+
             // الدائرة لا تتغيّر عبر التعديل (تبقى كما هي لضمان بقاء السجل ضمن نطاق الدائرة)
             need.EmployeeName = model.EmployeeName!.Trim();
             need.EmployeeNumber = model.EmployeeNumber?.Trim();
             need.SkillName = model.SkillName!.Trim();
+            need.SkillId = model.SkillId;
             need.Category = model.Category?.Trim();
+            need.JobTitle = model.JobTitle?.Trim();
+            need.Grade = model.Grade?.Trim();
+            need.Justification = model.Justification?.Trim();
+            need.SuggestedTimeframe = model.SuggestedTimeframe?.Trim();
             need.RequiredLevel = model.RequiredLevel;
             need.CurrentLevel = model.CurrentLevel;
             need.Priority = TrainingNeed.ComputePriority(model.RequiredLevel, model.CurrentLevel);
@@ -280,6 +334,361 @@ namespace TrainingSystem.Controllers
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم حذف الاحتياج التدريبي";
             return RedirectToAction(nameof(Index));
+        }
+
+        // ==================== التفاصيل ====================
+
+        public async Task<IActionResult> Details(int id)
+        {
+            var need = await _context.TrainingNeeds
+                .Include(n => n.StatusHistory)
+                .FirstOrDefaultAsync(n => n.Id == id);
+            if (need == null) return NotFound();
+            if (!await CanAccessAsync(need))
+            {
+                TempData["Error"] = "لا تملك صلاحية الوصول لهذا السجل";
+                return RedirectToAction(nameof(Index));
+            }
+            return View(need);
+        }
+
+        // ==================== سير الاعتماد ====================
+
+        // إرسال مسودة للاعتماد (المدير المباشر)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Submit(int id)
+        {
+            var need = await _context.TrainingNeeds.FindAsync(id);
+            if (need == null) return NotFound();
+            if (!await CanAccessAsync(need))
+            {
+                TempData["Error"] = "لا تملك صلاحية الوصول لهذا السجل";
+                return RedirectToAction(nameof(Index));
+            }
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.Draft &&
+                need.ApprovalStatus != TrainingNeedApprovalStatus.ManagerRejected &&
+                need.ApprovalStatus != TrainingNeedApprovalStatus.HRRejected)
+            {
+                TempData["Error"] = "لا يمكن إرسال هذا الاحتياج في حالته الحالية";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            need.ApprovalStatus = TrainingNeedApprovalStatus.SubmittedToManager;
+            need.SubmittedAt = DateTime.Now;
+            AddHistory(need, need.ApprovalStatus, "إرسال للاعتماد", null, actor);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "تم إرسال الاحتياج لاعتماد المدير المباشر";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // اعتماد المدير المباشر (يُدار من المشرف/المدير)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ManagerApprove(int id, string? comment)
+        {
+            var need = await _context.TrainingNeeds.FindAsync(id);
+            if (need == null) return NotFound();
+            if (!await CanAccessAsync(need))
+            {
+                TempData["Error"] = "لا تملك صلاحية الوصول لهذا السجل";
+                return RedirectToAction(nameof(Index));
+            }
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.SubmittedToManager)
+            {
+                TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد المدير";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            need.ApprovalStatus = TrainingNeedApprovalStatus.ManagerApproved;
+            need.ManagerUserId = actor?.Id;
+            need.ManagerActionAt = DateTime.Now;
+            need.ManagerComment = comment?.Trim();
+            AddHistory(need, need.ApprovalStatus, "اعتماد المدير المباشر", comment, actor);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "تم اعتماد الاحتياج وإحالته للموارد البشرية";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // رفض المدير المباشر
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ManagerReject(int id, string? comment)
+        {
+            var need = await _context.TrainingNeeds.FindAsync(id);
+            if (need == null) return NotFound();
+            if (!await CanAccessAsync(need))
+            {
+                TempData["Error"] = "لا تملك صلاحية الوصول لهذا السجل";
+                return RedirectToAction(nameof(Index));
+            }
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.SubmittedToManager)
+            {
+                TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد المدير";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            need.ApprovalStatus = TrainingNeedApprovalStatus.ManagerRejected;
+            need.ManagerUserId = actor?.Id;
+            need.ManagerActionAt = DateTime.Now;
+            need.ManagerComment = comment?.Trim();
+            AddHistory(need, need.ApprovalStatus, "رفض المدير المباشر", comment, actor);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "تم رفض الاحتياج";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // اعتماد الموارد البشرية (المدير/مدير النظام فقط)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> HRApprove(int id, string? comment)
+        {
+            var need = await _context.TrainingNeeds.FindAsync(id);
+            if (need == null) return NotFound();
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.ManagerApproved)
+            {
+                TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد الموارد البشرية";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            need.ApprovalStatus = TrainingNeedApprovalStatus.HRApproved;
+            need.HRUserId = actor?.Id;
+            need.HRActionAt = DateTime.Now;
+            need.HRComment = comment?.Trim();
+            need.Status = TrainingNeedStatus.InProgress;
+            AddHistory(need, need.ApprovalStatus, "اعتماد الموارد البشرية (نهائي)", comment, actor);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "تم اعتماد الاحتياج نهائياً";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // رفض الموارد البشرية (المدير/مدير النظام فقط)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> HRReject(int id, string? comment)
+        {
+            var need = await _context.TrainingNeeds.FindAsync(id);
+            if (need == null) return NotFound();
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.ManagerApproved)
+            {
+                TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد الموارد البشرية";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            need.ApprovalStatus = TrainingNeedApprovalStatus.HRRejected;
+            need.HRUserId = actor?.Id;
+            need.HRActionAt = DateTime.Now;
+            need.HRComment = comment?.Trim();
+            AddHistory(need, need.ApprovalStatus, "رفض الموارد البشرية", comment, actor);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "تم رفض الاحتياج";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // قائمة الاعتمادات المعلّقة
+        public async Task<IActionResult> Approvals()
+        {
+            var actor = await _userManager.GetUserAsync(User);
+            var myDept = actor?.Department;
+
+            var query = _context.TrainingNeeds
+                .Where(n => n.ApprovalStatus == TrainingNeedApprovalStatus.SubmittedToManager ||
+                            n.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved);
+
+            if (!IsPrivileged)
+                query = query.Where(n => n.Department == myDept);
+
+            var needs = await query
+                .OrderBy(n => n.ApprovalStatus)
+                .ThenByDescending(n => n.SubmittedAt)
+                .ToListAsync();
+
+            ViewBag.IsPrivileged = IsPrivileged;
+            return View(needs);
+        }
+
+        // ==================== لوحة مؤشرات TNA ====================
+
+        public async Task<IActionResult> Dashboard(string? department)
+        {
+            var actor = await _userManager.GetUserAsync(User);
+            var myDept = actor?.Department;
+
+            var query = _context.TrainingNeeds.AsQueryable();
+            if (!IsPrivileged)
+                query = query.Where(n => n.Department == myDept);
+            else if (!string.IsNullOrWhiteSpace(department))
+                query = query.Where(n => n.Department == department);
+
+            var needs = await query.ToListAsync();
+
+            var totalRequired = needs.Sum(n => n.RequiredLevel);
+            var totalCurrent = needs.Sum(n => Math.Min(n.CurrentLevel, n.RequiredLevel));
+
+            var vm = new TnaDashboardViewModel
+            {
+                TotalNeeds = needs.Count,
+                EmployeeCount = needs.Select(n => (n.EmployeeNumber ?? "") + "|" + n.EmployeeName).Distinct().Count(),
+                HighPriorityCount = needs.Count(n => n.Priority == TrainingNeedPriority.High),
+                PendingApprovals = needs.Count(n => n.ApprovalStatus == TrainingNeedApprovalStatus.SubmittedToManager ||
+                                                    n.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved),
+                ApprovedCount = needs.Count(n => n.ApprovalStatus == TrainingNeedApprovalStatus.HRApproved),
+                Readiness = totalRequired > 0 ? (int)Math.Round(100.0 * totalCurrent / totalRequired) : 0,
+                GapByDepartment = needs
+                    .GroupBy(n => n.Department)
+                    .Select(g => new DepartmentGap
+                    {
+                        Department = g.Key,
+                        AverageGap = Math.Round(g.Average(x => (double)Math.Max(0, x.RequiredLevel - x.CurrentLevel)), 1)
+                    })
+                    .OrderByDescending(d => d.AverageGap)
+                    .ToList(),
+                PriorityDistribution = new Dictionary<string, int>
+                {
+                    ["عالية"] = needs.Count(n => n.Priority == TrainingNeedPriority.High),
+                    ["متوسطة"] = needs.Count(n => n.Priority == TrainingNeedPriority.Medium),
+                    ["منخفضة"] = needs.Count(n => n.Priority == TrainingNeedPriority.Low),
+                },
+                CategoryDistribution = needs
+                    .Where(n => !string.IsNullOrWhiteSpace(n.Category))
+                    .GroupBy(n => n.Category!)
+                    .ToDictionary(g => g.Key, g => g.Count()),
+                ApprovalDistribution = needs
+                    .GroupBy(n => TrainingNeed.GetApprovalStatusDisplayName(n.ApprovalStatus))
+                    .ToDictionary(g => g.Key, g => g.Count()),
+                RecentNeeds = needs.OrderByDescending(n => n.CreatedAt).Take(8).ToList(),
+                IsPrivileged = IsPrivileged
+            };
+
+            ViewBag.Departments = await GetDepartmentsAsync();
+            ViewBag.CurrentDepartment = IsPrivileged ? department : myDept;
+            return View(vm);
+        }
+
+        // ==================== تحليل الفجوات ====================
+
+        public async Task<IActionResult> GapAnalysis(string? department)
+        {
+            var actor = await _userManager.GetUserAsync(User);
+            var myDept = actor?.Department;
+
+            var query = _context.TrainingNeeds.AsQueryable();
+            if (!IsPrivileged)
+                query = query.Where(n => n.Department == myDept);
+            else if (!string.IsNullOrWhiteSpace(department))
+                query = query.Where(n => n.Department == department);
+
+            var needs = await query
+                .OrderByDescending(n => n.Priority)
+                .ThenBy(n => n.Department)
+                .ToListAsync();
+
+            var activePrograms = await _context.TrainingPrograms
+                .Where(p => p.Status == ProgramStatus.Active)
+                .Select(p => new { p.Title, p.Categories })
+                .ToListAsync();
+
+            var suggestions = new Dictionary<int, ProgramSuggestion>();
+            foreach (var n in needs)
+                suggestions[n.Id] = SuggestProgram(n, activePrograms.Select(p => (p.Title, p.Categories)).ToList());
+
+            ViewBag.Suggestions = suggestions;
+            ViewBag.IsPrivileged = IsPrivileged;
+            ViewBag.Departments = await GetDepartmentsAsync();
+            ViewBag.CurrentDepartment = IsPrivileged ? department : myDept;
+            return View(needs);
+        }
+
+        // ==================== مصفوفة المهارات ====================
+
+        public async Task<IActionResult> SkillsMatrix(string? department)
+        {
+            var actor = await _userManager.GetUserAsync(User);
+            var myDept = actor?.Department;
+
+            var query = _context.TrainingNeeds.AsQueryable();
+            if (!IsPrivileged)
+                query = query.Where(n => n.Department == myDept);
+            else if (!string.IsNullOrWhiteSpace(department))
+                query = query.Where(n => n.Department == department);
+
+            var needs = await query.ToListAsync();
+
+            var skills = needs.Select(n => n.SkillName).Distinct().OrderBy(s => s).ToList();
+
+            var rows = needs
+                .GroupBy(n => new { n.EmployeeName, n.Department })
+                .Select(g =>
+                {
+                    var cells = new Dictionary<string, SkillMatrixCell>();
+                    foreach (var n in g)
+                    {
+                        cells[n.SkillName] = new SkillMatrixCell
+                        {
+                            SkillName = n.SkillName,
+                            RequiredLevel = n.RequiredLevel,
+                            CurrentLevel = n.CurrentLevel
+                        };
+                    }
+                    var req = g.Sum(x => x.RequiredLevel);
+                    var cur = g.Sum(x => Math.Min(x.CurrentLevel, x.RequiredLevel));
+                    return new SkillMatrixRow
+                    {
+                        EmployeeName = g.Key.EmployeeName,
+                        Department = g.Key.Department,
+                        Cells = cells,
+                        AverageReadiness = req > 0 ? (int)Math.Round(100.0 * cur / req) : 0
+                    };
+                })
+                .OrderBy(r => r.EmployeeName)
+                .ToList();
+
+            var vm = new SkillMatrixViewModel
+            {
+                Skills = skills,
+                Rows = rows,
+                IsPrivileged = IsPrivileged,
+                CurrentDepartment = IsPrivileged ? department : myDept,
+                Departments = await GetDepartmentsAsync()
+            };
+            return View(vm);
+        }
+
+        // ==================== الأولويات ====================
+
+        public async Task<IActionResult> Priorities(string? department)
+        {
+            var actor = await _userManager.GetUserAsync(User);
+            var myDept = actor?.Department;
+
+            var query = _context.TrainingNeeds
+                .Where(n => n.Priority == TrainingNeedPriority.High);
+            if (!IsPrivileged)
+                query = query.Where(n => n.Department == myDept);
+            else if (!string.IsNullOrWhiteSpace(department))
+                query = query.Where(n => n.Department == department);
+
+            var needs = await query
+                .OrderByDescending(n => n.RequiredLevel - n.CurrentLevel)
+                .ThenBy(n => n.Department)
+                .ToListAsync();
+
+            ViewBag.IsPrivileged = IsPrivileged;
+            ViewBag.Departments = await GetDepartmentsAsync();
+            ViewBag.CurrentDepartment = IsPrivileged ? department : myDept;
+            return View(needs);
         }
 
         // ==================== قالب Excel ====================
@@ -445,6 +854,146 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // ==================== التقارير ====================
+
+        public async Task<IActionResult> Reports(string? department)
+        {
+            var actor = await _userManager.GetUserAsync(User);
+            var myDept = actor?.Department;
+
+            var query = _context.TrainingNeeds.AsQueryable();
+            if (!IsPrivileged)
+                query = query.Where(n => n.Department == myDept);
+            else if (!string.IsNullOrWhiteSpace(department))
+                query = query.Where(n => n.Department == department);
+
+            var needs = await query.ToListAsync();
+
+            // تقرير حسب الدائرة
+            var byDept = needs
+                .GroupBy(n => n.Department)
+                .Select(g => new DepartmentReportRow
+                {
+                    Department = g.Key,
+                    NeedsCount = g.Count(),
+                    EmployeeCount = g.Select(x => (x.EmployeeNumber ?? "") + "|" + x.EmployeeName).Distinct().Count(),
+                    HighPriority = g.Count(x => x.Priority == TrainingNeedPriority.High),
+                    AverageGap = Math.Round(g.Average(x => (double)Math.Max(0, x.RequiredLevel - x.CurrentLevel)), 1),
+                    Readiness = g.Sum(x => x.RequiredLevel) > 0
+                        ? (int)Math.Round(100.0 * g.Sum(x => Math.Min(x.CurrentLevel, x.RequiredLevel)) / g.Sum(x => x.RequiredLevel))
+                        : 0
+                })
+                .OrderByDescending(r => r.AverageGap)
+                .ToList();
+
+            // تقرير حسب التصنيف
+            var byCategory = needs
+                .Where(n => !string.IsNullOrWhiteSpace(n.Category))
+                .GroupBy(n => n.Category!)
+                .Select(g => new CategoryReportRow
+                {
+                    Category = g.Key,
+                    NeedsCount = g.Count(),
+                    HighPriority = g.Count(x => x.Priority == TrainingNeedPriority.High),
+                    AverageGap = Math.Round(g.Average(x => (double)Math.Max(0, x.RequiredLevel - x.CurrentLevel)), 1)
+                })
+                .OrderByDescending(r => r.NeedsCount)
+                .ToList();
+
+            // أكثر المهارات طلباً
+            var topSkills = needs
+                .GroupBy(n => n.SkillName)
+                .Select(g => new SkillReportRow
+                {
+                    SkillName = g.Key,
+                    NeedsCount = g.Count(),
+                    AverageGap = Math.Round(g.Average(x => (double)Math.Max(0, x.RequiredLevel - x.CurrentLevel)), 1)
+                })
+                .OrderByDescending(r => r.NeedsCount)
+                .Take(10)
+                .ToList();
+
+            var vm = new TnaReportsViewModel
+            {
+                ByDepartment = byDept,
+                ByCategory = byCategory,
+                TopSkills = topSkills,
+                TotalNeeds = needs.Count,
+                IsPrivileged = IsPrivileged,
+                CurrentDepartment = IsPrivileged ? department : myDept
+            };
+
+            ViewBag.Departments = await GetDepartmentsAsync();
+            return View(vm);
+        }
+
+        // تصدير الاحتياجات إلى Excel
+        public async Task<IActionResult> ExportNeeds(string? department)
+        {
+            var actor = await _userManager.GetUserAsync(User);
+            var myDept = actor?.Department;
+
+            var query = _context.TrainingNeeds.AsQueryable();
+            if (!IsPrivileged)
+                query = query.Where(n => n.Department == myDept);
+            else if (!string.IsNullOrWhiteSpace(department))
+                query = query.Where(n => n.Department == department);
+
+            var needs = await query
+                .OrderBy(n => n.Department)
+                .ThenByDescending(n => n.Priority)
+                .ToListAsync();
+
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add("الاحتياجات التدريبية");
+            ws.RightToLeft = true;
+
+            string[] headers =
+            {
+                "الرقم الوظيفي", "اسم الموظف", "المسمى الوظيفي", "الدرجة", "الدائرة",
+                "المهارة", "التصنيف", "المستوى المطلوب", "المستوى الحالي", "الفجوة",
+                "الأولوية", "حالة الاعتماد", "مبرر الاحتياج"
+            };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = ws.Cell(1, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e3a5f");
+                cell.Style.Font.FontColor = XLColor.White;
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            }
+
+            int r = 2;
+            foreach (var n in needs)
+            {
+                ws.Cell(r, 1).Value = n.EmployeeNumber ?? "";
+                ws.Cell(r, 2).Value = n.EmployeeName;
+                ws.Cell(r, 3).Value = n.JobTitle ?? "";
+                ws.Cell(r, 4).Value = n.Grade ?? "";
+                ws.Cell(r, 5).Value = n.Department;
+                ws.Cell(r, 6).Value = n.SkillName;
+                ws.Cell(r, 7).Value = n.Category ?? "";
+                ws.Cell(r, 8).Value = n.RequiredLevel;
+                ws.Cell(r, 9).Value = n.CurrentLevel;
+                ws.Cell(r, 10).Value = n.Gap;
+                ws.Cell(r, 11).Value = TrainingNeed.GetPriorityDisplayName(n.Priority);
+                ws.Cell(r, 12).Value = TrainingNeed.GetApprovalStatusDisplayName(n.ApprovalStatus);
+                ws.Cell(r, 13).Value = n.Justification ?? "";
+                r++;
+            }
+
+            ws.Columns().AdjustToContents();
+            for (int i = 1; i <= headers.Length; i++)
+                if (ws.Column(i).Width > 40) ws.Column(i).Width = 40;
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return File(stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"training-needs-{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+
         // ==================== مساعدات ====================
 
         // تحقق صلاحية الوصول لسجل معيّن (منع IDOR): المشرف لدائرته فقط
@@ -489,8 +1038,42 @@ namespace TrainingSystem.Controllers
                     : $"{e.FullName} — {e.Department}"
             }).ToList();
 
+            var skills = await _context.Skills
+                .Where(s => s.IsActive)
+                .Include(s => s.SkillCategory)
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+
+            vm.Skills = skills.Select(s => new SelectListItem
+            {
+                Value = s.Id.ToString(),
+                Text = s.SkillCategory != null ? $"{s.Name} ({s.SkillCategory.Name})" : s.Name
+            }).ToList();
+
+            vm.Categories = await _context.SkillCategories
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Name)
+                .Select(c => new SelectListItem { Value = c.Name, Text = c.Name })
+                .ToListAsync();
+
             vm.IsPrivileged = IsPrivileged;
             vm.LockedDepartment = IsPrivileged ? null : myDept;
+        }
+
+        // تسجيل مرحلة في سجل الاعتماد (لا يستدعي SaveChanges — يُترك للمستدعي)
+        private void AddHistory(TrainingNeed need, TrainingNeedApprovalStatus status,
+            string action, string? comment, ApplicationUser? actor)
+        {
+            _context.TrainingNeedStatusHistories.Add(new TrainingNeedStatusHistory
+            {
+                TrainingNeedId = need.Id,
+                Status = status,
+                Action = action,
+                Comment = comment,
+                ActionByUserId = actor?.Id,
+                ActionByName = actor?.FullName,
+                ActionAt = DateTime.Now
+            });
         }
 
         private List<TrainingNeedImportRow> ParseExcel(IFormFile file, string? forcedDepartment)
@@ -632,9 +1215,99 @@ namespace TrainingSystem.Controllers
         public TrainingNeedStatus Status { get; set; } = TrainingNeedStatus.New;
         public string? Notes { get; set; }
 
+        // حقول TNA الإضافية
+        public int? SkillId { get; set; }
+        public string? JobTitle { get; set; }
+        public string? Grade { get; set; }
+        public string? Justification { get; set; }
+        public string? SuggestedTimeframe { get; set; }
+        public bool SubmitForApproval { get; set; }
+
         // خيارات العرض
         public List<SelectListItem> Employees { get; set; } = new();
+        public List<SelectListItem> Skills { get; set; } = new();
+        public List<SelectListItem> Categories { get; set; } = new();
         public bool IsPrivileged { get; set; }
         public string? LockedDepartment { get; set; }
+    }
+
+    // عنصر مصفوفة المهارات (موظف × مهارة)
+    public class SkillMatrixCell
+    {
+        public string SkillName { get; set; } = string.Empty;
+        public int RequiredLevel { get; set; }
+        public int CurrentLevel { get; set; }
+        public int Gap => Math.Max(0, RequiredLevel - CurrentLevel);
+    }
+
+    public class SkillMatrixRow
+    {
+        public string EmployeeName { get; set; } = string.Empty;
+        public string? Department { get; set; }
+        public Dictionary<string, SkillMatrixCell> Cells { get; set; } = new();
+        public int AverageReadiness { get; set; }
+    }
+
+    public class SkillMatrixViewModel
+    {
+        public List<string> Skills { get; set; } = new();
+        public List<SkillMatrixRow> Rows { get; set; } = new();
+        public bool IsPrivileged { get; set; }
+        public string? CurrentDepartment { get; set; }
+        public List<string> Departments { get; set; } = new();
+    }
+
+    // ==================== ViewModels التقارير ====================
+
+    public class DepartmentReportRow
+    {
+        public string Department { get; set; } = string.Empty;
+        public int NeedsCount { get; set; }
+        public int EmployeeCount { get; set; }
+        public int HighPriority { get; set; }
+        public double AverageGap { get; set; }
+        public int Readiness { get; set; }
+    }
+
+    public class CategoryReportRow
+    {
+        public string Category { get; set; } = string.Empty;
+        public int NeedsCount { get; set; }
+        public int HighPriority { get; set; }
+        public double AverageGap { get; set; }
+    }
+
+    public class SkillReportRow
+    {
+        public string SkillName { get; set; } = string.Empty;
+        public int NeedsCount { get; set; }
+        public double AverageGap { get; set; }
+    }
+
+    public class TnaReportsViewModel
+    {
+        public List<DepartmentReportRow> ByDepartment { get; set; } = new();
+        public List<CategoryReportRow> ByCategory { get; set; } = new();
+        public List<SkillReportRow> TopSkills { get; set; } = new();
+        public int TotalNeeds { get; set; }
+        public bool IsPrivileged { get; set; }
+        public string? CurrentDepartment { get; set; }
+    }
+
+    // لوحة مؤشرات TNA
+    public class TnaDashboardViewModel
+    {
+        public int TotalNeeds { get; set; }
+        public int EmployeeCount { get; set; }
+        public int HighPriorityCount { get; set; }
+        public int PendingApprovals { get; set; }
+        public int ApprovedCount { get; set; }
+        public int Readiness { get; set; }
+        public List<DepartmentGap> GapByDepartment { get; set; } = new();
+        public Dictionary<string, int> PriorityDistribution { get; set; } = new();
+        public Dictionary<string, int> CategoryDistribution { get; set; } = new();
+        public Dictionary<string, int> ApprovalDistribution { get; set; } = new();
+        public List<TrainingNeed> RecentNeeds { get; set; } = new();
+        public bool IsPrivileged { get; set; }
     }
 }
