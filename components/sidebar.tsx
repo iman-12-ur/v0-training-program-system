@@ -7,6 +7,7 @@ import {
   Users,
   ClipboardList,
   BarChart3,
+  ClipboardPlus,
   Settings,
   GraduationCap,
   LogOut,
@@ -67,6 +68,12 @@ const navItems: NavItem[] = [
     id: 'reports',
     label: 'التقارير',
     icon: <BarChart3 className="h-5 w-5" />,
+    roles: ['admin'],
+  },
+  {
+    id: 'training-needs',
+    label: 'الاحتياجات التدريبية',
+    icon: <ClipboardPlus className="h-5 w-5" />,
     roles: ['admin'],
   },
   {

@@ -13,6 +13,7 @@ import { AddProgramForm } from '@/components/add-program-form';
 import { EditProgramForm } from '@/components/edit-program-form';
 import { BatchesManager } from '@/components/batches-manager';
 import { ReportsView } from '@/components/reports-view';
+import { TrainingNeedsView } from '@/components/training-needs-view';
 import { UsersManager } from '@/components/users-manager';
 import {
   Dialog,
@@ -660,6 +661,9 @@ export default function TrainingManagementSystem() {
             stats={stats}
           />
         );
+
+      case 'training-needs':
+        return <TrainingNeedsView />;
 
       case 'settings':
         return (
