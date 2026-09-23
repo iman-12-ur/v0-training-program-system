@@ -27,14 +27,19 @@ namespace TrainingSystem.Models
     public enum TrainingNeedApprovalStatus
     {
         Draft = 0,              // مسودة (لم تُرسل بعد)
-        SubmittedToManager = 1, // بانتظار اعتماد المدير المباشر
+        SubmittedToManager = 1, // قيد مراجعة المدير المباشر
         ManagerApproved = 2,    // اعتمده المدير - بانتظار دائرة التدريب
         ManagerRejected = 3,    // رفضه المدير
         HRApproved = 4,         // اعتمدته دائرة التدريب (نهائي)
         HRRejected = 5,         // رفضته دائرة التدريب
         BudgetReview = 6,       // مراجعة الميزانية (تجاوز المتاح)
         TrainingScheduled = 7,  // مجدول للتدريب
-        TrainingCompleted = 8   // اكتمل التدريب (بانتظار تقييم الأثر)
+        TrainingCompleted = 8,  // اكتمل التدريب
+        // حالات مضافة (أرقام جديدة — لا تُعاد ترقمة القيم الموجودة حفاظاً على البيانات)
+        ReturnedForModification = 9,   // أُعيد للتعديل من المدير
+        ImpactAssessmentPending = 10,  // بانتظار تقييم أثر التدريب
+        ImpactAssessmentCompleted = 11,// اكتمل تقييم الأثر
+        Closed = 12                    // مغلق (انتهت دورة الطلب)
     }
 
     // مبرر طلب التدريب (قائمة ثابتة على مستوى المنظومة)
@@ -204,7 +209,7 @@ namespace TrainingSystem.Models
         public TrainingReason? TrainingReason { get; set; }
 
         // حقول شرطية تظهر عند اختيار "ضعف في تقييم الأداء السنوي"
-        [Display(Name = "رقم ��لهدف المتعثر")]
+        [Display(Name = "رقم ��لهد�� المتعثر")]
         [MaxLength(100)]
         public string? FailedGoalNumber { get; set; }
 
@@ -428,15 +433,38 @@ namespace TrainingSystem.Models
         public static string GetApprovalStatusDisplayName(TrainingNeedApprovalStatus s) => s switch
         {
             TrainingNeedApprovalStatus.Draft => "مسودة",
-            TrainingNeedApprovalStatus.SubmittedToManager => "بانتظار المدير",
-            TrainingNeedApprovalStatus.ManagerApproved => "بانتظار دائرة التدريب",
+            TrainingNeedApprovalStatus.SubmittedToManager => "قيد مراجعة المدير",
+            TrainingNeedApprovalStatus.ManagerApproved => "معتمد من المدير – بانتظار دائرة التدريب",
             TrainingNeedApprovalStatus.ManagerRejected => "مرفوض من المدير",
+            TrainingNeedApprovalStatus.ReturnedForModification => "أُعيد للتعديل",
+            TrainingNeedApprovalStatus.BudgetReview => "مراجعة الميزانية",
             TrainingNeedApprovalStatus.HRApproved => "معتمد نهائياً",
             TrainingNeedApprovalStatus.HRRejected => "مرفوض من دائرة التدريب",
-            TrainingNeedApprovalStatus.BudgetReview => "مراجعة الميزانية",
             TrainingNeedApprovalStatus.TrainingScheduled => "مجدول للتدريب",
             TrainingNeedApprovalStatus.TrainingCompleted => "اكتمل التدريب",
+            TrainingNeedApprovalStatus.ImpactAssessmentPending => "بانتظار تقييم الأثر",
+            TrainingNeedApprovalStatus.ImpactAssessmentCompleted => "اكتمل تقييم الأثر",
+            TrainingNeedApprovalStatus.Closed => "مغلق",
             _ => "مسودة"
+        };
+
+        // أيقونة الحالة (Bootstrap Icons) لعرض شارة واضحة
+        public static string GetApprovalStatusIcon(TrainingNeedApprovalStatus s) => s switch
+        {
+            TrainingNeedApprovalStatus.Draft => "bi-pencil",
+            TrainingNeedApprovalStatus.SubmittedToManager => "bi-hourglass-split",
+            TrainingNeedApprovalStatus.ManagerApproved => "bi-person-check",
+            TrainingNeedApprovalStatus.ManagerRejected => "bi-x-circle",
+            TrainingNeedApprovalStatus.ReturnedForModification => "bi-arrow-counterclockwise",
+            TrainingNeedApprovalStatus.BudgetReview => "bi-cash-coin",
+            TrainingNeedApprovalStatus.HRApproved => "bi-patch-check",
+            TrainingNeedApprovalStatus.HRRejected => "bi-x-octagon",
+            TrainingNeedApprovalStatus.TrainingScheduled => "bi-calendar-check",
+            TrainingNeedApprovalStatus.TrainingCompleted => "bi-mortarboard",
+            TrainingNeedApprovalStatus.ImpactAssessmentPending => "bi-clipboard-data",
+            TrainingNeedApprovalStatus.ImpactAssessmentCompleted => "bi-clipboard-check",
+            TrainingNeedApprovalStatus.Closed => "bi-lock",
+            _ => "bi-circle"
         };
 
         // لون شارة الحالة (Bootstrap)
@@ -446,11 +474,15 @@ namespace TrainingSystem.Models
             TrainingNeedApprovalStatus.SubmittedToManager => "info",
             TrainingNeedApprovalStatus.ManagerApproved => "primary",
             TrainingNeedApprovalStatus.ManagerRejected => "danger",
+            TrainingNeedApprovalStatus.ReturnedForModification => "warning",
+            TrainingNeedApprovalStatus.BudgetReview => "warning",
             TrainingNeedApprovalStatus.HRApproved => "success",
             TrainingNeedApprovalStatus.HRRejected => "danger",
-            TrainingNeedApprovalStatus.BudgetReview => "warning",
             TrainingNeedApprovalStatus.TrainingScheduled => "primary",
             TrainingNeedApprovalStatus.TrainingCompleted => "success",
+            TrainingNeedApprovalStatus.ImpactAssessmentPending => "info",
+            TrainingNeedApprovalStatus.ImpactAssessmentCompleted => "success",
+            TrainingNeedApprovalStatus.Closed => "dark",
             _ => "secondary"
         };
 
@@ -478,6 +510,7 @@ namespace TrainingSystem.Models
             switch (ApprovalStatus)
             {
                 case TrainingNeedApprovalStatus.Draft: current = 2; break;
+                case TrainingNeedApprovalStatus.ReturnedForModification: current = 4; break;
                 case TrainingNeedApprovalStatus.SubmittedToManager: current = 4; break;
                 case TrainingNeedApprovalStatus.ManagerApproved: current = 5; break;
                 case TrainingNeedApprovalStatus.ManagerRejected: current = 4; rejectedAtManager = true; break;
@@ -486,6 +519,9 @@ namespace TrainingSystem.Models
                 case TrainingNeedApprovalStatus.HRRejected: current = 8; rejectedAtHR = true; break;
                 case TrainingNeedApprovalStatus.TrainingScheduled: current = 10; break;
                 case TrainingNeedApprovalStatus.TrainingCompleted: current = 11; break;
+                case TrainingNeedApprovalStatus.ImpactAssessmentPending: current = 11; break;
+                case TrainingNeedApprovalStatus.ImpactAssessmentCompleted: current = 12; break;
+                case TrainingNeedApprovalStatus.Closed: current = 12; break;
                 default: current = 1; break;
             }
 

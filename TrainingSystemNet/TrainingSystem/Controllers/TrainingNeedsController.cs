@@ -172,7 +172,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خا������������ دائرته
+            // المشرف لا يضيف احتياجاً لموظف خا�������������� دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -492,6 +492,7 @@ namespace TrainingSystem.Controllers
                 return RedirectToAction(nameof(Index));
             }
             if (need.ApprovalStatus != TrainingNeedApprovalStatus.Draft &&
+                need.ApprovalStatus != TrainingNeedApprovalStatus.ReturnedForModification &&
                 need.ApprovalStatus != TrainingNeedApprovalStatus.ManagerRejected &&
                 need.ApprovalStatus != TrainingNeedApprovalStatus.HRRejected)
             {
@@ -618,7 +619,7 @@ namespace TrainingSystem.Controllers
             }
 
             var actor = await _userManager.GetUserAsync(User);
-            need.ApprovalStatus = TrainingNeedApprovalStatus.Draft;
+            need.ApprovalStatus = TrainingNeedApprovalStatus.ReturnedForModification;
             need.ManagerUserId = actor?.Id;
             need.ManagerActionAt = DateTime.Now;
             need.ManagerComment = comment.Trim();
@@ -761,6 +762,31 @@ namespace TrainingSystem.Controllers
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم إنهاء التدريب";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // إغلاق الطلب نهائياً بعد اكتمال التدريب/تقييم الأثر — دائرة التدريب
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> CloseNeed(int id)
+        {
+            var need = await _context.TrainingNeeds.FindAsync(id);
+            if (need == null) return NotFound();
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.TrainingCompleted &&
+                need.ApprovalStatus != TrainingNeedApprovalStatus.ImpactAssessmentCompleted)
+            {
+                TempData["Error"] = "لا يمكن إغلاق الطلب في حالته الحالية";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            need.ApprovalStatus = TrainingNeedApprovalStatus.Closed;
+            need.Status = TrainingNeedStatus.Completed;
+            AddHistory(need, need.ApprovalStatus, "إغلاق الطلب", null, actor);
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تم إغلاق الطلب";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -1388,7 +1414,7 @@ namespace TrainingSystem.Controllers
             return deptSupervisors.Concat(hr).Distinct().ToList();
         }
 
-        // ا��سنة المالية الحالية (تقويم��ة) بصيغة 2025/2026
+        // ا��سنة المالية الحالية (تق��يم��ة) بصيغة 2025/2026
         private static string CurrentFinancialYear()
         {
             var y = DateTime.Now.Year;

@@ -28,6 +28,7 @@
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0">بيانات الاحتياج</h6>
                 <span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(Model.ApprovalStatus) fs-6">
+                    <i class="bi @TrainingNeed.GetApprovalStatusIcon(Model.ApprovalStatus) me-1"></i>
                     @TrainingNeed.GetApprovalStatusDisplayName(Model.ApprovalStatus)
                 </span>
             </div>
@@ -321,9 +322,39 @@
                         </form>
                     }
                 }
-                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.TrainingCompleted)
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.ReturnedForModification)
                 {
-                    <div class="alert alert-success mb-2"><i class="bi bi-check-circle me-1"></i> اكتمل التدريب</div>
+                    <div class="alert alert-warning mb-2">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> أُعيد الطلب للتعديل
+                        @if (!string.IsNullOrWhiteSpace(Model.ManagerComment))
+                        {
+                            <div class="small mt-1">المطلوب: @Model.ManagerComment</div>
+                        }
+                    </div>
+                    <form asp-action="Submit" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-send me-1"></i> إعادة الإرسال بعد التعديل
+                        </button>
+                    </form>
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.TrainingCompleted ||
+                         Model.ApprovalStatus == TrainingNeedApprovalStatus.ImpactAssessmentCompleted)
+                {
+                    <div class="alert alert-success mb-2"><i class="bi bi-check-circle me-1"></i> @TrainingNeed.GetApprovalStatusDisplayName(Model.ApprovalStatus)</div>
+                    @if (isPrivileged)
+                    {
+                        <form asp-action="CloseNeed" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-dark w-100">
+                                <i class="bi bi-lock me-1"></i> إغلاق الطلب
+                            </button>
+                        </form>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.Closed)
+                {
+                    <div class="alert alert-dark mb-0"><i class="bi bi-lock me-1"></i> الطلب مغلق</div>
                 }
             </div>
         </div>
