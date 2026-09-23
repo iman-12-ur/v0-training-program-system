@@ -196,7 +196,7 @@ namespace TrainingSystem.Controllers
                 Grade = model.Grade?.Trim(),
                 Justification = model.Justification?.Trim(),
                 NeedDescription = model.NeedDescription?.Trim(),
-                GapType = model.GapType?.Trim(),
+                GapType = model.GapType,
                 ProposedTrainingProgram = model.ProposedTrainingProgram?.Trim(),
                 PreferredTrainingProvider = model.PreferredTrainingProvider?.Trim(),
                 SuggestedTimeframe = model.SuggestedTimeframe?.Trim(),
@@ -374,7 +374,7 @@ namespace TrainingSystem.Controllers
             need.Grade = model.Grade?.Trim();
             need.Justification = model.Justification?.Trim();
             need.NeedDescription = model.NeedDescription?.Trim();
-            need.GapType = model.GapType?.Trim();
+            need.GapType = model.GapType;
             need.ProposedTrainingProgram = model.ProposedTrainingProgram?.Trim();
             need.PreferredTrainingProvider = model.PreferredTrainingProvider?.Trim();
             need.SuggestedTimeframe = model.SuggestedTimeframe?.Trim();
@@ -645,7 +645,7 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // جدولة التدريب (بعد الاعتماد النهائي) — الموارد البشرية
+        // جدولة التدريب (بعد الاعتماد النهائي) — ال��وارد البشرية
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "SuperAdmin,Admin")]
@@ -1405,27 +1405,34 @@ namespace TrainingSystem.Controllers
             });
         }
 
-        // إن اختيرت مهارة من المكتبة ولم يُحدَّد تصنيف، يُشتقّ تصنيف الاحتياج من تصنيف المهارة
+        // إن اختيرت مهارة من المكتبة، يُشتقّ تصنيف الاحتياج ونوع الفجوة من تصنيف المهارة
         private async Task AlignSkillCategoryAsync(TrainingNeed need)
         {
-            if (need.SkillCategoryId != null || need.SkillId == null) return;
+            // اشتقاق التصنيف من المهارة عند عدم تحديده
+            if (need.SkillCategoryId == null && need.SkillId != null)
+            {
+                need.SkillCategoryId = await _context.Skills
+                    .AsNoTracking()
+                    .Where(s => s.Id == need.SkillId)
+                    .Select(s => s.SkillCategoryId)
+                    .FirstOrDefaultAsync();
+            }
 
-            var skillCategoryId = await _context.Skills
+            if (need.SkillCategoryId == null) return;
+
+            var category = await _context.SkillCategories
                 .AsNoTracking()
-                .Where(s => s.Id == need.SkillId)
-                .Select(s => s.SkillCategoryId)
+                .Where(c => c.Id == need.SkillCategoryId)
+                .Select(c => new { c.Name, c.GapType })
                 .FirstOrDefaultAsync();
 
-            if (skillCategoryId != null)
+            if (category != null)
             {
-                need.SkillCategoryId = skillCategoryId;
-                var name = await _context.SkillCategories
-                    .AsNoTracking()
-                    .Where(c => c.Id == skillCategoryId)
-                    .Select(c => c.Name)
-                    .FirstOrDefaultAsync();
                 if (string.IsNullOrWhiteSpace(need.Category))
-                    need.Category = name;
+                    need.Category = category.Name;
+                // إن لم يحدد المستخدم نوع الفجوة، يُشتقّ من نوع الفئة الكبرى للتصنيف
+                if (need.GapType == null && category.GapType != null)
+                    need.GapType = category.GapType;
             }
         }
 
@@ -1682,7 +1689,7 @@ namespace TrainingSystem.Controllers
         // حقول وصف الاحتياج (البند 4)
         public int? SkillCategoryId { get; set; }
         public string? NeedDescription { get; set; }
-        public string? GapType { get; set; }
+        public SkillGapType? GapType { get; set; }
         public string? ProposedTrainingProgram { get; set; }
         public string? PreferredTrainingProvider { get; set; }
 

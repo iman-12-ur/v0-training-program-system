@@ -21,6 +21,13 @@
                         <input name="name" class="form-control" required placeholder="مثال: مهارات قيادية" />
                     </div>
                     <div class="mb-2">
+                        <label class="form-label">نوع الفجوة المهارية</label>
+                        <select name="gapType" class="form-select" asp-items="Html.GetEnumSelectList<TrainingSystem.Models.SkillGapType>()">
+                            <option value="">— غير محدد —</option>
+                        </select>
+                        <small class="text-muted">النوع الكبير الذي يندرج تحته هذا التصنيف (فني / سلوكي / إلزامي).</small>
+                    </div>
+                    <div class="mb-2">
                         <label class="form-label">الوصف</label>
                         <input name="description" class="form-control" />
                     </div>
@@ -44,6 +51,10 @@
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
                             <span class="fw-semibold">@c.Name</span>
+                            @if (c.GapType != null)
+                            {
+                                <span class="badge bg-info-subtle text-info-emphasis ms-1">@c.GapType.Value.DisplayName()</span>
+                            }
                             @if (!c.IsActive)
                             {
                                 <span class="badge bg-secondary ms-1">معطّل</span>
@@ -52,6 +63,17 @@
                             {
                                 <div class="small text-muted">@c.Description</div>
                             }
+                            <form asp-action="SetCategoryGapType" asp-route-id="@c.Id" method="post" class="mt-1 d-flex gap-1 align-items-center">
+                                @Html.AntiForgeryToken()
+                                <select name="gapType" class="form-select form-select-sm" style="max-width: 200px;">
+                                    <option value="">— نوع الفجوة —</option>
+                                    @foreach (var gt in Enum.GetValues<TrainingSystem.Models.SkillGapType>())
+                                    {
+                                        <option value="@gt" selected="@(c.GapType == gt)">@gt.DisplayName()</option>
+                                    }
+                                </select>
+                                <button class="btn btn-sm btn-outline-primary" title="حفظ نوع الفجوة"><i class="bi bi-check-lg"></i></button>
+                            </form>
                         </div>
                         <div class="d-flex gap-1">
                             <form asp-action="ToggleCategory" asp-route-id="@c.Id" method="post">
@@ -138,7 +160,7 @@
                                             </button>
                                         </form>
                                         <form asp-action="DeleteSkill" asp-route-id="@s.Id" method="post"
-                                              onsubmit="return confirm('حذف المهارة؟');">
+                                              onsubmit="return confirm('حذف المها��ة؟');">
                                             @Html.AntiForgeryToken()
                                             <button class="btn btn-sm btn-outline-danger" title="حذف"><i class="bi bi-trash"></i></button>
                                         </form>

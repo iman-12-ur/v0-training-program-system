@@ -38,7 +38,7 @@ namespace TrainingSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateCategory(string name, string? description)
+        public async Task<IActionResult> CreateCategory(string name, string? description, SkillGapType? gapType)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -58,11 +58,25 @@ namespace TrainingSystem.Controllers
             {
                 Name = name.Trim(),
                 Description = description?.Trim(),
+                GapType = gapType,
                 IsActive = true,
                 CreatedAt = DateTime.Now
             });
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم إضافة التصنيف";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // تحديث نوع الفجوة الكبير لتصنيف موجود
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetCategoryGapType(int id, SkillGapType? gapType)
+        {
+            var cat = await _context.SkillCategories.FindAsync(id);
+            if (cat == null) return RedirectToAction(nameof(Index));
+            cat.GapType = gapType;
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تم تحديث نوع الفجوة للتصنيف";
             return RedirectToAction(nameof(Index));
         }
 

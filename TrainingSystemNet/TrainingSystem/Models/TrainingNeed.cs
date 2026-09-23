@@ -122,10 +122,9 @@ namespace TrainingSystem.Models
         [MaxLength(1000)]
         public string? NeedDescription { get; set; }
 
-        // نوع الفجوة (مثل: نقص مهارة، تطوير، متطلب وظيفي جديد، امتثال)
-        [Display(Name = "نوع الفجوة")]
-        [MaxLength(80)]
-        public string? GapType { get; set; }
+        // نوع الفجوة المهارية (أحد الأنواع الكبرى الثابتة)
+        [Display(Name = "نوع الفجوة المهارية")]
+        public SkillGapType? GapType { get; set; }
 
         // درجة الفجوة المخزّنة (تُحسب من الفرق بين المطلوب والحالي)
         [Display(Name = "درجة الفجوة")]

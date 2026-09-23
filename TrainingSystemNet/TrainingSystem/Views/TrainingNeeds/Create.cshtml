@@ -102,14 +102,10 @@
                     </datalist>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">نوع الفجوة</label>
-                    <input asp-for="GapType" class="form-control" placeholder="نقص مهارة / تطوير / متطلب وظيفي / امتثال" list="gapTypeList" />
-                    <datalist id="gapTypeList">
-                        <option value="نقص مهارة"></option>
-                        <option value="تطوير"></option>
-                        <option value="متطلب وظيفي جديد"></option>
-                        <option value="امتثال إلزامي"></option>
-                    </datalist>
+                    <label class="form-label">نوع الفجوة المهارية</label>
+                    <select asp-for="GapType" class="form-select" asp-items="Html.GetEnumSelectList<TrainingSystem.Models.SkillGapType>()">
+                        <option value="">— يُشتقّ تلقائياً من تصنيف المهارة —</option>
+                    </select>
                 </div>
 
                 <div class="col-md-6">

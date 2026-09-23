@@ -56,7 +56,7 @@
                     <dt class="col-sm-3 text-muted">التصنيف</dt><dd class="col-sm-3">@(Model.SkillCategoryRef?.Name ?? Model.Category ?? "—")</dd>
 
                     <dt class="col-sm-3 text-muted">المهارة</dt><dd class="col-sm-3">@Model.SkillName</dd>
-                    <dt class="col-sm-3 text-muted">نوع الفجوة</dt><dd class="col-sm-3">@(Model.GapType ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">نوع الفجوة</dt><dd class="col-sm-3">@(Model.GapType?.DisplayName() ?? "—")</dd>
 
                     <dt class="col-sm-3 text-muted">درجة الفجوة</dt><dd class="col-sm-3">@Model.GapScore</dd>
                     <dt class="col-sm-3 text-muted">الفترة المقترحة</dt><dd class="col-sm-3">@(Model.SuggestedTimeframe ?? "—")</dd>
