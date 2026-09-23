@@ -171,7 +171,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خار������ دائرته
+            // المشرف لا يضيف احتياجاً لموظف خار�������� دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -206,6 +206,11 @@ namespace TrainingSystem.Controllers
                 SubmittedAt = submitting ? DateTime.Now : (DateTime?)null,
                 Notes = model.Notes?.Trim(),
                 LinkedTrainingProgramId = model.LinkedTrainingProgramId,
+                TrainingBatchId = model.TrainingBatchId,
+                PlannedCost = Math.Max(0, model.PlannedCost),
+                ActualCost = Math.Max(0, model.ActualCost),
+                PlannedDate = model.PlannedDate,
+                CompletionDate = model.CompletionDate,
                 EstimatedCost = Math.Max(0, model.EstimatedCost),
                 ParticipantsCount = Math.Max(1, model.ParticipantsCount),
                 ImpactScore = Math.Clamp(model.ImpactScore, 1, 4),
@@ -214,6 +219,9 @@ namespace TrainingSystem.Controllers
                 CreatedByUserId = actor?.Id,
                 CreatedAt = DateTime.Now
             };
+
+            // إن اختير برنامج ودفعة، تأكد أن الدفعة تابعة لنفس البرنامج
+            await AlignBatchToProgramAsync(need);
 
             _context.TrainingNeeds.Add(need);
             await _context.SaveChangesAsync();
@@ -268,6 +276,11 @@ namespace TrainingSystem.Controllers
                 Status = need.Status,
                 Notes = need.Notes,
                 LinkedTrainingProgramId = need.LinkedTrainingProgramId,
+                TrainingBatchId = need.TrainingBatchId,
+                PlannedCost = need.PlannedCost,
+                ActualCost = need.ActualCost,
+                PlannedDate = need.PlannedDate,
+                CompletionDate = need.CompletionDate,
                 EstimatedCost = need.EstimatedCost,
                 ParticipantsCount = need.ParticipantsCount,
                 ImpactScore = need.ImpactScore,
@@ -333,6 +346,12 @@ namespace TrainingSystem.Controllers
             need.RequiredLevel = model.RequiredLevel;
             need.CurrentLevel = model.CurrentLevel;
             need.LinkedTrainingProgramId = model.LinkedTrainingProgramId;
+            need.TrainingBatchId = model.TrainingBatchId;
+            need.PlannedCost = Math.Max(0, model.PlannedCost);
+            need.ActualCost = Math.Max(0, model.ActualCost);
+            need.PlannedDate = model.PlannedDate;
+            need.CompletionDate = model.CompletionDate;
+            await AlignBatchToProgramAsync(need);
             need.EstimatedCost = Math.Max(0, model.EstimatedCost);
             need.ParticipantsCount = Math.Max(1, model.ParticipantsCount);
             need.ImpactScore = Math.Clamp(model.ImpactScore, 1, 4);
@@ -377,6 +396,8 @@ namespace TrainingSystem.Controllers
             var need = await _context.TrainingNeeds
                 .Include(n => n.StatusHistory)
                 .Include(n => n.LinkedTrainingProgram)
+                .Include(n => n.TrainingBatch)
+                    .ThenInclude(b => b!.TrainingProgram)
                 .Include(n => n.ImpactAssessments)
                 .FirstOrDefaultAsync(n => n.Id == id);
             if (need == null) return NotFound();
@@ -1244,6 +1265,25 @@ namespace TrainingSystem.Controllers
                 .FirstOrDefaultAsync(b => b.FinancialYear == fy);
         }
 
+        // يضمن اتساق سلسلة: البرنامج ← الدفعة. إن اختيرت دفعة، يُشتق برنامجها تلقائياً.
+        private async Task AlignBatchToProgramAsync(TrainingNeed need)
+        {
+            if (need.TrainingBatchId == null) return;
+
+            var batch = await _context.Batches
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.Id == need.TrainingBatchId);
+
+            if (batch == null)
+            {
+                need.TrainingBatchId = null;
+                return;
+            }
+
+            // الدفعة تابعة لبرنامج — اجعل برنامج الاحتياج هو برنامج الدفعة
+            need.LinkedTrainingProgramId = batch.TrainingProgramId;
+        }
+
         private async Task PopulateFormOptionsAsync(TrainingNeedFormViewModel vm)
         {
             var actor = await _userManager.GetUserAsync(User);
@@ -1290,6 +1330,19 @@ namespace TrainingSystem.Controllers
                 .Where(p => p.Status == ProgramStatus.Active)
                 .OrderBy(p => p.Title)
                 .Select(p => new SelectListItem { Value = p.Id.ToString(), Text = p.Title })
+                .ToListAsync();
+
+            // الدفعات التدريبية المتاحة (غير الملغاة) مع اسم البرنامج التابعة له
+            vm.Batches = await _context.Batches
+                .Where(b => b.Status != BatchStatus.Cancelled)
+                .Include(b => b.TrainingProgram)
+                .OrderByDescending(b => b.StartDate)
+                .Select(b => new SelectListItem
+                {
+                    Value = b.Id.ToString(),
+                    Text = (b.TrainingProgram != null ? b.TrainingProgram.Title + " — " : "") +
+                           b.Name + " (" + b.StartDate.ToString("yyyy/MM/dd") + ")"
+                })
                 .ToListAsync();
 
             vm.IsPrivileged = IsPrivileged;
@@ -1467,11 +1520,19 @@ namespace TrainingSystem.Controllers
         public int RiskScore { get; set; } = 2;
         public bool IsCompliance { get; set; }
 
+        // ربط البرنامج/الدفعة والتكاليف والتواريخ الفعلية
+        public int? TrainingBatchId { get; set; }
+        public decimal PlannedCost { get; set; }
+        public decimal ActualCost { get; set; }
+        public DateTime? PlannedDate { get; set; }
+        public DateTime? CompletionDate { get; set; }
+
         // خيارات العرض
         public List<SelectListItem> Employees { get; set; } = new();
         public List<SelectListItem> Skills { get; set; } = new();
         public List<SelectListItem> Categories { get; set; } = new();
         public List<SelectListItem> Programs { get; set; } = new();
+        public List<SelectListItem> Batches { get; set; } = new();
         public bool IsPrivileged { get; set; }
         public string? LockedDepartment { get; set; }
     }

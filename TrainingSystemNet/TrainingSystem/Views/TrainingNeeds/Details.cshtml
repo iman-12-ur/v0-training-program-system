@@ -58,8 +58,15 @@
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-3 text-muted">البرنامج المرتبط</dt><dd class="col-sm-3">@(Model.LinkedTrainingProgram?.Title ?? "—")</dd>
-                    <dt class="col-sm-3 text-muted">التكلفة التقديرية</dt><dd class="col-sm-3">@Model.EstimatedCost.ToString("N0")</dd>
+                    <dt class="col-sm-3 text-muted">الدفعة التدريبية</dt><dd class="col-sm-3">@(Model.TrainingBatch != null ? Model.TrainingBatch.Name : "—")</dd>
 
+                    <dt class="col-sm-3 text-muted">التكلفة التقديرية</dt><dd class="col-sm-3">@Model.EstimatedCost.ToString("N0")</dd>
+                    <dt class="col-sm-3 text-muted">التكلفة المخطّطة</dt><dd class="col-sm-3">@Model.PlannedCost.ToString("N0")</dd>
+
+                    <dt class="col-sm-3 text-muted">التكلفة الفعلية</dt><dd class="col-sm-3">@Model.ActualCost.ToString("N0")</dd>
+                    <dt class="col-sm-3 text-muted">التاريخ المخطّط</dt><dd class="col-sm-3">@(Model.PlannedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">تاريخ الإنجاز</dt><dd class="col-sm-3">@(Model.CompletionDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
                     <dt class="col-sm-3 text-muted">عدد المشاركين</dt><dd class="col-sm-3">@Model.ParticipantsCount</dd>
                     <dt class="col-sm-3 text-muted">درجة الأولوية</dt>
                     <dd class="col-sm-3">

@@ -112,7 +112,15 @@ namespace TrainingSystem.Data
                       .HasForeignKey(e => e.LinkedTrainingProgramId)
                       .OnDelete(DeleteBehavior.SetNull);
 
+                // ربط اختياري بدفعة تدريبية تابعة للبرنامج
+                entity.HasOne(e => e.TrainingBatch)
+                      .WithMany()
+                      .HasForeignKey(e => e.TrainingBatchId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
                 entity.Property(e => e.EstimatedCost).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.PlannedCost).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ActualCost).HasColumnType("decimal(18,2)");
             });
 
             // Configure SkillCategory - تصنيف المهارات

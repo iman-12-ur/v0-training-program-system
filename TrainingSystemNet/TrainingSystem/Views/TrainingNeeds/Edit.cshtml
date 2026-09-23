@@ -116,15 +116,42 @@
                 @if (Model.Programs.Any())
                 {
                     <div class="col-md-6">
-                        <label class="form-label">ربط ببرنامج تدريبي</label>
+                        <label class="form-label">ربط ببرنامج تدريبي موجود</label>
                         <select asp-for="LinkedTrainingProgramId" class="form-select" asp-items="Model.Programs">
                             <option value="">— بدون ربط —</option>
                         </select>
+                        <div class="form-text">يُربط ببرنامج قائم؛ لا يُنشأ برنامج جديد.</div>
+                    </div>
+                }
+                @if (Model.Batches.Any())
+                {
+                    <div class="col-md-6">
+                        <label class="form-label">الدفعة التدريبية</label>
+                        <select asp-for="TrainingBatchId" class="form-select" asp-items="Model.Batches">
+                            <option value="">— بدون دفعة —</option>
+                        </select>
+                        <div class="form-text">عند اختيار دفعة يُضبط البرنامج تلقائياً حسبها.</div>
                     </div>
                 }
                 <div class="col-md-6">
                     <label class="form-label">التكلفة التقديرية</label>
                     <input asp-for="EstimatedCost" type="number" step="0.01" min="0" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">التكلفة المخطّطة</label>
+                    <input asp-for="PlannedCost" type="number" step="0.01" min="0" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">التكلفة الفعلية</label>
+                    <input asp-for="ActualCost" type="number" step="0.01" min="0" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">التاريخ المخطّط</label>
+                    <input asp-for="PlannedDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">تاريخ الإنجاز</label>
+                    <input asp-for="CompletionDate" type="date" class="form-control" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">عدد المشاركين</label>

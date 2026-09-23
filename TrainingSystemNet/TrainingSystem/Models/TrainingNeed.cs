@@ -137,10 +137,31 @@ namespace TrainingSystem.Models
 
         // --- المرحلة 2: التكلفة والأثر والميزانية ---
 
-        // ربط اختياري ببرنامج تدريبي معتمد
-        [Display(Name = "البرنامج التدريبي المقترح")]
+        // ربط الاحتياج ببرنامج تدريبي موجود مسبقاً (لا يُنشأ برنامج جديد)
+        [Display(Name = "البرنامج التدريبي")]
         public int? LinkedTrainingProgramId { get; set; }
         public TrainingProgram? LinkedTrainingProgram { get; set; }
+
+        // ربط اختياري بدفعة تدريبية تابعة للبرنامج (Training Program → Batch → Employee)
+        [Display(Name = "الدفعة التدريبية")]
+        public int? TrainingBatchId { get; set; }
+        public Batch? TrainingBatch { get; set; }
+
+        [Display(Name = "التكلفة المخطّطة")]
+        [Range(0, double.MaxValue)]
+        public decimal PlannedCost { get; set; }
+
+        [Display(Name = "التكلفة الفعلية")]
+        [Range(0, double.MaxValue)]
+        public decimal ActualCost { get; set; }
+
+        [Display(Name = "التاريخ المخطّط")]
+        [DataType(DataType.Date)]
+        public DateTime? PlannedDate { get; set; }
+
+        [Display(Name = "تاريخ الإنجاز")]
+        [DataType(DataType.Date)]
+        public DateTime? CompletionDate { get; set; }
 
         [Display(Name = "التكلفة التقديرية")]
         [Range(0, double.MaxValue)]
