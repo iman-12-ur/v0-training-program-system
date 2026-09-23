@@ -27,7 +27,10 @@ namespace TrainingSystem.Models
         ManagerApproved = 2,    // اعتمده المدير - بانتظار الموارد البشرية
         ManagerRejected = 3,    // رفضه المدير
         HRApproved = 4,         // اعتمدته الموارد البشرية (نهائي)
-        HRRejected = 5          // رفضته الموارد البشرية
+        HRRejected = 5,         // رفضته الموارد البشرية
+        BudgetReview = 6,       // مراجعة الميزانية (تجاوز المتاح)
+        TrainingScheduled = 7,  // مجدول للتدريب
+        TrainingCompleted = 8   // اكتمل التدريب (بانتظار تقييم الأثر)
     }
 
     // سجل احتياج تدريبي لموظف في مهارة محددة
@@ -132,7 +135,43 @@ namespace TrainingSystem.Models
 
         public DateTime? SubmittedAt { get; set; }
 
+        // --- المرحلة 2: التكلفة والأثر والميزانية ---
+
+        // ربط اختياري ببرنامج تدريبي معتمد
+        [Display(Name = "البرنامج التدريبي المقترح")]
+        public int? LinkedTrainingProgramId { get; set; }
+        public TrainingProgram? LinkedTrainingProgram { get; set; }
+
+        [Display(Name = "التكلفة التقديرية")]
+        [Range(0, double.MaxValue)]
+        public decimal EstimatedCost { get; set; }
+
+        [Display(Name = "عدد المشاركين")]
+        [Range(1, int.MaxValue)]
+        public int ParticipantsCount { get; set; } = 1;
+
+        // درجة الأثر على العمل (1-4) — تدخل في حساب الأولوية
+        [Display(Name = "الأثر على العمل")]
+        [Range(1, 4)]
+        public int ImpactScore { get; set; } = 2;
+
+        // درجة المخاطر عند عدم التدريب (1-4)
+        [Display(Name = "درجة المخاطر")]
+        [Range(1, 4)]
+        public int RiskScore { get; set; } = 2;
+
+        // احتياج امتثال/إلزامي؟
+        [Display(Name = "احتياج امتثال إلزامي")]
+        public bool IsCompliance { get; set; }
+
+        // درجة الأولوية المحسوبة (0-100) — تُخزَّن للفرز والتقارير
+        [Display(Name = "درجة الأولوية")]
+        public int PriorityScore { get; set; }
+
+        public DateTime? UpdatedAt { get; set; }
+
         public List<TrainingNeedStatusHistory> StatusHistory { get; set; } = new();
+        public List<TrainingImpactAssessment> ImpactAssessments { get; set; } = new();
 
         // الفجوة المحسوبة (لا تُخزّن في قاعدة البيانات)
         [NotMapped]
@@ -144,6 +183,27 @@ namespace TrainingSystem.Models
             var gap = Math.Max(0, requiredLevel - currentLevel);
             if (gap >= 3) return TrainingNeedPriority.High;
             if (gap == 2) return TrainingNeedPriority.Medium;
+            return TrainingNeedPriority.Low;
+        }
+
+        // درجة الأولوية الموزونة (0-100).
+        // الأوزان ثابتة حالياً — يمكن نقلها لاحقاً إلى SystemSettings لجعلها قابلة للإعداد.
+        public static int ComputePriorityScore(int requiredLevel, int currentLevel,
+            int impact, int risk, bool isCompliance)
+        {
+            var gap = Math.Max(0, requiredLevel - currentLevel);          // 0-5
+            var gapComponent = Math.Min(gap, 3) / 3.0 * 30.0;             // حتى 30
+            var impactComponent = (Math.Clamp(impact, 1, 4) - 1) / 3.0 * 20.0; // حتى 20
+            var riskComponent = (Math.Clamp(risk, 1, 4) - 1) / 3.0 * 20.0;     // حتى 20
+            var complianceComponent = isCompliance ? 30.0 : 0.0;          // 30
+            return (int)Math.Round(gapComponent + impactComponent + riskComponent + complianceComponent);
+        }
+
+        // تصنيف الأولوية من الدرجة الموزونة
+        public static TrainingNeedPriority ClassifyByScore(int score)
+        {
+            if (score >= 60) return TrainingNeedPriority.High;
+            if (score >= 40) return TrainingNeedPriority.Medium;
             return TrainingNeedPriority.Low;
         }
 
@@ -169,6 +229,9 @@ namespace TrainingSystem.Models
             TrainingNeedApprovalStatus.ManagerRejected => "مرفوض من المدير",
             TrainingNeedApprovalStatus.HRApproved => "معتمد نهائياً",
             TrainingNeedApprovalStatus.HRRejected => "مرفوض من الموارد البشرية",
+            TrainingNeedApprovalStatus.BudgetReview => "مراجعة الميزانية",
+            TrainingNeedApprovalStatus.TrainingScheduled => "مجدول للتدريب",
+            TrainingNeedApprovalStatus.TrainingCompleted => "اكتمل التدريب",
             _ => "مسودة"
         };
 
@@ -181,6 +244,9 @@ namespace TrainingSystem.Models
             TrainingNeedApprovalStatus.ManagerRejected => "danger",
             TrainingNeedApprovalStatus.HRApproved => "success",
             TrainingNeedApprovalStatus.HRRejected => "danger",
+            TrainingNeedApprovalStatus.BudgetReview => "warning",
+            TrainingNeedApprovalStatus.TrainingScheduled => "primary",
+            TrainingNeedApprovalStatus.TrainingCompleted => "success",
             _ => "secondary"
         };
     }

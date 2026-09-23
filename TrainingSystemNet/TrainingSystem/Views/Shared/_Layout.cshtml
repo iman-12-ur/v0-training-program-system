@@ -40,6 +40,12 @@
 
             <!-- Navigation -->
             <nav class="sidebar-nav">
+                <a href="@Url.Action("Index", "Notifications")" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Notifications" ? "active" : "")">
+                    <i class="bi bi-bell"></i>
+                    <span>الإشعارات</span>
+                    @await Component.InvokeAsync("NotificationBadge")
+                </a>
+
                 <a href="@Url.Action("Index", "Home")" class="nav-item">
                     <i class="bi bi-house-door"></i>
                     <span>الصفحة الرئيسية</span>
@@ -83,6 +89,11 @@
                     <span>لوحة المؤشرات</span>
                 </a>
 
+                <a href="@Url.Action("Index", "Kpi")" class="nav-item @(tnaController == "Kpi" ? "active" : "")">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>محرك مؤشرات الأداء</span>
+                </a>
+
                 <a href="@Url.Action("Index", "TrainingNeeds")" class="nav-item @(inTna && (tnaAction == "Index" || tnaAction == "Create" || tnaAction == "Edit" || tnaAction == "Details") ? "active" : "")">
                     <i class="bi bi-clipboard-pulse"></i>
                     <span>سجل الاحتياجات</span>
@@ -108,6 +119,11 @@
                     <span>الأولويات العالية</span>
                 </a>
 
+                <a href="@Url.Action("Index", "ImpactAssessments")" class="nav-item @(tnaController == "ImpactAssessments" ? "active" : "")">
+                    <i class="bi bi-clipboard-check"></i>
+                    <span>تقييم أثر التدريب</span>
+                </a>
+
                 <a href="@Url.Action("Reports", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "Reports" ? "active" : "")">
                     <i class="bi bi-file-earmark-bar-graph"></i>
                     <span>تقارير الاحتياجات</span>
@@ -116,6 +132,11 @@
                 @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
                 {
                     <div class="nav-divider"></div>
+
+                    <a href="@Url.Action("Index", "TrainingBudgets")" class="nav-item @(tnaController == "TrainingBudgets" ? "active" : "")">
+                        <i class="bi bi-cash-coin"></i>
+                        <span>ميزانية التدريب</span>
+                    </a>
 
                     <a href="@Url.Action("Index", "Skills")" class="nav-item @(tnaController == "Skills" ? "active" : "")">
                         <i class="bi bi-list-stars"></i>

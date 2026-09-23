@@ -20,6 +20,9 @@ namespace TrainingSystem.Data
         public DbSet<SkillCategory> SkillCategories { get; set; }
         public DbSet<Skill> Skills { get; set; }
         public DbSet<TrainingNeedStatusHistory> TrainingNeedStatusHistories { get; set; }
+        public DbSet<TrainingBudget> TrainingBudgets { get; set; }
+        public DbSet<TrainingImpactAssessment> TrainingImpactAssessments { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -102,6 +105,14 @@ namespace TrainingSystem.Data
                       .WithMany()
                       .HasForeignKey(e => e.SkillId)
                       .OnDelete(DeleteBehavior.SetNull);
+
+                // ربط اختياري ببرنامج تدريبي معتمد
+                entity.HasOne(e => e.LinkedTrainingProgram)
+                      .WithMany()
+                      .HasForeignKey(e => e.LinkedTrainingProgramId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.Property(e => e.EstimatedCost).HasColumnType("decimal(18,2)");
             });
 
             // Configure SkillCategory - تصنيف المهارات
@@ -132,6 +143,43 @@ namespace TrainingSystem.Data
                       .WithMany(n => n.StatusHistory)
                       .HasForeignKey(e => e.TrainingNeedId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure TrainingBudget - ميزانية الدائرة للسنة المالية
+            builder.Entity<TrainingBudget>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Department).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.FinancialYear).IsRequired().HasMaxLength(9);
+                entity.Property(e => e.AllocatedBudget).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CommittedBudget).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ActualSpending).HasColumnType("decimal(18,2)");
+
+                // منع تكرار نفس الدائرة/السنة
+                entity.HasIndex(e => new { e.Department, e.FinancialYear }).IsUnique();
+            });
+
+            // Configure TrainingImpactAssessment - تقييم الأثر
+            builder.Entity<TrainingImpactAssessment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.HasOne(e => e.TrainingNeed)
+                      .WithMany(n => n.ImpactAssessments)
+                      .HasForeignKey(e => e.TrainingNeedId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.DueDate);
+            });
+
+            // Configure Notification - الإشعارات
+            builder.Entity<Notification>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.Message).IsRequired().HasMaxLength(500);
+
+                entity.HasIndex(e => new { e.UserId, e.IsRead });
             });
         }
     }

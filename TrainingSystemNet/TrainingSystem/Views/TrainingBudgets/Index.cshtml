@@ -1,0 +1,110 @@
+@model List<TrainingSystem.Models.TrainingBudget>
+@{
+    ViewData["Title"] = "ميزانية التدريب";
+    var years = ViewBag.Years as List<string> ?? new List<string>();
+    var selectedYear = ViewBag.SelectedYear as string;
+    var totalAllocated = Model.Sum(b => b.AllocatedBudget);
+    var totalCommitted = Model.Sum(b => b.CommittedBudget);
+    var totalActual = Model.Sum(b => b.ActualSpending);
+    var totalRemaining = Model.Sum(b => b.RemainingBudget);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">ميزانية التدريب</h4>
+        <p class="text-muted mb-0">متابعة المخصص والملتزم به والمصروف الفعلي لكل دائرة</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get">
+            <select name="financialYear" class="form-select form-select-sm" onchange="this.form.submit()">
+                @foreach (var y in years)
+                {
+                    <option value="@y" selected="@(y == selectedYear)">@y</option>
+                }
+            </select>
+        </form>
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> ميزانية دائرة
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small mb-1">إجمالي المخصص</div>
+            <div class="fs-4 fw-bold">@totalAllocated.ToString("N0")</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small mb-1">الملتزم به</div>
+            <div class="fs-4 fw-bold text-warning">@totalCommitted.ToString("N0")</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small mb-1">المصروف الفعلي</div>
+            <div class="fs-4 fw-bold text-info">@totalActual.ToString("N0")</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small mb-1">المتبقي</div>
+            <div class="fs-4 fw-bold @(totalRemaining < 0 ? "text-danger" : "text-success")">@totalRemaining.ToString("N0")</div>
+        </div></div>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card"><div class="card-body text-center text-muted py-5">
+        <i class="bi bi-cash-stack fs-1 d-block mb-2"></i>
+        لا توجد ميزانيات معرّفة لهذه السنة المالية
+    </div></div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>الدائرة</th>
+                        <th>المخصص</th>
+                        <th>الملتزم به</th>
+                        <th>الفعلي</th>
+                        <th>المتبقي</th>
+                        <th>الاستهلاك</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in Model)
+                    {
+                        var pct = b.UtilizationPercent;
+                        var barColor = pct >= 100 ? "bg-danger" : pct >= 80 ? "bg-warning" : "bg-success";
+                        <tr>
+                            <td class="fw-semibold">@b.Department</td>
+                            <td>@b.AllocatedBudget.ToString("N0")</td>
+                            <td class="text-warning">@b.CommittedBudget.ToString("N0")</td>
+                            <td class="text-info">@b.ActualSpending.ToString("N0")</td>
+                            <td class="fw-semibold @(b.RemainingBudget < 0 ? "text-danger" : "text-success")">@b.RemainingBudget.ToString("N0")</td>
+                            <td style="min-width: 140px;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 8px;">
+                                        <div class="progress-bar @barColor" style="width: @(Math.Min(pct, 100))%"></div>
+                                    </div>
+                                    <span class="small text-muted">@pct%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <a asp-action="Edit" asp-route-id="@b.Id" class="btn btn-sm btn-outline-secondary">تعديل</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

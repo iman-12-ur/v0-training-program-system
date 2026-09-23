@@ -53,6 +53,69 @@
             </div>
         </div>
 
+        <div class="card mb-3">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">التكلفة والأثر والميزانية</h6></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3 text-muted">البرنامج المرتبط</dt><dd class="col-sm-3">@(Model.LinkedTrainingProgram?.Title ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">التكلفة التقديرية</dt><dd class="col-sm-3">@Model.EstimatedCost.ToString("N0")</dd>
+
+                    <dt class="col-sm-3 text-muted">عدد المشاركين</dt><dd class="col-sm-3">@Model.ParticipantsCount</dd>
+                    <dt class="col-sm-3 text-muted">درجة الأولوية</dt>
+                    <dd class="col-sm-3">
+                        <span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(Model.ApprovalStatus)">@Model.PriorityScore / 100</span>
+                        <span class="small text-muted ms-1">(@TrainingNeed.GetPriorityDisplayName(Model.Priority))</span>
+                    </dd>
+
+                    <dt class="col-sm-3 text-muted">الأثر على العمل</dt><dd class="col-sm-3">@Model.ImpactScore / 4</dd>
+                    <dt class="col-sm-3 text-muted">درجة المخاطر</dt><dd class="col-sm-3">@Model.RiskScore / 4</dd>
+
+                    <dt class="col-sm-3 text-muted">امتثال إلزامي</dt>
+                    <dd class="col-sm-9">
+                        @if (Model.IsCompliance)
+                        {
+                            <span class="badge bg-danger">نعم — إلزامي</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">لا</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (Model.ImpactAssessments.Any())
+        {
+            <div class="card mb-3">
+                <div class="card-header bg-white"><h6 class="fw-bold mb-0">تقييمات الأثر</h6></div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var a in Model.ImpactAssessments.OrderBy(x => x.AssessmentType))
+                        {
+                            <li class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom">
+                                <div>
+                                    <div class="fw-semibold">@TrainingImpactAssessment.GetTypeDisplayName(a.AssessmentType)</div>
+                                    <div class="small text-muted">الاستحقاق: @(a.DueDate?.ToString("yyyy/MM/dd") ?? "—")</div>
+                                </div>
+                                <div class="text-end">
+                                    @if (a.IsCompleted)
+                                    {
+                                        <span class="badge bg-success">@a.AverageScore / 5</span>
+                                        <div class="small text-muted">تحسّن @a.ImprovementPercent%</div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">قيد الانتظار</span>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
         <div class="card">
             <div class="card-header bg-white"><h6 class="fw-bold mb-0">سجل مراحل الاعتماد</h6></div>
             <div class="card-body">
@@ -133,14 +196,32 @@
                         </button>
                     </form>
                 }
-                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved)
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved ||
+                         Model.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview)
                 {
                     @if (isPrivileged)
                     {
-                        <p class="small text-muted">بانتظار اعتماد الموارد البشرية.</p>
+                        @if (Model.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview)
+                        {
+                            <div class="alert alert-warning py-2 small">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                التكلفة تتجاوز الميزانية المتاحة — يلزم التجاوز اليدوي أو الرفض.
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="small text-muted">بانتظار اعتماد الموارد البشرية.</p>
+                        }
                         <form asp-action="HRApprove" asp-route-id="@Model.Id" method="post" class="mb-2">
                             @Html.AntiForgeryToken()
                             <input name="comment" class="form-control form-control-sm mb-2" placeholder="تعليق (اختياري)" />
+                            @if (Model.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview)
+                            {
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="overrideBudget" value="true" id="ovr" />
+                                    <label class="form-check-label small" for="ovr">تجاوز حد الميزانية والاعتماد</label>
+                                </div>
+                            }
                             <button type="submit" class="btn btn-success w-100">
                                 <i class="bi bi-check2-all me-1"></i> اعتماد الموارد البشرية
                             </button>
@@ -160,7 +241,36 @@
                 }
                 else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.HRApproved)
                 {
-                    <div class="alert alert-success mb-0"><i class="bi bi-check-circle me-1"></i> معتمد نهائياً</div>
+                    <div class="alert alert-success mb-2"><i class="bi bi-check-circle me-1"></i> معتمد نهائياً</div>
+                    @if (isPrivileged)
+                    {
+                        <form asp-action="ScheduleTraining" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-calendar-check me-1"></i> جدولة التدريب وتسجيل الموظف
+                            </button>
+                        </form>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.TrainingScheduled)
+                {
+                    <div class="alert alert-info mb-2"><i class="bi bi-calendar-check me-1"></i> التدريب مجدول</div>
+                    @if (isPrivileged)
+                    {
+                        <form asp-action="CompleteTraining" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-flag me-1"></i> إنهاء التدريب وبدء تقييم الأثر
+                            </button>
+                        </form>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.TrainingCompleted)
+                {
+                    <div class="alert alert-success mb-2"><i class="bi bi-check-circle me-1"></i> اكتمل التدريب</div>
+                    <a asp-controller="ImpactAssessments" asp-action="Index" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-clipboard-check me-1"></i> تقييمات الأثر
+                    </a>
                 }
             </div>
         </div>

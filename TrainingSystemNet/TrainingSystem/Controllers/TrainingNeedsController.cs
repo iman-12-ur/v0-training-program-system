@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TrainingSystem.Data;
 using TrainingSystem.Models;
+using TrainingSystem.Services;
 
 namespace TrainingSystem.Controllers
 {
@@ -196,11 +197,20 @@ namespace TrainingSystem.Controllers
                 SuggestedTimeframe = model.SuggestedTimeframe?.Trim(),
                 RequiredLevel = model.RequiredLevel,
                 CurrentLevel = model.CurrentLevel,
-                Priority = TrainingNeed.ComputePriority(model.RequiredLevel, model.CurrentLevel),
+                Priority = TrainingNeed.ClassifyByScore(TrainingNeed.ComputePriorityScore(
+                    model.RequiredLevel, model.CurrentLevel, model.ImpactScore, model.RiskScore, model.IsCompliance)),
+                PriorityScore = TrainingNeed.ComputePriorityScore(
+                    model.RequiredLevel, model.CurrentLevel, model.ImpactScore, model.RiskScore, model.IsCompliance),
                 Status = TrainingNeedStatus.New,
                 ApprovalStatus = submitting ? TrainingNeedApprovalStatus.SubmittedToManager : TrainingNeedApprovalStatus.Draft,
                 SubmittedAt = submitting ? DateTime.Now : (DateTime?)null,
                 Notes = model.Notes?.Trim(),
+                LinkedTrainingProgramId = model.LinkedTrainingProgramId,
+                EstimatedCost = Math.Max(0, model.EstimatedCost),
+                ParticipantsCount = Math.Max(1, model.ParticipantsCount),
+                ImpactScore = Math.Clamp(model.ImpactScore, 1, 4),
+                RiskScore = Math.Clamp(model.RiskScore, 1, 4),
+                IsCompliance = model.IsCompliance,
                 CreatedByUserId = actor?.Id,
                 CreatedAt = DateTime.Now
             };
@@ -210,6 +220,15 @@ namespace TrainingSystem.Controllers
 
             AddHistory(need, need.ApprovalStatus,
                 submitting ? "إنشاء وإرسال للاعتماد" : "إنشاء كمسودة", null, actor);
+
+            if (submitting)
+            {
+                var managerIds = await GetDepartmentManagerIdsAsync(need.Department);
+                await NotificationHelper.AddToRoleAsync(_context, managerIds,
+                    $"احتياج تدريبي جديد بانتظار اعتمادك: {need.SkillName} — {need.EmployeeName}",
+                    NotificationType.Info, need.Id);
+            }
+
             await _context.SaveChangesAsync();
 
             TempData["Success"] = submitting
@@ -247,7 +266,13 @@ namespace TrainingSystem.Controllers
                 RequiredLevel = need.RequiredLevel,
                 CurrentLevel = need.CurrentLevel,
                 Status = need.Status,
-                Notes = need.Notes
+                Notes = need.Notes,
+                LinkedTrainingProgramId = need.LinkedTrainingProgramId,
+                EstimatedCost = need.EstimatedCost,
+                ParticipantsCount = need.ParticipantsCount,
+                ImpactScore = need.ImpactScore,
+                RiskScore = need.RiskScore,
+                IsCompliance = need.IsCompliance
             };
             await PopulateFormOptionsAsync(vm);
             return View(vm);
@@ -307,9 +332,18 @@ namespace TrainingSystem.Controllers
             need.SuggestedTimeframe = model.SuggestedTimeframe?.Trim();
             need.RequiredLevel = model.RequiredLevel;
             need.CurrentLevel = model.CurrentLevel;
-            need.Priority = TrainingNeed.ComputePriority(model.RequiredLevel, model.CurrentLevel);
+            need.LinkedTrainingProgramId = model.LinkedTrainingProgramId;
+            need.EstimatedCost = Math.Max(0, model.EstimatedCost);
+            need.ParticipantsCount = Math.Max(1, model.ParticipantsCount);
+            need.ImpactScore = Math.Clamp(model.ImpactScore, 1, 4);
+            need.RiskScore = Math.Clamp(model.RiskScore, 1, 4);
+            need.IsCompliance = model.IsCompliance;
+            need.PriorityScore = TrainingNeed.ComputePriorityScore(
+                model.RequiredLevel, model.CurrentLevel, need.ImpactScore, need.RiskScore, need.IsCompliance);
+            need.Priority = TrainingNeed.ClassifyByScore(need.PriorityScore);
             need.Status = model.Status;
             need.Notes = model.Notes?.Trim();
+            need.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم تحديث الاحتياج التدريبي بنجاح";
@@ -342,6 +376,8 @@ namespace TrainingSystem.Controllers
         {
             var need = await _context.TrainingNeeds
                 .Include(n => n.StatusHistory)
+                .Include(n => n.LinkedTrainingProgram)
+                .Include(n => n.ImpactAssessments)
                 .FirstOrDefaultAsync(n => n.Id == id);
             if (need == null) return NotFound();
             if (!await CanAccessAsync(need))
@@ -378,6 +414,13 @@ namespace TrainingSystem.Controllers
             need.ApprovalStatus = TrainingNeedApprovalStatus.SubmittedToManager;
             need.SubmittedAt = DateTime.Now;
             AddHistory(need, need.ApprovalStatus, "إرسال للاعتماد", null, actor);
+
+            // إشعار المدراء المسؤولين عن دائرة الاحتياج
+            var managerIds = await GetDepartmentManagerIdsAsync(need.Department);
+            await NotificationHelper.AddToRoleAsync(_context, managerIds,
+                $"احتياج تدريبي جديد بانتظار اعتمادك: {need.SkillName} — {need.EmployeeName}",
+                NotificationType.Info, need.Id);
+
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "تم إرسال الاحتياج لاعتماد المدير المباشر";
@@ -408,6 +451,17 @@ namespace TrainingSystem.Controllers
             need.ManagerActionAt = DateTime.Now;
             need.ManagerComment = comment?.Trim();
             AddHistory(need, need.ApprovalStatus, "اعتماد المدير المباشر", comment, actor);
+
+            // إشعار الموارد البشرية + مقدّم الطلب
+            var hrIds = await GetHRUserIdsAsync();
+            await NotificationHelper.AddToRoleAsync(_context, hrIds,
+                $"احتياج معتمد من المدير بانتظار مراجعة الموارد البشرية: {need.SkillName} — {need.Department}",
+                NotificationType.Info, need.Id);
+            if (!string.IsNullOrEmpty(need.CreatedByUserId))
+                NotificationHelper.Add(_context, need.CreatedByUserId,
+                    $"تم اعتماد احتياجك من المدير المباشر: {need.SkillName}",
+                    NotificationType.Success, need.Id);
+
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "تم اعتماد الاحتياج وإحالته للموارد البشرية";
@@ -438,6 +492,13 @@ namespace TrainingSystem.Controllers
             need.ManagerActionAt = DateTime.Now;
             need.ManagerComment = comment?.Trim();
             AddHistory(need, need.ApprovalStatus, "رفض المدير المباشر", comment, actor);
+
+            if (!string.IsNullOrEmpty(need.CreatedByUserId))
+                NotificationHelper.Add(_context, need.CreatedByUserId,
+                    $"تم رفض احتياجك من المدير المباشر: {need.SkillName}" +
+                    (string.IsNullOrWhiteSpace(comment) ? "" : $" — {comment.Trim()}"),
+                    NotificationType.Danger, need.Id);
+
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "تم رفض الاحتياج";
@@ -448,23 +509,62 @@ namespace TrainingSystem.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "SuperAdmin,Admin")]
-        public async Task<IActionResult> HRApprove(int id, string? comment)
+        public async Task<IActionResult> HRApprove(int id, string? comment, bool overrideBudget = false)
         {
             var need = await _context.TrainingNeeds.FindAsync(id);
             if (need == null) return NotFound();
-            if (need.ApprovalStatus != TrainingNeedApprovalStatus.ManagerApproved)
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.ManagerApproved &&
+                need.ApprovalStatus != TrainingNeedApprovalStatus.BudgetReview)
             {
                 TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد الموارد البشرية";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
             var actor = await _userManager.GetUserAsync(User);
+            var cost = need.EstimatedCost;
+            var budget = await GetOrmCurrentBudgetAsync(need.Department);
+
+            // إن تجاوزت التكلفة المتبقّي ولم يُطلب التجاوز، حوّل لمراجعة الميزانية بدل الرفض
+            if (!overrideBudget && cost > 0 && budget != null && cost > budget.RemainingBudget)
+            {
+                need.ApprovalStatus = TrainingNeedApprovalStatus.BudgetReview;
+                need.HRUserId = actor?.Id;
+                need.HRActionAt = DateTime.Now;
+                need.HRComment = comment?.Trim();
+                AddHistory(need, need.ApprovalStatus,
+                    $"تحويل لمراجعة الميزانية (التكلفة {cost:N0} تتجاوز المتبقي {budget.RemainingBudget:N0})",
+                    comment, actor);
+
+                var hrForBudget = await GetHRUserIdsAsync();
+                await NotificationHelper.AddToRoleAsync(_context, hrForBudget,
+                    $"احتياج يتجاوز ميزانية دائرة {need.Department}: {need.SkillName} ({cost:N0})",
+                    NotificationType.Warning, need.Id);
+
+                await _context.SaveChangesAsync();
+                TempData["Error"] = "التكلفة تتجاوز الميزانية المتاحة — تم تحويل الطلب لمراجعة الميزانية";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             need.ApprovalStatus = TrainingNeedApprovalStatus.HRApproved;
             need.HRUserId = actor?.Id;
             need.HRActionAt = DateTime.Now;
             need.HRComment = comment?.Trim();
             need.Status = TrainingNeedStatus.InProgress;
+
+            // التزام الميزانية بقيمة التكلفة التقديرية
+            if (cost > 0 && budget != null)
+            {
+                budget.CommittedBudget += cost;
+                budget.UpdatedAt = DateTime.Now;
+            }
+
             AddHistory(need, need.ApprovalStatus, "اعتماد الموارد البشرية (نهائي)", comment, actor);
+
+            if (!string.IsNullOrEmpty(need.CreatedByUserId))
+                NotificationHelper.Add(_context, need.CreatedByUserId,
+                    $"تم اعتماد احتياجك نهائياً من الموارد البشرية: {need.SkillName}",
+                    NotificationType.Success, need.Id);
+
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "تم اعتماد الاحتياج نهائياً";
@@ -491,9 +591,111 @@ namespace TrainingSystem.Controllers
             need.HRActionAt = DateTime.Now;
             need.HRComment = comment?.Trim();
             AddHistory(need, need.ApprovalStatus, "رفض الموارد البشرية", comment, actor);
+
+            if (!string.IsNullOrEmpty(need.CreatedByUserId))
+                NotificationHelper.Add(_context, need.CreatedByUserId,
+                    $"تم رفض احتياجك من الموارد البشرية: {need.SkillName}",
+                    NotificationType.Danger, need.Id);
+
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "تم رفض الاحتياج";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // جدولة التدريب (بعد الاعتماد النهائي) — الموارد البشرية
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> ScheduleTraining(int id)
+        {
+            var need = await _context.TrainingNeeds.FindAsync(id);
+            if (need == null) return NotFound();
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.HRApproved)
+            {
+                TempData["Error"] = "يجب اعتماد الاحتياج نهائياً قبل جدولته";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            need.ApprovalStatus = TrainingNeedApprovalStatus.TrainingScheduled;
+            AddHistory(need, need.ApprovalStatus, "جدولة التدريب وتسجيل الموظف", null, actor);
+
+            if (!string.IsNullOrEmpty(need.CreatedByUserId))
+                NotificationHelper.Add(_context, need.CreatedByUserId,
+                    $"تمت جدولة تدريب: {need.SkillName}", NotificationType.Info, need.Id);
+            if (!string.IsNullOrEmpty(need.EmployeeUserId))
+                NotificationHelper.Add(_context, need.EmployeeUserId,
+                    $"تم تسجيلك في تدريب: {need.SkillName}", NotificationType.Info, need.Id);
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تمت جدولة التدريب وتسجيل الموظف";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // إنهاء التدريب — يحوّل الالتزام إلى مصروف فعلي وينشئ تقييمات الأثر
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> CompleteTraining(int id)
+        {
+            var need = await _context.TrainingNeeds
+                .Include(n => n.ImpactAssessments)
+                .FirstOrDefaultAsync(n => n.Id == id);
+            if (need == null) return NotFound();
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.TrainingScheduled)
+            {
+                TempData["Error"] = "لا يمكن إنهاء تدريب غير مجدول";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var actor = await _userManager.GetUserAsync(User);
+            need.ApprovalStatus = TrainingNeedApprovalStatus.TrainingCompleted;
+            need.Status = TrainingNeedStatus.Completed;
+
+            // تحويل الالتزام إلى مصروف فعلي في الميزانية
+            var cost = need.EstimatedCost;
+            if (cost > 0)
+            {
+                var budget = await GetOrmCurrentBudgetAsync(need.Department);
+                if (budget != null)
+                {
+                    budget.CommittedBudget = Math.Max(0, budget.CommittedBudget - cost);
+                    budget.ActualSpending += cost;
+                    budget.UpdatedAt = DateTime.Now;
+                }
+            }
+
+            // إنشاء تقييم أثر مباشر + تقييم بعد 90 يوماً (إن لم يوجدا)
+            if (!need.ImpactAssessments.Any(a => a.AssessmentType == ImpactAssessmentType.PostTraining))
+            {
+                _context.TrainingImpactAssessments.Add(new TrainingImpactAssessment
+                {
+                    TrainingNeedId = need.Id,
+                    AssessmentType = ImpactAssessmentType.PostTraining,
+                    DueDate = DateTime.Now.Date,
+                    BeforeScore = need.CurrentLevel
+                });
+            }
+            if (!need.ImpactAssessments.Any(a => a.AssessmentType == ImpactAssessmentType.Day90))
+            {
+                _context.TrainingImpactAssessments.Add(new TrainingImpactAssessment
+                {
+                    TrainingNeedId = need.Id,
+                    AssessmentType = ImpactAssessmentType.Day90,
+                    DueDate = DateTime.Now.Date.AddDays(90),
+                    BeforeScore = need.CurrentLevel
+                });
+            }
+
+            AddHistory(need, need.ApprovalStatus, "إنهاء التدريب وإنشاء تقييمات الأثر", null, actor);
+
+            var hrIds = await GetHRUserIdsAsync();
+            await NotificationHelper.AddToRoleAsync(_context, hrIds,
+                $"اكتمل تدريب {need.SkillName} — يلزم تقييم الأثر", NotificationType.Info, need.Id);
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تم إنهاء التدريب وإنشاء تقييمَي الأثر (مباشر وبعد 90 يوماً)";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -505,7 +707,8 @@ namespace TrainingSystem.Controllers
 
             var query = _context.TrainingNeeds
                 .Where(n => n.ApprovalStatus == TrainingNeedApprovalStatus.SubmittedToManager ||
-                            n.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved);
+                            n.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved ||
+                            n.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview);
 
             if (!IsPrivileged)
                 query = query.Where(n => n.Department == myDept);
@@ -1014,6 +1217,41 @@ namespace TrainingSystem.Controllers
                 .ToListAsync();
         }
 
+        // معرّفات مستخدمي الموارد البشرية (Admin + SuperAdmin)
+        private async Task<List<string>> GetHRUserIdsAsync()
+        {
+            var admins = await _userManager.GetUsersInRoleAsync(SystemRoles.Admin);
+            var supers = await _userManager.GetUsersInRoleAsync(SystemRoles.SuperAdmin);
+            return admins.Concat(supers).Select(u => u.Id).Distinct().ToList();
+        }
+
+        // معرّفات المدراء المسؤولين عن دائرة معيّنة (مشرفو الدائرة + الموارد البشرية)
+        private async Task<List<string>> GetDepartmentManagerIdsAsync(string department)
+        {
+            var supervisors = await _userManager.GetUsersInRoleAsync(SystemRoles.Supervisor);
+            var deptSupervisors = supervisors
+                .Where(u => u.Department == department)
+                .Select(u => u.Id);
+            var hr = await GetHRUserIdsAsync();
+            return deptSupervisors.Concat(hr).Distinct().ToList();
+        }
+
+        // السنة المالية الحالية (تقويمية) بصيغة 2025/2026
+        private static string CurrentFinancialYear()
+        {
+            var y = DateTime.Now.Year;
+            // السنة المالية تبدأ يناير — يمكن تعديلها لاحقاً لتبدأ من شهر آخر
+            return $"{y}/{y + 1}";
+        }
+
+        // ميزانية الدائرة للسنة المالية الحالية (قد تكون null إن لم تُعرّف)
+        private async Task<TrainingBudget?> GetOrmCurrentBudgetAsync(string department)
+        {
+            var fy = CurrentFinancialYear();
+            return await _context.TrainingBudgets
+                .FirstOrDefaultAsync(b => b.Department == department && b.FinancialYear == fy);
+        }
+
         private async Task PopulateFormOptionsAsync(TrainingNeedFormViewModel vm)
         {
             var actor = await _userManager.GetUserAsync(User);
@@ -1056,11 +1294,17 @@ namespace TrainingSystem.Controllers
                 .Select(c => new SelectListItem { Value = c.Name, Text = c.Name })
                 .ToListAsync();
 
+            vm.Programs = await _context.TrainingPrograms
+                .Where(p => p.Status == ProgramStatus.Active)
+                .OrderBy(p => p.Title)
+                .Select(p => new SelectListItem { Value = p.Id.ToString(), Text = p.Title })
+                .ToListAsync();
+
             vm.IsPrivileged = IsPrivileged;
             vm.LockedDepartment = IsPrivileged ? null : myDept;
         }
 
-        // تسجيل مرحلة في سجل الاعتماد (لا يستدعي SaveChanges — يُترك للمستدعي)
+        // تسجيل مرحلة في سجل الاعتماد (لا يستدعي SaveChanges — يُترك للمستد��ي)
         private void AddHistory(TrainingNeed need, TrainingNeedApprovalStatus status,
             string action, string? comment, ApplicationUser? actor)
         {
@@ -1223,10 +1467,19 @@ namespace TrainingSystem.Controllers
         public string? SuggestedTimeframe { get; set; }
         public bool SubmitForApproval { get; set; }
 
+        // حقول المرحلة 2: التكلفة والأثر والميزانية
+        public int? LinkedTrainingProgramId { get; set; }
+        public decimal EstimatedCost { get; set; }
+        public int ParticipantsCount { get; set; } = 1;
+        public int ImpactScore { get; set; } = 2;
+        public int RiskScore { get; set; } = 2;
+        public bool IsCompliance { get; set; }
+
         // خيارات العرض
         public List<SelectListItem> Employees { get; set; } = new();
         public List<SelectListItem> Skills { get; set; } = new();
         public List<SelectListItem> Categories { get; set; } = new();
+        public List<SelectListItem> Programs { get; set; } = new();
         public bool IsPrivileged { get; set; }
         public string? LockedDepartment { get; set; }
     }
