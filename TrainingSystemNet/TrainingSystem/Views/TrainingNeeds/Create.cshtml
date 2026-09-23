@@ -138,11 +138,23 @@
                     <input asp-for="SuggestedTimeframe" class="form-control" placeholder="مثال: الربع الثاني 2026" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">مبرر الاحتياج</label>
+                    <label class="form-label">مبرر الاحتياج / سبب التدريب</label>
                     <input asp-for="Justification" class="form-control" placeholder="سبب الحاجة للتدريب" />
                 </div>
+                <div class="col-12">
+                    <label class="form-label">وصف الاحتياج</label>
+                    <textarea asp-for="NeedDescription" class="form-control" rows="2" placeholder="وصف تفصيلي للاحتياج التدريبي"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">البرنامج التدريبي المقترح</label>
+                    <input asp-for="ProposedTrainingProgram" class="form-control" placeholder="اسم البرنامج المقترح (نصياً)" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">مزوّد التدريب المفضّل</label>
+                    <input asp-for="PreferredTrainingProvider" class="form-control" placeholder="جهة/مركز التدريب المفضّل" />
+                </div>
 
-                <div class="col-12"><hr class="my-1" /><div class="fw-semibold text-muted small">التكلفة والأثر والميزانية</div></div>
+                <div class="col-12"><hr class="my-1" /><div class="fw-semibold text-muted small">التكلفة والتنفيذ</div></div>
 
                 @if (Model.Programs.Any())
                 {

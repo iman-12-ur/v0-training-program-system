@@ -53,14 +53,22 @@
                             <span class="badge bg-secondary-subtle text-secondary">إدخال يدوي</span>
                         }
                     </dd>
-                    <dt class="col-sm-3 text-muted">التصنيف</dt><dd class="col-sm-3">@(Model.Category ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">التصنيف</dt><dd class="col-sm-3">@(Model.SkillCategoryRef?.Name ?? Model.Category ?? "—")</dd>
 
-                    <dt class="col-sm-3 text-muted">المهارة</dt><dd class="col-sm-9">@Model.SkillName</dd>
+                    <dt class="col-sm-3 text-muted">المهارة</dt><dd class="col-sm-3">@Model.SkillName</dd>
+                    <dt class="col-sm-3 text-muted">نوع الفجوة</dt><dd class="col-sm-3">@(Model.GapType ?? "—")</dd>
 
+                    <dt class="col-sm-3 text-muted">درجة الفجوة</dt><dd class="col-sm-3">@Model.GapScore</dd>
                     <dt class="col-sm-3 text-muted">الفترة المقترحة</dt><dd class="col-sm-3">@(Model.SuggestedTimeframe ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">البرنامج المقترح</dt><dd class="col-sm-3">@(Model.ProposedTrainingProgram ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">المزوّد المفضّل</dt><dd class="col-sm-3">@(Model.PreferredTrainingProvider ?? "—")</dd>
+
                     <dt class="col-sm-3 text-muted">تاريخ الإنشاء</dt><dd class="col-sm-3">@Model.CreatedAt.ToString("yyyy/MM/dd")</dd>
+                    <dt class="col-sm-3 text-muted">تاريخ الاعتماد</dt><dd class="col-sm-3">@(Model.ApprovalDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
 
                     <dt class="col-sm-3 text-muted">مبرر الاحتياج</dt><dd class="col-sm-9">@(Model.Justification ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">وصف الاحتياج</dt><dd class="col-sm-9">@(Model.NeedDescription ?? "—")</dd>
                     <dt class="col-sm-3 text-muted">ملاحظات</dt><dd class="col-sm-9">@(Model.Notes ?? "—")</dd>
                 </dl>
             </div>

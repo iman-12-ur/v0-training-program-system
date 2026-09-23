@@ -228,6 +228,7 @@ namespace TrainingSystem.Controllers
 
             // إن اختير برنامج ودفعة، تأكد أن الدفعة تابعة لنفس البرنامج
             await AlignBatchToProgramAsync(need);
+            await AlignSkillCategoryAsync(need);
 
             _context.TrainingNeeds.Add(need);
             await _context.SaveChangesAsync();
@@ -387,6 +388,7 @@ namespace TrainingSystem.Controllers
             need.PlannedDate = model.PlannedDate;
             need.CompletionDate = model.CompletionDate;
             await AlignBatchToProgramAsync(need);
+            await AlignSkillCategoryAsync(need);
             need.EstimatedCost = Math.Max(0, model.EstimatedCost);
             need.ParticipantsCount = Math.Max(1, model.ParticipantsCount);
             need.ImpactScore = Math.Clamp(model.ImpactScore, 1, 4);
@@ -435,6 +437,7 @@ namespace TrainingSystem.Controllers
                     .ThenInclude(b => b!.TrainingProgram)
                 .Include(n => n.ImpactAssessments)
                 .Include(n => n.Employee)
+                .Include(n => n.SkillCategoryRef)
                 .FirstOrDefaultAsync(n => n.Id == id);
             if (need == null) return NotFound();
             if (!await CanAccessAsync(need))
@@ -1400,6 +1403,30 @@ namespace TrainingSystem.Controllers
                 grade = employee.Grade,
                 managerName
             });
+        }
+
+        // إن اختيرت مهارة من المكتبة ولم يُحدَّد تصنيف، يُشتقّ تصنيف الاحتياج من تصنيف المهارة
+        private async Task AlignSkillCategoryAsync(TrainingNeed need)
+        {
+            if (need.SkillCategoryId != null || need.SkillId == null) return;
+
+            var skillCategoryId = await _context.Skills
+                .AsNoTracking()
+                .Where(s => s.Id == need.SkillId)
+                .Select(s => s.SkillCategoryId)
+                .FirstOrDefaultAsync();
+
+            if (skillCategoryId != null)
+            {
+                need.SkillCategoryId = skillCategoryId;
+                var name = await _context.SkillCategories
+                    .AsNoTracking()
+                    .Where(c => c.Id == skillCategoryId)
+                    .Select(c => c.Name)
+                    .FirstOrDefaultAsync();
+                if (string.IsNullOrWhiteSpace(need.Category))
+                    need.Category = name;
+            }
         }
 
         private async Task PopulateFormOptionsAsync(TrainingNeedFormViewModel vm)
