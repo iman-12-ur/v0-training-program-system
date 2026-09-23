@@ -82,14 +82,33 @@
                     <input asp-for="SkillName" class="form-control" placeholder="مثال: إدارة المشاريع" />
                     <span asp-validation-for="SkillName" class="text-danger"></span>
                 </div>
+                @if (Model.SkillCategoryOptions.Any())
+                {
+                    <div class="col-md-6">
+                        <label class="form-label">تصنيف المهارة</label>
+                        <select asp-for="SkillCategoryId" class="form-select" asp-items="Model.SkillCategoryOptions">
+                            <option value="">— غير محدد —</option>
+                        </select>
+                    </div>
+                }
                 <div class="col-md-6">
-                    <label class="form-label">التصنيف</label>
+                    <label class="form-label">التصنيف (نص حر)</label>
                     <input asp-for="Category" class="form-control" placeholder="تقنية / سلوكية / قيادية" list="categoryList" />
                     <datalist id="categoryList">
                         @foreach (var c in Model.Categories)
                         {
                             <option value="@c.Text"></option>
                         }
+                    </datalist>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">نوع الفجوة</label>
+                    <input asp-for="GapType" class="form-control" placeholder="نقص مهارة / تطوير / متطلب وظيفي / امتثال" list="gapTypeList" />
+                    <datalist id="gapTypeList">
+                        <option value="نقص مهارة"></option>
+                        <option value="تطوير"></option>
+                        <option value="متطلب وظيفي جديد"></option>
+                        <option value="امتثال إلزامي"></option>
                     </datalist>
                 </div>
 

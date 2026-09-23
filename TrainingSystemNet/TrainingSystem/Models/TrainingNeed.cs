@@ -101,6 +101,11 @@ namespace TrainingSystem.Models
         public int? SkillId { get; set; }
         public Skill? SkillRef { get; set; }
 
+        // ربط اختياري بتصنيف المهارة (من جدول التصنيفات)
+        [Display(Name = "تصنيف المهارة")]
+        public int? SkillCategoryId { get; set; }
+        public SkillCategory? SkillCategoryRef { get; set; }
+
         [Display(Name = "المسمى الوظيفي")]
         [MaxLength(150)]
         public string? JobTitle { get; set; }
@@ -109,9 +114,32 @@ namespace TrainingSystem.Models
         [MaxLength(50)]
         public string? Grade { get; set; }
 
-        [Display(Name = "مبرر الاحتياج")]
+        [Display(Name = "مبرر الاحتياج / سبب التدريب")]
         [MaxLength(1000)]
         public string? Justification { get; set; }
+
+        [Display(Name = "وصف الاحتياج")]
+        [MaxLength(1000)]
+        public string? NeedDescription { get; set; }
+
+        // نوع الفجوة (مثل: نقص مهارة، تطوير، متطلب وظيفي جديد، امتثال)
+        [Display(Name = "نوع الفجوة")]
+        [MaxLength(80)]
+        public string? GapType { get; set; }
+
+        // درجة الفجوة المخزّنة (تُحسب من الفرق بين المطلوب والحالي)
+        [Display(Name = "درجة الفجوة")]
+        public int GapScore { get; set; }
+
+        // البرنامج التدريبي المقترح كنص (قبل ربطه ببرنامج قائم)
+        [Display(Name = "البرنامج التدريبي المقترح")]
+        [MaxLength(200)]
+        public string? ProposedTrainingProgram { get; set; }
+
+        // مزوّد التدريب المفضّل
+        [Display(Name = "مزوّد التدريب المفضّل")]
+        [MaxLength(200)]
+        public string? PreferredTrainingProvider { get; set; }
 
         [Display(Name = "الفترة الزمنية المقترحة")]
         [MaxLength(100)]
@@ -134,6 +162,10 @@ namespace TrainingSystem.Models
         public string? HRComment { get; set; }
 
         public DateTime? SubmittedAt { get; set; }
+
+        // تاريخ الاعتماد النهائي (يُضبط عند اعتماد الموارد البشرية)
+        [Display(Name = "تاريخ الاعتماد")]
+        public DateTime? ApprovalDate { get; set; }
 
         // --- المرحلة 2: التكلفة والأثر والميزانية ---
 

@@ -118,6 +118,12 @@ namespace TrainingSystem.Data
                       .HasForeignKey(e => e.TrainingBatchId)
                       .OnDelete(DeleteBehavior.SetNull);
 
+                // ربط اختياري بتصنيف المهارة
+                entity.HasOne(e => e.SkillCategoryRef)
+                      .WithMany()
+                      .HasForeignKey(e => e.SkillCategoryId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
                 entity.Property(e => e.EstimatedCost).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.PlannedCost).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.ActualCost).HasColumnType("decimal(18,2)");

@@ -190,13 +190,19 @@ namespace TrainingSystem.Controllers
                 Department = model.Department!.Trim(),
                 SkillName = model.SkillName!.Trim(),
                 SkillId = model.SkillId,
+                SkillCategoryId = model.SkillCategoryId,
                 Category = model.Category?.Trim(),
                 JobTitle = model.JobTitle?.Trim(),
                 Grade = model.Grade?.Trim(),
                 Justification = model.Justification?.Trim(),
+                NeedDescription = model.NeedDescription?.Trim(),
+                GapType = model.GapType?.Trim(),
+                ProposedTrainingProgram = model.ProposedTrainingProgram?.Trim(),
+                PreferredTrainingProvider = model.PreferredTrainingProvider?.Trim(),
                 SuggestedTimeframe = model.SuggestedTimeframe?.Trim(),
                 RequiredLevel = model.RequiredLevel,
                 CurrentLevel = model.CurrentLevel,
+                GapScore = Math.Max(0, model.RequiredLevel - model.CurrentLevel),
                 Priority = TrainingNeed.ClassifyByScore(TrainingNeed.ComputePriorityScore(
                     model.RequiredLevel, model.CurrentLevel, model.ImpactScore, model.RiskScore, model.IsCompliance)),
                 PriorityScore = TrainingNeed.ComputePriorityScore(
@@ -266,10 +272,15 @@ namespace TrainingSystem.Controllers
                 Department = need.Department,
                 SkillName = need.SkillName,
                 SkillId = need.SkillId,
+                SkillCategoryId = need.SkillCategoryId,
                 Category = need.Category,
                 JobTitle = need.JobTitle,
                 Grade = need.Grade,
                 Justification = need.Justification,
+                NeedDescription = need.NeedDescription,
+                GapType = need.GapType,
+                ProposedTrainingProgram = need.ProposedTrainingProgram,
+                PreferredTrainingProvider = need.PreferredTrainingProvider,
                 SuggestedTimeframe = need.SuggestedTimeframe,
                 RequiredLevel = need.RequiredLevel,
                 CurrentLevel = need.CurrentLevel,
@@ -356,13 +367,19 @@ namespace TrainingSystem.Controllers
             need.EmployeeNumber = model.EmployeeNumber?.Trim();
             need.SkillName = model.SkillName!.Trim();
             need.SkillId = model.SkillId;
+            need.SkillCategoryId = model.SkillCategoryId;
             need.Category = model.Category?.Trim();
             need.JobTitle = model.JobTitle?.Trim();
             need.Grade = model.Grade?.Trim();
             need.Justification = model.Justification?.Trim();
+            need.NeedDescription = model.NeedDescription?.Trim();
+            need.GapType = model.GapType?.Trim();
+            need.ProposedTrainingProgram = model.ProposedTrainingProgram?.Trim();
+            need.PreferredTrainingProvider = model.PreferredTrainingProvider?.Trim();
             need.SuggestedTimeframe = model.SuggestedTimeframe?.Trim();
             need.RequiredLevel = model.RequiredLevel;
             need.CurrentLevel = model.CurrentLevel;
+            need.GapScore = Math.Max(0, model.RequiredLevel - model.CurrentLevel);
             need.LinkedTrainingProgramId = model.LinkedTrainingProgramId;
             need.TrainingBatchId = model.TrainingBatchId;
             need.PlannedCost = Math.Max(0, model.PlannedCost);
@@ -574,6 +591,7 @@ namespace TrainingSystem.Controllers
             need.ApprovalStatus = TrainingNeedApprovalStatus.HRApproved;
             need.HRUserId = actor?.Id;
             need.HRActionAt = DateTime.Now;
+            need.ApprovalDate = DateTime.Now;
             need.HRComment = comment?.Trim();
             need.Status = TrainingNeedStatus.InProgress;
 
@@ -1024,7 +1042,7 @@ namespace TrainingSystem.Controllers
 
             if (validRows.Count == 0)
             {
-                TempData["Error"] = "لم يتم استيراد أي سجل. تحقق من صحة البيانات";
+                TempData["Error"] = "لم يتم استيراد أي س��ل. تحقق من صحة البيانات";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -1426,6 +1444,13 @@ namespace TrainingSystem.Controllers
                 .Select(c => new SelectListItem { Value = c.Name, Text = c.Name })
                 .ToListAsync();
 
+            // تصنيفات المهارة مفهرسة بالمعرّف (للربط عبر FK)
+            vm.SkillCategoryOptions = await _context.SkillCategories
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Name)
+                .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name })
+                .ToListAsync();
+
             vm.Programs = await _context.TrainingPrograms
                 .Where(p => p.Status == ProgramStatus.Active)
                 .OrderBy(p => p.Title)
@@ -1627,10 +1652,18 @@ namespace TrainingSystem.Controllers
         public DateTime? PlannedDate { get; set; }
         public DateTime? CompletionDate { get; set; }
 
+        // حقول وصف الاحتياج (البند 4)
+        public int? SkillCategoryId { get; set; }
+        public string? NeedDescription { get; set; }
+        public string? GapType { get; set; }
+        public string? ProposedTrainingProgram { get; set; }
+        public string? PreferredTrainingProvider { get; set; }
+
         // خيارات العرض
         public List<SelectListItem> Employees { get; set; } = new();
         public List<SelectListItem> Skills { get; set; } = new();
         public List<SelectListItem> Categories { get; set; } = new();
+        public List<SelectListItem> SkillCategoryOptions { get; set; } = new();
         public List<SelectListItem> Programs { get; set; } = new();
         public List<SelectListItem> Batches { get; set; } = new();
         public bool IsPrivileged { get; set; }
