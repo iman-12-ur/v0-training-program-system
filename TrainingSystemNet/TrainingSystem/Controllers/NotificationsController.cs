@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TrainingSystem.Data;
 using TrainingSystem.Models;
+using TrainingSystem.Services;
 
 namespace TrainingSystem.Controllers
 {
@@ -23,6 +24,9 @@ namespace TrainingSystem.Controllers
 
         public async Task<IActionResult> Index()
         {
+            // توليد تذكيرات مواعيد تقييم الأثر المستحقّة (فحص كسول بلا مهمة مجدولة)
+            await NotificationHelper.EnsureAssessmentDueRemindersAsync(_context);
+
             var userId = _userManager.GetUserId(User);
             var items = await _context.Notifications
                 .Where(n => n.UserId == userId)

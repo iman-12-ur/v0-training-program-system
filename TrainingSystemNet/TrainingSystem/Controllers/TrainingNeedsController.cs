@@ -172,7 +172,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خا�������������������� دائرته
+            // المشرف لا يضيف احتياجاً لموظف خا���������������������� دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -483,7 +483,7 @@ namespace TrainingSystem.Controllers
 
         // ==================== سير الاعتماد ====================
 
-        // إرسال مسودة للاعتماد (المدير المباشر)
+        // إ��سال مسودة للاعتماد (المدير المباشر)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Submit(int id)
@@ -627,7 +627,7 @@ namespace TrainingSystem.Controllers
             need.ManagerUserId = actor?.Id;
             need.ManagerActionAt = DateTime.Now;
             need.ManagerComment = comment.Trim();
-            AddHistory(need, need.ApprovalStatus, "طلب تعديل من ال��دي�� المباشر", comment, actor);
+            AddHistory(need, need.ApprovalStatus, "طلب تعديل من ��ل��دي�� المباشر", comment, actor);
 
             if (!string.IsNullOrEmpty(need.CreatedByUserId))
                 NotificationHelper.Add(_context, need.CreatedByUserId,
@@ -913,7 +913,7 @@ namespace TrainingSystem.Controllers
             var assessorId = need.Employee?.ManagerUserId ?? need.CreatedByUserId;
             if (!string.IsNullOrEmpty(assessorId))
                 NotificationHelper.Add(_context, assessorId,
-                    $"يلزم تعبئة تقييم الأثر المباشر لتدريب: {need.SkillName}", NotificationType.Warning, need.Id);
+                    $"{NotificationHelper.PostTrainingDuePrefix} {need.SkillName}", NotificationType.Warning, need.Id);
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم إنهاء التدريب وإنشاء تقييمي الأثر تلقائياً";
@@ -2230,7 +2230,7 @@ namespace TrainingSystem.Controllers
         public KpiEngine Kpis { get; set; } = new();
     }
 
-    // مؤشرات الأداء الأربعة المحسوبة للوحة المعلومات
+    // مؤشرات الأداء الأربعة المحسوبة ��لوحة المعلومات
     public class KpiEngine
     {
         // KPI 1 — نسبة تغطية الاحتياجات التدريبية
