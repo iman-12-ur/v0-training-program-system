@@ -74,12 +74,12 @@ namespace TrainingSystem.Controllers
 
             var actor = await _userManager.GetUserAsync(User);
 
-            assessment.KnowledgeApplication = Math.Clamp(model.KnowledgeApplication, 0, 5);
-            assessment.SkillImprovement = Math.Clamp(model.SkillImprovement, 0, 5);
-            assessment.WorkImpact = Math.Clamp(model.WorkImpact, 0, 5);
-            assessment.ErrorReduction = Math.Clamp(model.ErrorReduction, 0, 5);
-            assessment.ProductivityGain = Math.Clamp(model.ProductivityGain, 0, 5);
-            assessment.ApplicationAbility = Math.Clamp(model.ApplicationAbility, 0, 5);
+            assessment.KnowledgeApplication = Math.Clamp(model.KnowledgeApplication, 1, 5);
+            assessment.SkillImprovement = Math.Clamp(model.SkillImprovement, 1, 5);
+            assessment.WorkImpact = Math.Clamp(model.WorkImpact, 1, 5);
+            assessment.ErrorReduction = Math.Clamp(model.ErrorReduction, 1, 5);
+            assessment.ProductivityGain = Math.Clamp(model.ProductivityGain, 1, 5);
+            assessment.ApplicationAbility = Math.Clamp(model.ApplicationAbility, 1, 5);
             assessment.BeforeScore = Math.Clamp(model.BeforeScore, 0, 5);
             assessment.AfterScore = Math.Clamp(model.AfterScore, 0, 5);
             assessment.ManagerNotes = model.ManagerNotes?.Trim();
@@ -91,6 +91,31 @@ namespace TrainingSystem.Controllers
                 NotificationHelper.Add(_context, creator,
                     $"اكتمل {TrainingImpactAssessment.GetTypeDisplayName(assessment.AssessmentType)} لتدريب: {assessment.TrainingNeed.SkillName}",
                     NotificationType.Success, assessment.TrainingNeedId);
+
+            // ترقية حالة الطلب عند اكتمال كل تقييمات الأثر
+            if (assessment.TrainingNeed != null)
+            {
+                var need = assessment.TrainingNeed;
+                var siblings = await _context.TrainingImpactAssessments
+                    .Where(a => a.TrainingNeedId == need.Id)
+                    .ToListAsync();
+                // التقييم الحالي أصبح مكتملاً في الذاكرة
+                bool allDone = siblings.All(a => a.Id == assessment.Id || a.CompletedAt != null);
+
+                if (allDone && need.ApprovalStatus == TrainingNeedApprovalStatus.ImpactAssessmentPending)
+                {
+                    need.ApprovalStatus = TrainingNeedApprovalStatus.ImpactAssessmentCompleted;
+                    _context.TrainingNeedStatusHistories.Add(new TrainingNeedStatusHistory
+                    {
+                        TrainingNeedId = need.Id,
+                        Status = need.ApprovalStatus,
+                        Action = "اكتمال جميع تقييمات الأثر",
+                        ActionByUserId = actor?.Id,
+                        ActionByName = actor?.FullName,
+                        ActionAt = DateTime.Now
+                    });
+                }
+            }
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "تم حفظ تقييم الأثر";

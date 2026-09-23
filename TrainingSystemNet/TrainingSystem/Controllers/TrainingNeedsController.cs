@@ -241,7 +241,7 @@ namespace TrainingSystem.Controllers
             await _context.SaveChangesAsync();
 
             AddHistory(need, need.ApprovalStatus,
-                submitting ? "إنشاء وإرسال للاعتماد" : "إنشاء كمسودة", null, actor);
+                submitting ? "إنشاء ��إرسال للاعتماد" : "إنشاء كمسودة", null, actor);
 
             if (submitting)
             {
@@ -627,7 +627,7 @@ namespace TrainingSystem.Controllers
             need.ManagerUserId = actor?.Id;
             need.ManagerActionAt = DateTime.Now;
             need.ManagerComment = comment.Trim();
-            AddHistory(need, need.ApprovalStatus, "طلب تعديل من المدي�� المباشر", comment, actor);
+            AddHistory(need, need.ApprovalStatus, "طلب تعديل من ال��دي�� المباشر", comment, actor);
 
             if (!string.IsNullOrEmpty(need.CreatedByUserId))
                 NotificationHelper.Add(_context, need.CreatedByUserId,
@@ -846,7 +846,9 @@ namespace TrainingSystem.Controllers
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> CompleteTraining(int id)
         {
-            var need = await _context.TrainingNeeds.FindAsync(id);
+            var need = await _context.TrainingNeeds
+                .Include(n => n.Employee)
+                .FirstOrDefaultAsync(n => n.Id == id);
             if (need == null) return NotFound();
             if (need.ApprovalStatus != TrainingNeedApprovalStatus.TrainingScheduled)
             {
@@ -855,7 +857,6 @@ namespace TrainingSystem.Controllers
             }
 
             var actor = await _userManager.GetUserAsync(User);
-            need.ApprovalStatus = TrainingNeedApprovalStatus.TrainingCompleted;
             need.Status = TrainingNeedStatus.Completed;
 
             // تسوية الميزانية: نقل المبلغ الملتزم به إلى المصروف الفعلي
@@ -872,14 +873,50 @@ namespace TrainingSystem.Controllers
                 }
             }
 
-            AddHistory(need, need.ApprovalStatus, "إنهاء التدريب", null, actor);
+            // إنشاء تقييمي الأثر تلقائياً: مباشر بعد التدريب + بعد 90 يوماً (إن لم يوجدا)
+            var now = DateTime.Now;
+            var existingTypes = await _context.TrainingImpactAssessments
+                .Where(a => a.TrainingNeedId == need.Id)
+                .Select(a => a.AssessmentType)
+                .ToListAsync();
+
+            if (!existingTypes.Contains(ImpactAssessmentType.PostTraining))
+            {
+                _context.TrainingImpactAssessments.Add(new TrainingImpactAssessment
+                {
+                    TrainingNeedId = need.Id,
+                    AssessmentType = ImpactAssessmentType.PostTraining,
+                    DueDate = now,
+                    CreatedAt = now
+                });
+            }
+            if (!existingTypes.Contains(ImpactAssessmentType.Day90))
+            {
+                _context.TrainingImpactAssessments.Add(new TrainingImpactAssessment
+                {
+                    TrainingNeedId = need.Id,
+                    AssessmentType = ImpactAssessmentType.Day90,
+                    DueDate = now.AddDays(90),
+                    CreatedAt = now
+                });
+            }
+
+            // الطلب ينتقل إلى مرحلة تقييم الأثر
+            need.ApprovalStatus = TrainingNeedApprovalStatus.ImpactAssessmentPending;
+            AddHistory(need, need.ApprovalStatus, "إنهاء التدريب وإنشاء تقييمي الأثر (مباشر + بعد 90 يوماً)", null, actor);
 
             if (!string.IsNullOrEmpty(need.CreatedByUserId))
                 NotificationHelper.Add(_context, need.CreatedByUserId,
-                    $"اكتمل تدريب: {need.SkillName}", NotificationType.Success, need.Id);
+                    $"اكتمل تدريب: {need.SkillName} — يتطلب تقييم الأثر", NotificationType.Success, need.Id);
+
+            // إشعار مسؤول التقييم (المدير المباشر إن وُجد، وإلا مقدّم الطلب)
+            var assessorId = need.Employee?.ManagerUserId ?? need.CreatedByUserId;
+            if (!string.IsNullOrEmpty(assessorId))
+                NotificationHelper.Add(_context, assessorId,
+                    $"يلزم تعبئة تقييم الأثر المباشر لتدريب: {need.SkillName}", NotificationType.Warning, need.Id);
 
             await _context.SaveChangesAsync();
-            TempData["Success"] = "تم إنهاء التدريب";
+            TempData["Success"] = "تم إنهاء التدريب وإنشاء تقييمي الأثر تلقائياً";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -2045,7 +2082,7 @@ namespace TrainingSystem.Controllers
         public string? LockedDepartment { get; set; }
     }
 
-    // عنصر مصفوفة المهارات (موظف × مهارة)
+    // عنصر مصفوفة المهارات (موظف × م��ارة)
     public class SkillMatrixCell
     {
         public string SkillName { get; set; } = string.Empty;
