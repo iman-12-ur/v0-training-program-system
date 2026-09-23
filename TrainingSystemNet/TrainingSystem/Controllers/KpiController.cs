@@ -54,14 +54,9 @@ namespace TrainingSystem.Controllers
             vm.CoveragePercent = vm.TotalNeeds > 0
                 ? (int)Math.Round(100.0 * vm.ApprovedNeeds / vm.TotalNeeds) : 0;
 
-            // 2) الالتزام بالميزانية (Planned/Actual/Variance/Utilization)
-            var budgetsQuery = _context.TrainingBudgets.AsQueryable();
-            if (!IsPrivileged)
-                budgetsQuery = budgetsQuery.Where(b => b.Department == myDept);
-            else if (!string.IsNullOrWhiteSpace(department))
-                budgetsQuery = budgetsQuery.Where(b => b.Department == department);
-
-            var budgets = await budgetsQuery.ToListAsync();
+            // 2) الالتزام بالموازنة المركزية (Planned/Actual/Variance/Utilization)
+            // الموازنة مركزية لدائرة التدريب — لا تُفلتَر حسب الدائرة الطالبة.
+            var budgets = await _context.TrainingBudgets.ToListAsync();
             vm.PlannedBudget = budgets.Sum(b => b.AllocatedBudget);
             vm.ActualSpending = budgets.Sum(b => b.ActualSpending);
             vm.CommittedBudget = budgets.Sum(b => b.CommittedBudget);

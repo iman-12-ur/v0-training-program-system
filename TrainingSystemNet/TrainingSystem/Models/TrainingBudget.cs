@@ -3,15 +3,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TrainingSystem.Models
 {
-    // ميزانية تدريب لدائرة معيّنة ضمن سنة مالية
+    // موازنة مركزية واحدة لدائرة التدريب ضمن سنة مالية.
+    // تُدار بالكامل من قِبَل دائرة التدريب (الموارد البشرية) — للمتابعة فقط دون إيقاف الاعتمادات.
     public class TrainingBudget
     {
         public int Id { get; set; }
-
-        [Required]
-        [Display(Name = "الدائرة")]
-        [MaxLength(100)]
-        public string Department { get; set; } = string.Empty;
 
         [Required]
         [Display(Name = "السنة المالية")]
@@ -22,7 +18,7 @@ namespace TrainingSystem.Models
         [Range(0, double.MaxValue)]
         public decimal AllocatedBudget { get; set; }
 
-        // المبلغ المرتبط بطلبات معتمدة/قيد الاعتماد
+        // المبلغ المرتبط بطلبات معتمدة (التزام)
         [Display(Name = "المبلغ الملتزم به")]
         [Range(0, double.MaxValue)]
         public decimal CommittedBudget { get; set; }
@@ -35,7 +31,7 @@ namespace TrainingSystem.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
 
-        // المتبقي = المخصص - (الملتزم + الفعلي)
+        // المتبقي = المخصص - (الملتزم + الفعلي). قد يكون سالباً (متابعة فقط).
         [NotMapped]
         public decimal RemainingBudget => AllocatedBudget - (CommittedBudget + ActualSpending);
 

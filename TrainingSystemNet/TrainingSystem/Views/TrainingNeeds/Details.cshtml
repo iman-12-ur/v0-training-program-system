@@ -196,32 +196,14 @@
                         </button>
                     </form>
                 }
-                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved ||
-                         Model.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview)
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved)
                 {
                     @if (isPrivileged)
                     {
-                        @if (Model.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview)
-                        {
-                            <div class="alert alert-warning py-2 small">
-                                <i class="bi bi-exclamation-triangle me-1"></i>
-                                التكلفة تتجاوز الميزانية المتاحة — يلزم التجاوز اليدوي أو الرفض.
-                            </div>
-                        }
-                        else
-                        {
-                            <p class="small text-muted">بانتظار اعتماد الموارد البشرية.</p>
-                        }
+                        <p class="small text-muted">بانتظار اعتماد الموارد البشرية.</p>
                         <form asp-action="HRApprove" asp-route-id="@Model.Id" method="post" class="mb-2">
                             @Html.AntiForgeryToken()
                             <input name="comment" class="form-control form-control-sm mb-2" placeholder="تعليق (اختياري)" />
-                            @if (Model.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview)
-                            {
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" name="overrideBudget" value="true" id="ovr" />
-                                    <label class="form-check-label small" for="ovr">تجاوز حد الميزانية والاعتماد</label>
-                                </div>
-                            }
                             <button type="submit" class="btn btn-success w-100">
                                 <i class="bi bi-check2-all me-1"></i> اعتماد الموارد البشرية
                             </button>

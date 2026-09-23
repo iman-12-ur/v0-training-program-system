@@ -171,7 +171,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خار�� دائرته
+            // المشرف لا يضيف احتياجاً لموظف خار���� دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -509,12 +509,11 @@ namespace TrainingSystem.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "SuperAdmin,Admin")]
-        public async Task<IActionResult> HRApprove(int id, string? comment, bool overrideBudget = false)
+        public async Task<IActionResult> HRApprove(int id, string? comment)
         {
             var need = await _context.TrainingNeeds.FindAsync(id);
             if (need == null) return NotFound();
-            if (need.ApprovalStatus != TrainingNeedApprovalStatus.ManagerApproved &&
-                need.ApprovalStatus != TrainingNeedApprovalStatus.BudgetReview)
+            if (need.ApprovalStatus != TrainingNeedApprovalStatus.ManagerApproved)
             {
                 TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد الموارد البشرية";
                 return RedirectToAction(nameof(Details), new { id });
@@ -522,28 +521,6 @@ namespace TrainingSystem.Controllers
 
             var actor = await _userManager.GetUserAsync(User);
             var cost = need.EstimatedCost;
-            var budget = await GetOrmCurrentBudgetAsync(need.Department);
-
-            // إن تجاوزت التكلفة المتبقّي ولم يُطلب التجاوز، حوّل لمراجعة الميزانية بدل الرفض
-            if (!overrideBudget && cost > 0 && budget != null && cost > budget.RemainingBudget)
-            {
-                need.ApprovalStatus = TrainingNeedApprovalStatus.BudgetReview;
-                need.HRUserId = actor?.Id;
-                need.HRActionAt = DateTime.Now;
-                need.HRComment = comment?.Trim();
-                AddHistory(need, need.ApprovalStatus,
-                    $"تحويل لمراجعة الميزانية (التكلفة {cost:N0} تتجاوز المتبقي {budget.RemainingBudget:N0})",
-                    comment, actor);
-
-                var hrForBudget = await GetHRUserIdsAsync();
-                await NotificationHelper.AddToRoleAsync(_context, hrForBudget,
-                    $"احتياج يتجاوز ميزانية دائرة {need.Department}: {need.SkillName} ({cost:N0})",
-                    NotificationType.Warning, need.Id);
-
-                await _context.SaveChangesAsync();
-                TempData["Error"] = "التكلفة تتجاوز الميزانية المتاحة — تم تحويل الطلب لمراجعة الميزانية";
-                return RedirectToAction(nameof(Details), new { id });
-            }
 
             need.ApprovalStatus = TrainingNeedApprovalStatus.HRApproved;
             need.HRUserId = actor?.Id;
@@ -551,11 +528,20 @@ namespace TrainingSystem.Controllers
             need.HRComment = comment?.Trim();
             need.Status = TrainingNeedStatus.InProgress;
 
-            // التزام الميزانية بقيمة التكلفة التقديرية
+            // التزام الموازنة المركزية بقيمة التكلفة التقديرية (متابعة فقط — لا إيقاف)
+            var budget = await GetOrmCurrentBudgetAsync();
             if (cost > 0 && budget != null)
             {
                 budget.CommittedBudget += cost;
                 budget.UpdatedAt = DateTime.Now;
+
+                if (budget.RemainingBudget < 0)
+                {
+                    var hrForBudget = await GetHRUserIdsAsync();
+                    await NotificationHelper.AddToRoleAsync(_context, hrForBudget,
+                        $"تنبيه: تجاوزت موازنة التدريب المخصّص بعد اعتماد «{need.SkillName}»",
+                        NotificationType.Warning, need.Id);
+                }
             }
 
             AddHistory(need, need.ApprovalStatus, "اعتماد الموارد البشرية (نهائي)", comment, actor);
@@ -657,7 +643,7 @@ namespace TrainingSystem.Controllers
             var cost = need.EstimatedCost;
             if (cost > 0)
             {
-                var budget = await GetOrmCurrentBudgetAsync(need.Department);
+                var budget = await GetOrmCurrentBudgetAsync();
                 if (budget != null)
                 {
                     budget.CommittedBudget = Math.Max(0, budget.CommittedBudget - cost);
@@ -707,8 +693,7 @@ namespace TrainingSystem.Controllers
 
             var query = _context.TrainingNeeds
                 .Where(n => n.ApprovalStatus == TrainingNeedApprovalStatus.SubmittedToManager ||
-                            n.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved ||
-                            n.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview);
+                            n.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved);
 
             if (!IsPrivileged)
                 query = query.Where(n => n.Department == myDept);
@@ -1167,17 +1152,12 @@ namespace TrainingSystem.Controllers
                 .Take(10)
                 .ToList();
 
-            // الالتزام بالميزانية (كل الميزانيات المعرّفة أو دائرة محددة)
-            var budgetQuery = _context.TrainingBudgets.AsQueryable();
-            if (!IsPrivileged)
-                budgetQuery = budgetQuery.Where(b => b.Department == myDept);
-            else if (!string.IsNullOrWhiteSpace(department))
-                budgetQuery = budgetQuery.Where(b => b.Department == department);
-            var budgetCompliance = await budgetQuery
-                .OrderBy(b => b.Department)
+            // الالتزام بالموازنة المركزية لدائرة التدريب (صف واحد لكل سنة مالية)
+            var budgetCompliance = await _context.TrainingBudgets
+                .OrderByDescending(b => b.FinancialYear)
                 .Select(b => new BudgetComplianceRow
                 {
-                    Department = b.Department,
+                    FinancialYear = b.FinancialYear,
                     Allocated = b.AllocatedBudget,
                     Committed = b.CommittedBudget,
                     Actual = b.ActualSpending
@@ -1343,12 +1323,12 @@ namespace TrainingSystem.Controllers
             return $"{y}/{y + 1}";
         }
 
-        // ميزانية الدائرة للسنة المالية الحالية (قد تكون null إن لم تُعرّف)
-        private async Task<TrainingBudget?> GetOrmCurrentBudgetAsync(string department)
+        // الموازنة المركزية للسنة المالية الحالية (قد تكون null إن لم تُعرّف)
+        private async Task<TrainingBudget?> GetOrmCurrentBudgetAsync()
         {
             var fy = CurrentFinancialYear();
             return await _context.TrainingBudgets
-                .FirstOrDefaultAsync(b => b.Department == department && b.FinancialYear == fy);
+                .FirstOrDefaultAsync(b => b.FinancialYear == fy);
         }
 
         private async Task PopulateFormOptionsAsync(TrainingNeedFormViewModel vm)
@@ -1652,7 +1632,7 @@ namespace TrainingSystem.Controllers
 
     public class BudgetComplianceRow
     {
-        public string Department { get; set; } = string.Empty;
+        public string FinancialYear { get; set; } = string.Empty;
         public decimal Allocated { get; set; }
         public decimal Committed { get; set; }
         public decimal Actual { get; set; }

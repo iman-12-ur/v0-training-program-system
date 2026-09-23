@@ -4,7 +4,7 @@
 }
 
 <div class="mb-4">
-    <h4 class="fw-bold mb-1">تعديل ميزانية: @Model.Department</h4>
+    <h4 class="fw-bold mb-1">تعديل الموازنة المركزية</h4>
     <p class="text-muted mb-0">السنة المالية @Model.FinancialYear</p>
 </div>
 
@@ -40,7 +40,6 @@
         <form asp-action="Edit" method="post" class="row g-3">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="Id" />
-            <input type="hidden" asp-for="Department" />
             <input type="hidden" asp-for="FinancialYear" />
             <div asp-validation-summary="All" class="text-danger small"></div>
 

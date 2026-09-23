@@ -145,18 +145,17 @@ namespace TrainingSystem.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Configure TrainingBudget - ميزانية الدائرة للسنة المالية
+            // Configure TrainingBudget - موازنة مركزية للسنة المالية
             builder.Entity<TrainingBudget>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Department).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.FinancialYear).IsRequired().HasMaxLength(9);
                 entity.Property(e => e.AllocatedBudget).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.CommittedBudget).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.ActualSpending).HasColumnType("decimal(18,2)");
 
-                // منع تكرار نفس الدائرة/السنة
-                entity.HasIndex(e => new { e.Department, e.FinancialYear }).IsUnique();
+                // موازنة واحدة فقط لكل سنة مالية
+                entity.HasIndex(e => e.FinancialYear).IsUnique();
             });
 
             // Configure TrainingImpactAssessment - تقييم الأثر
