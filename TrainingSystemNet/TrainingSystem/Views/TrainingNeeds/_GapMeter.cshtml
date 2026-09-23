@@ -1,0 +1,61 @@
+@* مقياس الفجوة المهارية الحيّ: يعرض المستوى الحالي والمطلوب والفجوة بصرياً *@
+<div class="card border-0 bg-light" id="gapMeter">
+    <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-semibold small text-muted">قياس الفجوة المهارية</span>
+            <span class="badge rounded-pill" id="gapBadge">الفجوة: <span id="gapValue">0</span></span>
+        </div>
+        <div class="d-flex gap-1" id="gapSegments" dir="ltr">
+            @for (int i = 1; i <= 5; i++)
+            {
+                <div class="flex-fill rounded" data-seg="@i" style="height: 14px; background-color: #e9ecef;"></div>
+            }
+        </div>
+        <div class="d-flex justify-content-between small text-muted mt-1">
+            <span>الحالي: <span id="gapCurrentLabel">—</span></span>
+            <span>المطلوب: <span id="gapRequiredLabel">—</span></span>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var cur = document.getElementById('currentLevel');
+        var req = document.getElementById('requiredLevel');
+        if (!cur || !req) return;
+
+        var names = ['لا يوجد', 'مبتدئ', 'أساسي', 'متوسط', 'متقدم', 'خبير'];
+        var segs = document.querySelectorAll('#gapSegments [data-seg]');
+        var gapValue = document.getElementById('gapValue');
+        var gapBadge = document.getElementById('gapBadge');
+        var curLabel = document.getElementById('gapCurrentLabel');
+        var reqLabel = document.getElementById('gapRequiredLabel');
+
+        function render() {
+            var c = parseInt(cur.value, 10) || 0;
+            var r = parseInt(req.value, 10) || 0;
+            var gap = Math.max(0, r - c);
+
+            segs.forEach(function (s) {
+                var lvl = parseInt(s.getAttribute('data-seg'), 10);
+                if (lvl <= c) {
+                    s.style.backgroundColor = '#0d6efd'; // متحقّق (الحالي)
+                } else if (lvl <= r) {
+                    s.style.backgroundColor = '#dc3545'; // فجوة مطلوبة
+                } else {
+                    s.style.backgroundColor = '#e9ecef'; // خارج المطلوب
+                }
+            });
+
+            gapValue.textContent = gap;
+            curLabel.textContent = (names[c] || c) + ' (' + c + ')';
+            reqLabel.textContent = (names[r] || r) + ' (' + r + ')';
+            gapBadge.className = 'badge rounded-pill ' +
+                (gap >= 3 ? 'bg-danger' : gap === 2 ? 'bg-warning text-dark' : gap === 1 ? 'bg-info text-dark' : 'bg-success');
+        }
+
+        cur.addEventListener('change', render);
+        req.addEventListener('change', render);
+        render();
+    })();
+</script>

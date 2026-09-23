@@ -229,6 +229,18 @@ namespace TrainingSystem.Models
         [NotMapped]
         public int Gap => Math.Max(0, RequiredLevel - CurrentLevel);
 
+        // تسمية مستوى المهارة (1 مبتدئ .. 5 خبير)
+        public static string LevelName(int level) => level switch
+        {
+            0 => "لا يوجد",
+            1 => "مبتدئ",
+            2 => "أساسي",
+            3 => "متوسط",
+            4 => "متقدم",
+            5 => "خبير",
+            _ => level.ToString()
+        };
+
         // حساب الأولوية من الفجوة (منطق موحّد للخادم والاستيراد)
         public static TrainingNeedPriority ComputePriority(int requiredLevel, int currentLevel)
         {

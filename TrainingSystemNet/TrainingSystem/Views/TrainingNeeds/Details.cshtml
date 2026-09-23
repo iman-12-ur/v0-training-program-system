@@ -184,10 +184,36 @@
                 <div class="progress my-2" style="height: 10px;">
                     <div class="progress-bar bg-primary" style="width: @readiness%"></div>
                 </div>
-                <div class="d-flex justify-content-around mt-3">
-                    <div><div class="fw-bold">@Model.CurrentLevel</div><div class="small text-muted">الحالي</div></div>
-                    <div><div class="fw-bold">@Model.RequiredLevel</div><div class="small text-muted">المطلوب</div></div>
-                    <div><div class="fw-bold text-danger">@Model.Gap</div><div class="small text-muted">الفجوة</div></div>
+
+                @{
+                    var gapBadgeClass = Model.Gap >= 3 ? "bg-danger" : Model.Gap == 2 ? "bg-warning text-dark" : Model.Gap == 1 ? "bg-info text-dark" : "bg-success";
+                }
+                <div class="text-start mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small text-muted">قياس الفجوة المهارية</span>
+                        <span class="badge rounded-pill @gapBadgeClass">الفجوة: @Model.Gap</span>
+                    </div>
+                    <div class="d-flex gap-1" dir="ltr">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            var color = i <= Model.CurrentLevel ? "#0d6efd" : (i <= Model.RequiredLevel ? "#dc3545" : "#e9ecef");
+                            <div class="flex-fill rounded" title="مستوى @i – @TrainingSystem.Models.TrainingNeed.LevelName(i)" style="height: 14px; background-color: @color;"></div>
+                        }
+                    </div>
+                    <div class="d-flex justify-content-around small text-muted mt-2">
+                        <div class="text-center">
+                            <div class="fw-bold text-dark">@Model.CurrentLevel</div>
+                            <div>الحالي: @TrainingSystem.Models.TrainingNeed.LevelName(Model.CurrentLevel)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="fw-bold text-dark">@Model.RequiredLevel</div>
+                            <div>المطلوب: @TrainingSystem.Models.TrainingNeed.LevelName(Model.RequiredLevel)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="fw-bold text-danger">@Model.Gap</div>
+                            <div>الفجوة</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
