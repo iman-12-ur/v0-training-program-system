@@ -171,7 +171,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خار���� دائرته
+            // المشرف لا يضيف احتياجاً لموظف خار������ دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -520,7 +520,6 @@ namespace TrainingSystem.Controllers
             }
 
             var actor = await _userManager.GetUserAsync(User);
-            var cost = need.EstimatedCost;
 
             need.ApprovalStatus = TrainingNeedApprovalStatus.HRApproved;
             need.HRUserId = actor?.Id;
@@ -528,21 +527,7 @@ namespace TrainingSystem.Controllers
             need.HRComment = comment?.Trim();
             need.Status = TrainingNeedStatus.InProgress;
 
-            // التزام الموازنة المركزية بقيمة التكلفة التقديرية (متابعة فقط — لا إيقاف)
-            var budget = await GetOrmCurrentBudgetAsync();
-            if (cost > 0 && budget != null)
-            {
-                budget.CommittedBudget += cost;
-                budget.UpdatedAt = DateTime.Now;
-
-                if (budget.RemainingBudget < 0)
-                {
-                    var hrForBudget = await GetHRUserIdsAsync();
-                    await NotificationHelper.AddToRoleAsync(_context, hrForBudget,
-                        $"تنبيه: تجاوزت موازنة التدريب المخصّص بعد اعتماد «{need.SkillName}»",
-                        NotificationType.Warning, need.Id);
-                }
-            }
+            // الموازنة مؤجّلة في المرحلة الحالية — لا يُخصم منها هنا
 
             AddHistory(need, need.ApprovalStatus, "اعتماد الموارد البشرية (نهائي)", comment, actor);
 
@@ -619,15 +604,13 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // إنهاء التدريب — يحوّل الالتزام إلى مصروف فعلي وينشئ تقييمات الأثر
+        // إنهاء التدريب — الموازنة وتقييم الأثر مؤجّلان في المرحلة الحالية
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> CompleteTraining(int id)
         {
-            var need = await _context.TrainingNeeds
-                .Include(n => n.ImpactAssessments)
-                .FirstOrDefaultAsync(n => n.Id == id);
+            var need = await _context.TrainingNeeds.FindAsync(id);
             if (need == null) return NotFound();
             if (need.ApprovalStatus != TrainingNeedApprovalStatus.TrainingScheduled)
             {
@@ -639,49 +622,14 @@ namespace TrainingSystem.Controllers
             need.ApprovalStatus = TrainingNeedApprovalStatus.TrainingCompleted;
             need.Status = TrainingNeedStatus.Completed;
 
-            // تحويل الالتزام إلى مصروف فعلي في الميزانية
-            var cost = need.EstimatedCost;
-            if (cost > 0)
-            {
-                var budget = await GetOrmCurrentBudgetAsync();
-                if (budget != null)
-                {
-                    budget.CommittedBudget = Math.Max(0, budget.CommittedBudget - cost);
-                    budget.ActualSpending += cost;
-                    budget.UpdatedAt = DateTime.Now;
-                }
-            }
+            AddHistory(need, need.ApprovalStatus, "إنهاء التدريب", null, actor);
 
-            // إن��اء تقييم أثر مباشر + تقييم بعد 90 يوماً (إن لم يوجدا)
-            if (!need.ImpactAssessments.Any(a => a.AssessmentType == ImpactAssessmentType.PostTraining))
-            {
-                _context.TrainingImpactAssessments.Add(new TrainingImpactAssessment
-                {
-                    TrainingNeedId = need.Id,
-                    AssessmentType = ImpactAssessmentType.PostTraining,
-                    DueDate = DateTime.Now.Date,
-                    BeforeScore = need.CurrentLevel
-                });
-            }
-            if (!need.ImpactAssessments.Any(a => a.AssessmentType == ImpactAssessmentType.Day90))
-            {
-                _context.TrainingImpactAssessments.Add(new TrainingImpactAssessment
-                {
-                    TrainingNeedId = need.Id,
-                    AssessmentType = ImpactAssessmentType.Day90,
-                    DueDate = DateTime.Now.Date.AddDays(90),
-                    BeforeScore = need.CurrentLevel
-                });
-            }
-
-            AddHistory(need, need.ApprovalStatus, "إنهاء التدريب وإنشاء تقييمات الأثر", null, actor);
-
-            var hrIds = await GetHRUserIdsAsync();
-            await NotificationHelper.AddToRoleAsync(_context, hrIds,
-                $"اكتمل تدريب {need.SkillName} — يلزم تقييم الأثر", NotificationType.Info, need.Id);
+            if (!string.IsNullOrEmpty(need.CreatedByUserId))
+                NotificationHelper.Add(_context, need.CreatedByUserId,
+                    $"اكتمل تدريب: {need.SkillName}", NotificationType.Success, need.Id);
 
             await _context.SaveChangesAsync();
-            TempData["Success"] = "تم إنهاء التدريب وإنشاء تقييمَي الأثر (مباشر وبعد 90 يوماً)";
+            TempData["Success"] = "تم إنهاء التدريب";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -1125,7 +1073,7 @@ namespace TrainingSystem.Controllers
                 .OrderByDescending(r => r.Count)
                 .ToList();
 
-            // التكلفة التقديرية حسب الدائرة
+            // التكلفة التق��يرية حسب الدائرة
             var costByDept = needs
                 .GroupBy(n => n.Department)
                 .Select(g => new CostReportRow
@@ -1152,40 +1100,7 @@ namespace TrainingSystem.Controllers
                 .Take(10)
                 .ToList();
 
-            // الالتزام بالموازنة المركزية لدائرة التدريب (صف واحد لكل سنة مالية)
-            var budgetCompliance = await _context.TrainingBudgets
-                .OrderByDescending(b => b.FinancialYear)
-                .Select(b => new BudgetComplianceRow
-                {
-                    FinancialYear = b.FinancialYear,
-                    Allocated = b.AllocatedBudget,
-                    Committed = b.CommittedBudget,
-                    Actual = b.ActualSpending
-                })
-                .ToListAsync();
-
-            // نتائج تقييم الأثر
-            var impactQuery = _context.TrainingImpactAssessments
-                .Include(a => a.TrainingNeed)
-                .AsQueryable();
-            if (!IsPrivileged)
-                impactQuery = impactQuery.Where(a => a.TrainingNeed!.Department == myDept);
-            else if (!string.IsNullOrWhiteSpace(department))
-                impactQuery = impactQuery.Where(a => a.TrainingNeed!.Department == department);
-            var assessments = await impactQuery.ToListAsync();
-            var impactResults = assessments
-                .GroupBy(a => a.AssessmentType)
-                .Select(g => new ImpactResultRow
-                {
-                    Type = TrainingImpactAssessment.GetTypeDisplayName(g.Key),
-                    Completed = g.Count(x => x.IsCompleted),
-                    Pending = g.Count(x => !x.IsCompleted),
-                    AverageScore = g.Any(x => x.IsCompleted)
-                        ? Math.Round(g.Where(x => x.IsCompleted).Average(x => x.AverageScore), 1) : 0,
-                    AverageImprovement = g.Any(x => x.IsCompleted)
-                        ? Math.Round(g.Where(x => x.IsCompleted).Average(x => (double)x.ImprovementPercent), 1) : 0
-                })
-                .ToList();
+            // الموازنة والأثر مؤجّلة في المرحلة الحالية — لا تُحسب هنا
 
             var vm = new TnaReportsViewModel
             {
@@ -1195,8 +1110,6 @@ namespace TrainingSystem.Controllers
                 ByPriority = byPriority,
                 ByStatus = byStatus,
                 CostByDepartment = costByDept,
-                BudgetCompliance = budgetCompliance,
-                ImpactResults = impactResults,
                 TopEmployeeGaps = topGaps,
                 ComplianceNeeds = needs.Count(n => n.IsCompliance),
                 TotalEstimatedCost = needs.Sum(n => n.EstimatedCost),

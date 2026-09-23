@@ -54,7 +54,7 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-header bg-white"><h6 class="fw-bold mb-0">التكلفة والأثر والميزانية</h6></div>
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">التكلفة والأولوية</h6></div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-3 text-muted">البرنامج المرتبط</dt><dd class="col-sm-3">@(Model.LinkedTrainingProgram?.Title ?? "—")</dd>
@@ -242,7 +242,7 @@
                         <form asp-action="CompleteTraining" asp-route-id="@Model.Id" method="post">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-success w-100">
-                                <i class="bi bi-flag me-1"></i> إنهاء التدريب وبدء تقييم الأثر
+                                <i class="bi bi-flag me-1"></i> إنهاء التدريب
                             </button>
                         </form>
                     }
@@ -250,9 +250,6 @@
                 else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.TrainingCompleted)
                 {
                     <div class="alert alert-success mb-2"><i class="bi bi-check-circle me-1"></i> اكتمل التدريب</div>
-                    <a asp-controller="ImpactAssessments" asp-action="Index" class="btn btn-outline-primary w-100">
-                        <i class="bi bi-clipboard-check me-1"></i> تقييمات الأثر
-                    </a>
                 }
             </div>
         </div>

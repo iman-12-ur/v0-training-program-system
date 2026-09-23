@@ -119,10 +119,7 @@
                     <span>الأولويات العالية</span>
                 </a>
 
-                <a href="@Url.Action("Index", "ImpactAssessments")" class="nav-item @(tnaController == "ImpactAssessments" ? "active" : "")">
-                    <i class="bi bi-clipboard-check"></i>
-                    <span>تقييم أثر التدريب</span>
-                </a>
+                @* تقييم أثر التدريب — مؤجّل في المرحلة الحالية *@
 
                 <a href="@Url.Action("Reports", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "Reports" ? "active" : "")">
                     <i class="bi bi-file-earmark-bar-graph"></i>
@@ -133,10 +130,7 @@
                 {
                     <div class="nav-divider"></div>
 
-                    <a href="@Url.Action("Index", "TrainingBudgets")" class="nav-item @(tnaController == "TrainingBudgets" ? "active" : "")">
-                        <i class="bi bi-cash-coin"></i>
-                        <span>ميزانية التدريب</span>
-                    </a>
+                    @* ميزانية التدريب — مؤجّلة في المرحلة الحالية *@
 
                     <a href="@Url.Action("Index", "Skills")" class="nav-item @(tnaController == "Skills" ? "active" : "")">
                         <i class="bi bi-list-stars"></i>
