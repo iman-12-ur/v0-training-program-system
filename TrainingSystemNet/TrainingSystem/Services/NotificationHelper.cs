@@ -23,7 +23,7 @@ namespace TrainingSystem.Services
             });
         }
 
-        // إشعار لكل المستخدمين ضمن دور معيّن (مثل الموارد البشرية)
+        // إشعار لكل المستخدمين ضمن دور معيّن (مثل دائرة التدريب)
         public static async Task AddToRoleAsync(ApplicationDbContext context,
             IEnumerable<string> userIds, string message,
             NotificationType type = NotificationType.Info, int? relatedNeedId = null)

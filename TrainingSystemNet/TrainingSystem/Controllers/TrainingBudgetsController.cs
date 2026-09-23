@@ -6,7 +6,7 @@ using TrainingSystem.Models;
 
 namespace TrainingSystem.Controllers
 {
-    // إدارة الموازنة المركزية لدائرة التدريب حسب السنة المالية (الموارد البشرية فقط).
+    // إدارة الموازنة المركزية لدائرة التدريب حسب السنة المالية (دائرة التدريب فقط).
     // للمتابعة فقط — لا توقف اعتماد الاحتياجات.
     [Authorize(Roles = "SuperAdmin,Admin")]
     public class TrainingBudgetsController : Controller

@@ -48,7 +48,7 @@
 
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h6 class="fw-bold mb-0"><i class="bi bi-building me-1"></i> بانتظار الموارد البشرية</h6>
+        <h6 class="fw-bold mb-0"><i class="bi bi-building me-1"></i> بانتظار دائرة التدريب</h6>
         <span class="badge bg-primary">@hrQueue.Count</span>
     </div>
     <div class="table-responsive">
@@ -59,7 +59,7 @@
             <tbody>
                 @if (!hrQueue.Any())
                 {
-                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد طلبات بانتظار الموارد البشرية</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد طلبات بانتظار دائرة التدريب</td></tr>
                 }
                 @foreach (var n in hrQueue)
                 {

@@ -274,12 +274,12 @@
                 {
                     @if (isPrivileged)
                     {
-                        <p class="small text-muted">بانتظار اعتماد الموارد البشرية.</p>
+                        <p class="small text-muted">بانتظار اعتماد دائرة التدريب.</p>
                         <form asp-action="HRApprove" asp-route-id="@Model.Id" method="post" class="mb-2">
                             @Html.AntiForgeryToken()
                             <input name="comment" class="form-control form-control-sm mb-2" placeholder="تعليق (اختياري)" />
                             <button type="submit" class="btn btn-success w-100">
-                                <i class="bi bi-check2-all me-1"></i> اعتماد الموارد البشرية
+                                <i class="bi bi-check2-all me-1"></i> اعتماد دائرة التدريب
                             </button>
                         </form>
                         <form asp-action="HRReject" asp-route-id="@Model.Id" method="post">
@@ -292,7 +292,7 @@
                     }
                     else
                     {
-                        <p class="small text-muted mb-0">اعتمده المدير — بانتظار الموارد البشرية.</p>
+                        <p class="small text-muted mb-0">اعتمده المدير — بانتظار دائرة التدريب.</p>
                     }
                 }
                 else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.HRApproved)

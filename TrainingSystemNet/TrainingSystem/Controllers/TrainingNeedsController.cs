@@ -541,10 +541,10 @@ namespace TrainingSystem.Controllers
             need.ManagerComment = comment?.Trim();
             AddHistory(need, need.ApprovalStatus, "اعتماد المدير المباشر", comment, actor);
 
-            // إشعار الموارد البشرية + مقدّم الطلب
+            // إشعار دائرة التدريب + مقدّم الطلب
             var hrIds = await GetHRUserIdsAsync();
             await NotificationHelper.AddToRoleAsync(_context, hrIds,
-                $"احتياج معتمد من المدير بانتظار مراجعة الموارد البشرية: {need.SkillName} — {need.Department}",
+                $"احتياج معتمد من المدير بانتظار مراجعة دائرة التدريب: {need.SkillName} — {need.Department}",
                 NotificationType.Info, need.Id);
             if (!string.IsNullOrEmpty(need.CreatedByUserId))
                 NotificationHelper.Add(_context, need.CreatedByUserId,
@@ -635,7 +635,7 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // اعتماد الموارد البشرية (المدير/مدير النظام فقط)
+        // اعتماد دائرة التدريب (المدير/مدير النظام فقط)
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "SuperAdmin,Admin")]
@@ -645,7 +645,7 @@ namespace TrainingSystem.Controllers
             if (need == null) return NotFound();
             if (need.ApprovalStatus != TrainingNeedApprovalStatus.ManagerApproved)
             {
-                TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد الموارد البشرية";
+                TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد دائرة التدريب";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
@@ -660,11 +660,11 @@ namespace TrainingSystem.Controllers
 
             // الموازنة مؤجّلة في المرحلة الحالية — لا يُخصم منها هنا
 
-            AddHistory(need, need.ApprovalStatus, "اعتماد الموارد البشرية (نهائي)", comment, actor);
+            AddHistory(need, need.ApprovalStatus, "اعتماد دائرة التدريب (نهائي)", comment, actor);
 
             if (!string.IsNullOrEmpty(need.CreatedByUserId))
                 NotificationHelper.Add(_context, need.CreatedByUserId,
-                    $"تم اعتماد احتياجك نهائياً من الموارد البشرية: {need.SkillName}",
+                    $"تم اعتماد احتياجك نهائياً من دائرة التدريب: {need.SkillName}",
                     NotificationType.Success, need.Id);
 
             await _context.SaveChangesAsync();
@@ -673,7 +673,7 @@ namespace TrainingSystem.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // رفض الموارد البشرية (المدير/مدير النظام فقط)
+        // رفض دائرة التدريب (المدير/مدير النظام فقط)
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "SuperAdmin,Admin")]
@@ -683,7 +683,7 @@ namespace TrainingSystem.Controllers
             if (need == null) return NotFound();
             if (need.ApprovalStatus != TrainingNeedApprovalStatus.ManagerApproved)
             {
-                TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد الموارد البشرية";
+                TempData["Error"] = "هذا الاحتياج ليس بانتظار اعتماد دائرة التدريب";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
@@ -692,11 +692,11 @@ namespace TrainingSystem.Controllers
             need.HRUserId = actor?.Id;
             need.HRActionAt = DateTime.Now;
             need.HRComment = comment?.Trim();
-            AddHistory(need, need.ApprovalStatus, "رفض الموارد البشرية", comment, actor);
+            AddHistory(need, need.ApprovalStatus, "رفض دائرة التدريب", comment, actor);
 
             if (!string.IsNullOrEmpty(need.CreatedByUserId))
                 NotificationHelper.Add(_context, need.CreatedByUserId,
-                    $"تم رفض احتياجك من الموارد البشرية: {need.SkillName}",
+                    $"تم رفض احتياجك من دائرة التدريب: {need.SkillName}",
                     NotificationType.Danger, need.Id);
 
             await _context.SaveChangesAsync();
@@ -1369,7 +1369,7 @@ namespace TrainingSystem.Controllers
                 .ToListAsync();
         }
 
-        // معرّفات مستخدمي الموارد البشرية (Admin + SuperAdmin)
+        // معرّفات مستخدمي دائرة التدريب (Admin + SuperAdmin)
         private async Task<List<string>> GetHRUserIdsAsync()
         {
             var admins = await _userManager.GetUsersInRoleAsync(SystemRoles.Admin);
@@ -1377,7 +1377,7 @@ namespace TrainingSystem.Controllers
             return admins.Concat(supers).Select(u => u.Id).Distinct().ToList();
         }
 
-        // معرّفات المدراء المسؤولين عن دائرة معيّنة (مشرفو الدائرة + الموارد البشرية)
+        // معرّفات المدراء المسؤولين عن دائرة معيّنة (مشرفو الدائرة + دائرة التدريب)
         private async Task<List<string>> GetDepartmentManagerIdsAsync(string department)
         {
             var supervisors = await _userManager.GetUsersInRoleAsync(SystemRoles.Supervisor);
@@ -1388,7 +1388,7 @@ namespace TrainingSystem.Controllers
             return deptSupervisors.Concat(hr).Distinct().ToList();
         }
 
-        // السنة المالية الحالية (تقويم��ة) بصيغة 2025/2026
+        // ا��سنة المالية الحالية (تقويم��ة) بصيغة 2025/2026
         private static string CurrentFinancialYear()
         {
             var y = DateTime.Now.Year;

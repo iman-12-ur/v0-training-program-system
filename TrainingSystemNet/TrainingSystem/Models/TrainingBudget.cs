@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace TrainingSystem.Models
 {
     // موازنة مركزية واحدة لدائرة التدريب ضمن سنة مالية.
-    // تُدار بالكامل من قِبَل دائرة التدريب (الموارد البشرية) — للمتابعة فقط دون إيقاف الاعتمادات.
+    // تُدار بالكامل من قِبَل دائرة التدريب — للمتابعة فقط دون إيقاف الاعتمادات.
     public class TrainingBudget
     {
         public int Id { get; set; }

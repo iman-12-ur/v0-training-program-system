@@ -28,10 +28,10 @@ namespace TrainingSystem.Models
     {
         Draft = 0,              // مسودة (لم تُرسل بعد)
         SubmittedToManager = 1, // بانتظار اعتماد المدير المباشر
-        ManagerApproved = 2,    // اعتمده المدير - بانتظار الموارد البشرية
+        ManagerApproved = 2,    // اعتمده المدير - بانتظار دائرة التدريب
         ManagerRejected = 3,    // رفضه المدير
-        HRApproved = 4,         // اعتمدته الموارد البشرية (نهائي)
-        HRRejected = 5,         // رفضته الموارد البشرية
+        HRApproved = 4,         // اعتمدته دائرة التدريب (نهائي)
+        HRRejected = 5,         // رفضته دائرة التدريب
         BudgetReview = 6,       // مراجعة الميزانية (تجاوز المتاح)
         TrainingScheduled = 7,  // مجدول للتدريب
         TrainingCompleted = 8   // اكتمل التدريب (بانتظار تقييم الأثر)
@@ -204,7 +204,7 @@ namespace TrainingSystem.Models
         public TrainingReason? TrainingReason { get; set; }
 
         // حقول شرطية تظهر عند اختيار "ضعف في تقييم الأداء السنوي"
-        [Display(Name = "رقم الهدف المتعثر")]
+        [Display(Name = "رقم ��لهدف المتعثر")]
         [MaxLength(100)]
         public string? FailedGoalNumber { get; set; }
 
@@ -274,7 +274,7 @@ namespace TrainingSystem.Models
 
         public DateTime? SubmittedAt { get; set; }
 
-        // تاريخ الاعتماد النهائي (يُضبط عند اعتماد الموارد البشرية)
+        // تاريخ الاعتماد النهائي (يُضبط عند اعتماد دائرة التدريب)
         [Display(Name = "تاريخ الاعتماد")]
         public DateTime? ApprovalDate { get; set; }
 
@@ -407,7 +407,7 @@ namespace TrainingSystem.Models
             TrainingNeedPriority.Critical => "حرجة جداً",
             TrainingNeedPriority.High => "عالية",
             TrainingNeedPriority.Medium => "متوسطة",
-            _ => "منخفضة"
+            _ => "من��فضة"
         };
 
         public static string GetPriorityBadge(TrainingNeedPriority p) => p switch
@@ -429,10 +429,10 @@ namespace TrainingSystem.Models
         {
             TrainingNeedApprovalStatus.Draft => "مسودة",
             TrainingNeedApprovalStatus.SubmittedToManager => "بانتظار المدير",
-            TrainingNeedApprovalStatus.ManagerApproved => "بانتظار الموارد البشرية",
+            TrainingNeedApprovalStatus.ManagerApproved => "بانتظار دائرة التدريب",
             TrainingNeedApprovalStatus.ManagerRejected => "مرفوض من المدير",
             TrainingNeedApprovalStatus.HRApproved => "معتمد نهائياً",
-            TrainingNeedApprovalStatus.HRRejected => "مرفوض من الموارد البشرية",
+            TrainingNeedApprovalStatus.HRRejected => "مرفوض من دائرة التدريب",
             TrainingNeedApprovalStatus.BudgetReview => "مراجعة الميزانية",
             TrainingNeedApprovalStatus.TrainingScheduled => "مجدول للتدريب",
             TrainingNeedApprovalStatus.TrainingCompleted => "اكتمل التدريب",
@@ -464,10 +464,10 @@ namespace TrainingSystem.Models
                 ("التحقق من اكتمال البيانات", "النظام"),
                 ("حساب الفجوة والأولوية تلقائياً", "النظام"),
                 ("مراجعة واعتماد / رفض / طلب تعديل", "المدير المباشر"),
-                ("تحليل الطلب", "الموارد البشرية"),
-                ("ربط الاحتياج ببرنامج تدريبي", "الموارد البشرية"),
-                ("التحقق من الميزانية", "الموارد البشرية"),
-                ("الاعتماد النهائي", "الموارد البشرية"),
+                ("تحليل الطلب", "دائرة التدريب"),
+                ("ربط الاحتياج ببرنامج تدريبي", "دائرة التدريب"),
+                ("التحقق من الميزانية", "دائرة التدريب"),
+                ("الاعتماد النهائي", "دائرة التدريب"),
                 ("إدراج الموظف في البرنامج التدريبي", "النظام"),
                 ("تقييم أثر التدريب", "الموظف / المدير"),
                 ("تقييم الأثر بعد 90 يوماً", "النظام (تلقائي)"),
