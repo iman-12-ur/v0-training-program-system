@@ -122,6 +122,120 @@
     </div>
 </div>
 
+<!-- محرك مؤشرات الأداء (KPI) -->
+@{
+    var kpi = Model.Kpis;
+}
+<h5 class="fw-bold mb-3"><i class="bi bi-speedometer2 me-2 text-primary"></i> مؤشرات الأداء الرئيسية</h5>
+<div class="row g-3 mb-4">
+    <!-- KPI 1 — نسبة التغطية -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border-top border-4 border-primary shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-semibold">نسبة تغطية الاحتياجات التدريبية</span>
+                    <i class="bi bi-people-fill text-primary"></i>
+                </div>
+                <div class="display-6 fw-bold text-primary mb-1">@kpi.CoveragePercent%</div>
+                <div class="progress mb-2" style="height:6px;">
+                    <div class="progress-bar bg-primary" style="width:@kpi.CoveragePercent%"></div>
+                </div>
+                <div class="small text-muted">@kpi.TrainedEmployees مُدرَّب من @kpi.TargetedEmployees مستهدَف</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI 2 — الالتزام بالميزانية -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border-top border-4 border-success shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-semibold">الالتزام بالميزانية</span>
+                    <i class="bi bi-cash-coin text-success"></i>
+                </div>
+                @if (kpi.HasBudget)
+                {
+                    <div class="display-6 fw-bold text-success mb-1">@kpi.BudgetUtilizationPercent%</div>
+                    <div class="progress mb-2" style="height:6px;">
+                        <div class="progress-bar bg-success" style="width:@(Math.Min(100, kpi.BudgetUtilizationPercent))%"></div>
+                    </div>
+                    <div class="small text-muted d-flex flex-column gap-1">
+                        <span>المخطط: <b>@kpi.BudgetPlanned.ToString("N0")</b></span>
+                        <span>الفعلي: <b>@kpi.BudgetActual.ToString("N0")</b></span>
+                        <span>الفرق: <b class="@(kpi.BudgetVariance < 0 ? "text-danger" : "text-success")">@kpi.BudgetVariance.ToString("N0")</b></span>
+                    </div>
+                }
+                else
+                {
+                    <div class="fs-5 fw-bold text-muted mb-1">—</div>
+                    <div class="small text-muted">لم تُعرّف ميزانية للسنة المالية الحالية</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI 3 — معدل تحسن الأداء -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border-top border-4 border-info shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-semibold">معدل تحسن الأداء بعد التدريب</span>
+                    <i class="bi bi-graph-up-arrow text-info"></i>
+                </div>
+                @if (kpi.AssessedEmployees > 0)
+                {
+                    <div class="display-6 fw-bold text-info mb-1">@kpi.PerformanceImprovementPercent%</div>
+                    <div class="progress mb-2" style="height:6px;">
+                        <div class="progress-bar bg-info" style="width:@kpi.PerformanceImprovementPercent%"></div>
+                    </div>
+                    <div class="small text-muted">@kpi.ImprovedEmployees تحسّن أداؤهم من @kpi.AssessedEmployees مُقيَّم</div>
+                }
+                else
+                {
+                    <div class="fs-5 fw-bold text-muted mb-1">—</div>
+                    <div class="small text-muted">لا توجد تقييمات أثر مكتملة بعد</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI 4 — العائد على الاستثمار (اختياري) -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border-top border-4 border-warning shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-semibold">العائد على الاستثمار التدريبي (ROI)</span>
+                    <i class="bi bi-currency-exchange text-warning"></i>
+                </div>
+                @if (kpi.RoiAvailable)
+                {
+                    <div class="display-6 fw-bold @(kpi.RoiPercent >= 0 ? "text-warning" : "text-danger") mb-1">@kpi.RoiPercent%</div>
+                    <div class="small text-muted d-flex flex-column gap-1">
+                        <span>العائد المالي: <b>@kpi.RoiFinancialReturn.ToString("N0")</b></span>
+                        <span>تكلفة التدريب: <b>@kpi.RoiTrainingCost.ToString("N0")</b></span>
+                    </div>
+                }
+                else
+                {
+                    <div class="fs-6 fw-bold text-muted mb-2">مؤشر اختياري</div>
+                    <p class="small text-muted mb-2">بعض البرامج لا يمكن قياس عائدها المالي مباشرة. أدخل العائد المالي المقدّر لحساب المؤشر.</p>
+                    <form method="get" class="input-group input-group-sm">
+                        <input type="hidden" name="year" value="@fYear" />
+                        <input type="hidden" name="department" value="@currentDept" />
+                        <input type="hidden" name="jobTitle" value="@fJob" />
+                        <input type="hidden" name="category" value="@fCat" />
+                        <input type="hidden" name="priority" value="@fPriority" />
+                        <input type="hidden" name="status" value="@fStatus" />
+                        <input type="hidden" name="gapType" value="@fGapType" />
+                        <input type="number" step="any" min="0" name="roiReturn" class="form-control" placeholder="العائد المالي المقدّر" />
+                        <button type="submit" class="btn btn-warning">احسب</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- بطاقات المؤشرات -->
 <div class="row g-3 mb-4">
     @{
@@ -154,7 +268,7 @@
     <div class="col-md-4">
         <div class="card h-100"><div class="card-body d-flex align-items-center justify-content-between">
             <div>
-                <div class="text-muted small">الاحتياجات المرتبطة بالأداء</div>
+                <div class="text-muted small">الاحتياجات المرتبطة بالأد��ء</div>
                 <div class="fs-3 fw-bold text-primary">@Model.PerformanceLinkedCount</div>
             </div>
             <i class="bi bi-graph-up-arrow fs-1 text-primary opacity-25"></i>
