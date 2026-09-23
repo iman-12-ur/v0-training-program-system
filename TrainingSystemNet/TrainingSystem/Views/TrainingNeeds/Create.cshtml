@@ -61,6 +61,11 @@
                     <label class="form-label">الدرجة الوظيفية</label>
                     <input asp-for="Grade" class="form-control" id="grade" placeholder="مثال: الرابعة" />
                 </div>
+                <div class="col-md-6" id="managerWrap" style="display:none;">
+                    <label class="form-label">المدير المباشر</label>
+                    <input type="text" class="form-control" id="managerName" readonly />
+                    <small class="text-muted">يُعرض من بيانات الموظف (عبر الربط).</small>
+                </div>
 
                 @if (Model.Skills.Any())
                 {
@@ -217,18 +222,56 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // ملء بيانات الموظف تلقائياً عند الاختيار من القائمة
+        // تعبئة بيانات الموظف تلقائياً عبر الربط (FK) عند الاختيار — دون تكرار الإدخال
         (function () {
             var select = document.getElementById('employeeSelect');
             if (!select) return;
+
+            var infoUrl = '@Url.Action("EmployeeInfo", "TrainingNeeds")';
+            var fName = document.getElementById('employeeName');
+            var fNumber = document.getElementById('employeeNumber');
+            var fDept = document.getElementById('department'); // متاح للمخوّلين فقط
+            var fJob = document.getElementById('jobTitle');
+            var fGrade = document.getElementById('grade');
+            var fManager = document.getElementById('managerName');
+            var managerWrap = document.getElementById('managerWrap');
+
+            // الحقول التي تُملأ من بيانات الموظف وتصبح للقراءة عند الاختيار
+            var linked = [fName, fNumber, fDept, fJob, fGrade].filter(Boolean);
+
+            function setLinked(readonly) {
+                linked.forEach(function (el) {
+                    el.readOnly = readonly;
+                    el.classList.toggle('bg-light', readonly);
+                });
+            }
+
+            function clearManual() {
+                if (fManager) fManager.value = '';
+                if (managerWrap) managerWrap.style.display = 'none';
+            }
+
             select.addEventListener('change', function () {
-                var text = this.options[this.selectedIndex].text;
-                var nameField = document.getElementById('employeeName');
-                if (this.value && text.indexOf('—') !== -1) {
-                    nameField.value = text.split('—')[0].trim();
-                } else if (this.value) {
-                    nameField.value = text.trim();
+                var id = this.value;
+                if (!id) {
+                    setLinked(false);
+                    clearManual();
+                    return;
                 }
+                fetch(infoUrl + '?id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        if (!d || !d.ok) { setLinked(false); clearManual(); return; }
+                        if (fName) fName.value = d.fullName || '';
+                        if (fNumber) fNumber.value = d.employeeNumber || '';
+                        if (fDept) fDept.value = d.department || '';
+                        if (fJob) fJob.value = d.jobTitle || '';
+                        if (fGrade) fGrade.value = d.grade || '';
+                        if (fManager) fManager.value = d.managerName || '—';
+                        if (managerWrap) managerWrap.style.display = '';
+                        setLinked(true);
+                    })
+                    .catch(function () { setLinked(false); clearManual(); });
             });
         })();
     </script>

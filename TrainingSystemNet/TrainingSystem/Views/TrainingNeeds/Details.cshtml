@@ -40,6 +40,19 @@
                     <dt class="col-sm-3 text-muted">الدرجة</dt><dd class="col-sm-3">@(Model.Grade ?? "—")</dd>
 
                     <dt class="col-sm-3 text-muted">الدائرة</dt><dd class="col-sm-3">@Model.Department</dd>
+                    <dt class="col-sm-3 text-muted">المدير المباشر</dt><dd class="col-sm-3">@(ViewBag.ManagerName as string ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">الموظف مرتبط بالنظام</dt>
+                    <dd class="col-sm-3">
+                        @if (Model.Employee != null)
+                        {
+                            <span class="badge bg-success-subtle text-success"><i class="bi bi-link-45deg"></i> مرتبط</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary">إدخال يدوي</span>
+                        }
+                    </dd>
                     <dt class="col-sm-3 text-muted">التصنيف</dt><dd class="col-sm-3">@(Model.Category ?? "—")</dd>
 
                     <dt class="col-sm-3 text-muted">المهارة</dt><dd class="col-sm-9">@Model.SkillName</dd>

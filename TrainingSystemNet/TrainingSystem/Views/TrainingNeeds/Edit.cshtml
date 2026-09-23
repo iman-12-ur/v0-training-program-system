@@ -23,13 +23,20 @@
 
             <div class="row g-3">
                 <div class="col-md-6">
+                    <label class="form-label">اختر موظفاً من النظام (اختياري)</label>
+                    <select asp-for="EmployeeUserId" class="form-select" id="employeeSelect" asp-items="Model.Employees">
+                        <option value="">— إدخال يدوي —</option>
+                    </select>
+                    <small class="text-muted">عند الاختيار تُملأ بيانات الموظف تلقائياً عبر الربط.</small>
+                </div>
+                <div class="col-md-6">
                     <label class="form-label">اسم الموظف <span class="text-danger">*</span></label>
-                    <input asp-for="EmployeeName" class="form-control" />
+                    <input asp-for="EmployeeName" class="form-control" id="employeeName" />
                     <span asp-validation-for="EmployeeName" class="text-danger"></span>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">الرقم الوظيفي</label>
-                    <input asp-for="EmployeeNumber" class="form-control" />
+                    <input asp-for="EmployeeNumber" class="form-control" id="employeeNumber" />
                 </div>
 
                 <div class="col-md-6">
@@ -40,11 +47,16 @@
 
                 <div class="col-md-6">
                     <label class="form-label">المسمى الوظيفي</label>
-                    <input asp-for="JobTitle" class="form-control" />
+                    <input asp-for="JobTitle" class="form-control" id="jobTitle" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">الدرجة الوظيفية</label>
-                    <input asp-for="Grade" class="form-control" />
+                    <input asp-for="Grade" class="form-control" id="grade" />
+                </div>
+                <div class="col-md-6" id="managerWrap" style="display:none;">
+                    <label class="form-label">المدير المباشر</label>
+                    <input type="text" class="form-control" id="managerName" readonly />
+                    <small class="text-muted">يُعرض من بيانات الموظف (عبر الربط).</small>
                 </div>
 
                 @if (Model.Skills.Any())
@@ -200,4 +212,56 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        // تعبئة بيانات الموظف تلقائياً عبر الربط (FK) عند الاختيار — دون تكرار الإدخال
+        (function () {
+            var select = document.getElementById('employeeSelect');
+            if (!select) return;
+
+            var infoUrl = '@Url.Action("EmployeeInfo", "TrainingNeeds")';
+            var fName = document.getElementById('employeeName');
+            var fNumber = document.getElementById('employeeNumber');
+            var fJob = document.getElementById('jobTitle');
+            var fGrade = document.getElementById('grade');
+            var fManager = document.getElementById('managerName');
+            var managerWrap = document.getElementById('managerWrap');
+            var linked = [fName, fNumber, fJob, fGrade].filter(Boolean);
+
+            function setLinked(readonly) {
+                linked.forEach(function (el) {
+                    el.readOnly = readonly;
+                    el.classList.toggle('bg-light', readonly);
+                });
+            }
+
+            function load(id, silent) {
+                if (!id) {
+                    setLinked(false);
+                    if (fManager) fManager.value = '';
+                    if (managerWrap) managerWrap.style.display = 'none';
+                    return;
+                }
+                fetch(infoUrl + '?id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        if (!d || !d.ok) { setLinked(false); return; }
+                        // عند التحميل الأولي لا نطمس القيم إلا لعرض المدير وقفل الحقول
+                        if (!silent) {
+                            if (fName) fName.value = d.fullName || '';
+                            if (fNumber) fNumber.value = d.employeeNumber || '';
+                            if (fJob) fJob.value = d.jobTitle || '';
+                            if (fGrade) fGrade.value = d.grade || '';
+                        }
+                        if (fManager) fManager.value = d.managerName || '—';
+                        if (managerWrap) managerWrap.style.display = '';
+                        setLinked(true);
+                    })
+                    .catch(function () { setLinked(false); });
+            }
+
+            select.addEventListener('change', function () { load(this.value, false); });
+            // تحميل أولي إن كان الاحتياج مربوطاً بموظف مسبقاً
+            if (select.value) load(select.value, true);
+        })();
+    </script>
 }

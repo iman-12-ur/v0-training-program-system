@@ -136,8 +136,8 @@ namespace TrainingSystem.Controllers
                     model.EmployeeName = employee.FullName;
                     model.EmployeeNumber = employee.EmployeeNumber ?? employee.UserName;
                     model.Department = employee.Department;
-                    if (string.IsNullOrWhiteSpace(model.JobTitle)) model.JobTitle = employee.JobTitle;
-                    if (string.IsNullOrWhiteSpace(model.Grade)) model.Grade = employee.Grade;
+                    model.JobTitle = employee.JobTitle;
+                    model.Grade = employee.Grade;
                 }
             }
 
@@ -333,6 +333,24 @@ namespace TrainingSystem.Controllers
                 }
             }
 
+            // إن اختير موظف من النظام، تُشتقّ بياناته من الخادم (مصدر موثوق — لا تُكرَّر يدوياً)
+            if (!string.IsNullOrWhiteSpace(model.EmployeeUserId))
+            {
+                var employee = await _userManager.FindByIdAsync(model.EmployeeUserId);
+                if (employee != null)
+                {
+                    model.EmployeeName = employee.FullName;
+                    model.EmployeeNumber = employee.EmployeeNumber ?? employee.UserName;
+                    model.JobTitle = employee.JobTitle;
+                    model.Grade = employee.Grade;
+                    need.EmployeeUserId = employee.Id;
+                }
+            }
+            else
+            {
+                need.EmployeeUserId = null;
+            }
+
             // الدائرة لا تتغيّر عبر التعديل (تبقى كما هي لضمان بقاء السجل ضمن نطاق الدائرة)
             need.EmployeeName = model.EmployeeName!.Trim();
             need.EmployeeNumber = model.EmployeeNumber?.Trim();
@@ -399,12 +417,23 @@ namespace TrainingSystem.Controllers
                 .Include(n => n.TrainingBatch)
                     .ThenInclude(b => b!.TrainingProgram)
                 .Include(n => n.ImpactAssessments)
+                .Include(n => n.Employee)
                 .FirstOrDefaultAsync(n => n.Id == id);
             if (need == null) return NotFound();
             if (!await CanAccessAsync(need))
             {
                 TempData["Error"] = "لا تملك صلاحية الوصول لهذا السجل";
                 return RedirectToAction(nameof(Index));
+            }
+
+            // اسم المدير المباشر للموظف المربوط (عبر FK — دون تكرار)
+            if (!string.IsNullOrWhiteSpace(need.Employee?.ManagerUserId))
+            {
+                ViewBag.ManagerName = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == need.Employee.ManagerUserId)
+                    .Select(u => u.FullName)
+                    .FirstOrDefaultAsync();
             }
             return View(need);
         }
@@ -1310,6 +1339,49 @@ namespace TrainingSystem.Controllers
 
             // الدفعة تابعة لبرنامج — اجعل برنامج الاحتياج هو برنامج الدفعة
             need.LinkedTrainingProgramId = batch.TrainingProgramId;
+        }
+
+        // بيانات الموظف للعرض التلقائي في نموذج الاحتياج (تُقرأ عبر FK — لا تُكرَّر)
+        [HttpGet]
+        public async Task<IActionResult> EmployeeInfo(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return Json(new { ok = false });
+
+            var employee = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == id && u.IsActive);
+            if (employee == null)
+                return Json(new { ok = false });
+
+            // المشرف يرى موظفي دائرته فقط
+            if (!IsPrivileged)
+            {
+                var actor = await _userManager.GetUserAsync(User);
+                if (employee.Department != actor?.Department)
+                    return Json(new { ok = false });
+            }
+
+            string? managerName = null;
+            if (!string.IsNullOrWhiteSpace(employee.ManagerUserId))
+            {
+                managerName = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == employee.ManagerUserId)
+                    .Select(u => u.FullName)
+                    .FirstOrDefaultAsync();
+            }
+
+            return Json(new
+            {
+                ok = true,
+                employeeNumber = employee.EmployeeNumber ?? employee.UserName,
+                fullName = employee.FullName,
+                department = employee.Department,
+                jobTitle = employee.JobTitle,
+                grade = employee.Grade,
+                managerName
+            });
         }
 
         private async Task PopulateFormOptionsAsync(TrainingNeedFormViewModel vm)
