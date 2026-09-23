@@ -89,6 +89,30 @@ namespace TrainingSystem.Models
         };
     }
 
+    // نمط تنفيذ التدريب
+    public enum TrainingMode
+    {
+        [Display(Name = "حضوري")]
+        InPerson = 1,
+
+        [Display(Name = "عن بعد")]
+        Remote = 2,
+
+        [Display(Name = "مدمج")]
+        Blended = 3
+    }
+
+    public static class TrainingModeExtensions
+    {
+        public static string DisplayName(this TrainingMode mode) => mode switch
+        {
+            TrainingMode.InPerson => "حضوري",
+            TrainingMode.Remote => "عن بعد",
+            TrainingMode.Blended => "مدمج",
+            _ => mode.ToString()
+        };
+    }
+
     // سجل احتياج تدريبي لموظف في مهارة محددة
     public class TrainingNeed
     {
@@ -205,10 +229,24 @@ namespace TrainingSystem.Models
         [MaxLength(200)]
         public string? ProposedTrainingProgram { get; set; }
 
+        // وصف مختصر للبرنامج المقترح
+        [Display(Name = "وصف مختصر للبرنامج")]
+        [MaxLength(500)]
+        public string? ProposedProgramDescription { get; set; }
+
         // مزوّد التدريب المفضّل
         [Display(Name = "مزوّد التدريب المفضّل")]
         [MaxLength(200)]
         public string? PreferredTrainingProvider { get; set; }
+
+        // نمط التدريب المقترح (حضوري / عن بعد / مدمج)
+        [Display(Name = "نمط التدريب")]
+        public TrainingMode? TrainingMode { get; set; }
+
+        // المدة المقترحة للبرنامج (نصياً: مثال "5 أيام")
+        [Display(Name = "المدة المقترحة")]
+        [MaxLength(100)]
+        public string? ProposedDuration { get; set; }
 
         [Display(Name = "الفترة الزمنية المقترحة")]
         [MaxLength(100)]
@@ -357,7 +395,7 @@ namespace TrainingSystem.Models
 
         public static string GetStatusDisplayName(TrainingNeedStatus s) => s switch
         {
-            TrainingNeedStatus.InProgress => "قيد المعالجة",
+            TrainingNeedStatus.InProgress => "��يد المعالجة",
             TrainingNeedStatus.Completed => "مكتمل",
             _ => "جديد"
         };

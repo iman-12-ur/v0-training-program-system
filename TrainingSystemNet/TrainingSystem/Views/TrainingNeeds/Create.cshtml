@@ -161,27 +161,47 @@
                     <label class="form-label">وصف الاحتياج</label>
                     <textarea asp-for="NeedDescription" class="form-control" rows="2" placeholder="وصف تفصيلي للاحتياج التدريبي"></textarea>
                 </div>
+                <div class="col-12"><hr class="my-1" /><div class="fw-semibold text-muted small">البرنامج التدريبي المقترح</div></div>
+
+                @if (Model.Programs.Any())
+                {
+                    <div class="col-12">
+                        <label class="form-label">هل البرنامج موجود مسبقاً في النظام؟</label>
+                        <select asp-for="LinkedTrainingProgramId" class="form-select" id="linkedProgram" asp-items="Model.Programs">
+                            <option value="">— لا، برنامج مقترح جديد (إدخال يدوي) —</option>
+                        </select>
+                        <div class="form-text">عند اختيار برنامج قائم يُربط عبر Foreign Key ولا يُنشأ برنامج جديد.</div>
+                    </div>
+                }
                 <div class="col-md-6">
-                    <label class="form-label">البرنامج التدريبي المقترح</label>
+                    <label class="form-label">اسم البرنامج المقترح</label>
                     <input asp-for="ProposedTrainingProgram" class="form-control" placeholder="اسم البرنامج المقترح (نصياً)" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">مزوّد التدريب المفضّل</label>
+                    <label class="form-label">الجهة التدريبية المفضّلة</label>
                     <input asp-for="PreferredTrainingProvider" class="form-control" placeholder="جهة/مركز التدريب المفضّل" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">وصف مختصر للبرنامج</label>
+                    <textarea asp-for="ProposedProgramDescription" class="form-control" rows="2" placeholder="نبذة موجزة عن محتوى البرنامج"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">نمط التدريب</label>
+                    <select asp-for="TrainingMode" class="form-select" asp-items="Html.GetEnumSelectList<TrainingSystem.Models.TrainingMode>()">
+                        <option value="">— غير محدد —</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">المدة المقترحة</label>
+                    <input asp-for="ProposedDuration" class="form-control" placeholder="مثال: 5 أيام / 20 ساعة" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">تاريخ مقترح</label>
+                    <input asp-for="PlannedDate" type="date" class="form-control" />
                 </div>
 
                 <div class="col-12"><hr class="my-1" /><div class="fw-semibold text-muted small">التكلفة والتنفيذ</div></div>
 
-                @if (Model.Programs.Any())
-                {
-                    <div class="col-md-6">
-                        <label class="form-label">ربط ببرنامج تدريبي موجود</label>
-                        <select asp-for="LinkedTrainingProgramId" class="form-select" asp-items="Model.Programs">
-                            <option value="">— بدون ربط —</option>
-                        </select>
-                        <div class="form-text">يُربط ببرنامج قائم؛ لا يُنشأ برنامج جديد.</div>
-                    </div>
-                }
                 @if (Model.Batches.Any())
                 {
                     <div class="col-md-6">
@@ -205,15 +225,11 @@
                     <input asp-for="ActualCost" type="number" step="0.01" min="0" class="form-control" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">التاريخ المخطّط</label>
-                    <input asp-for="PlannedDate" type="date" class="form-control" />
-                </div>
-                <div class="col-md-6">
                     <label class="form-label">تاريخ الإنجاز</label>
                     <input asp-for="CompletionDate" type="date" class="form-control" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">عدد المشاركين</label>
+                    <label class="form-label">عدد المشاركين المقترح</label>
                     <input asp-for="ParticipantsCount" type="number" min="1" class="form-control" />
                 </div>
                 <div class="col-md-6">

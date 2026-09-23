@@ -202,7 +202,10 @@ namespace TrainingSystem.Controllers
                 NeedDescription = model.NeedDescription?.Trim(),
                 GapType = model.GapType,
                 ProposedTrainingProgram = model.ProposedTrainingProgram?.Trim(),
+                ProposedProgramDescription = model.ProposedProgramDescription?.Trim(),
                 PreferredTrainingProvider = model.PreferredTrainingProvider?.Trim(),
+                TrainingMode = model.TrainingMode,
+                ProposedDuration = model.ProposedDuration?.Trim(),
                 SuggestedTimeframe = model.SuggestedTimeframe?.Trim(),
                 RequiredLevel = model.RequiredLevel,
                 CurrentLevel = model.CurrentLevel,
@@ -288,7 +291,10 @@ namespace TrainingSystem.Controllers
                 NeedDescription = need.NeedDescription,
                 GapType = need.GapType,
                 ProposedTrainingProgram = need.ProposedTrainingProgram,
+                ProposedProgramDescription = need.ProposedProgramDescription,
                 PreferredTrainingProvider = need.PreferredTrainingProvider,
+                TrainingMode = need.TrainingMode,
+                ProposedDuration = need.ProposedDuration,
                 SuggestedTimeframe = need.SuggestedTimeframe,
                 RequiredLevel = need.RequiredLevel,
                 CurrentLevel = need.CurrentLevel,
@@ -386,7 +392,10 @@ namespace TrainingSystem.Controllers
             need.NeedDescription = model.NeedDescription?.Trim();
             need.GapType = model.GapType;
             need.ProposedTrainingProgram = model.ProposedTrainingProgram?.Trim();
+            need.ProposedProgramDescription = model.ProposedProgramDescription?.Trim();
             need.PreferredTrainingProvider = model.PreferredTrainingProvider?.Trim();
+            need.TrainingMode = model.TrainingMode;
+            need.ProposedDuration = model.ProposedDuration?.Trim();
             need.SuggestedTimeframe = model.SuggestedTimeframe?.Trim();
             need.RequiredLevel = model.RequiredLevel;
             need.CurrentLevel = model.CurrentLevel;
@@ -1707,7 +1716,10 @@ namespace TrainingSystem.Controllers
         public string? NeedDescription { get; set; }
         public SkillGapType? GapType { get; set; }
         public string? ProposedTrainingProgram { get; set; }
+        public string? ProposedProgramDescription { get; set; }
         public string? PreferredTrainingProvider { get; set; }
+        public TrainingMode? TrainingMode { get; set; }
+        public string? ProposedDuration { get; set; }
 
         // خيارات العرض
         public List<SelectListItem> Employees { get; set; } = new();

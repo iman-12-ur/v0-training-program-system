@@ -62,7 +62,12 @@
                     <dt class="col-sm-3 text-muted">الفترة المقترحة</dt><dd class="col-sm-3">@(Model.SuggestedTimeframe ?? "—")</dd>
 
                     <dt class="col-sm-3 text-muted">البرنامج المقترح</dt><dd class="col-sm-3">@(Model.ProposedTrainingProgram ?? "—")</dd>
-                    <dt class="col-sm-3 text-muted">المزوّد المفضّل</dt><dd class="col-sm-3">@(Model.PreferredTrainingProvider ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">الجهة التدريبية المفضّلة</dt><dd class="col-sm-3">@(Model.PreferredTrainingProvider ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">وصف البرنامج</dt><dd class="col-sm-9">@(Model.ProposedProgramDescription ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">نمط التدريب</dt><dd class="col-sm-3">@(Model.TrainingMode?.DisplayName() ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">المدة المقترحة</dt><dd class="col-sm-3">@(Model.ProposedDuration ?? "—")</dd>
 
                     <dt class="col-sm-3 text-muted">تاريخ الإنشاء</dt><dd class="col-sm-3">@Model.CreatedAt.ToString("yyyy/MM/dd")</dd>
                     <dt class="col-sm-3 text-muted">تاريخ الاعتماد</dt><dd class="col-sm-3">@(Model.ApprovalDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
