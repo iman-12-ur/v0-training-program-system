@@ -172,7 +172,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خا���������������� دائرته
+            // المشرف لا يضيف احتياجاً لموظف خا������������������ دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -932,31 +932,65 @@ namespace TrainingSystem.Controllers
 
         // ==================== لوحة مؤشرات TNA ====================
 
-        public async Task<IActionResult> Dashboard(string? department)
+        public async Task<IActionResult> Dashboard(int? year, string? department, string? jobTitle,
+            string? category, int? priority, int? status, int? gapType)
         {
             var actor = await _userManager.GetUserAsync(User);
             var myDept = actor?.Department;
 
             var query = _context.TrainingNeeds.AsQueryable();
+
+            // نطاق الوصول: غير المخوّل يرى دائرته فقط
             if (!IsPrivileged)
                 query = query.Where(n => n.Department == myDept);
             else if (!string.IsNullOrWhiteSpace(department))
                 query = query.Where(n => n.Department == department);
+
+            // الفلاتر
+            if (year.HasValue)
+                query = query.Where(n => n.CreatedAt.Year == year.Value);
+            if (!string.IsNullOrWhiteSpace(jobTitle))
+                query = query.Where(n => n.JobTitle == jobTitle);
+            if (!string.IsNullOrWhiteSpace(category))
+                query = query.Where(n => n.Category == category);
+            if (priority.HasValue)
+                query = query.Where(n => (int)n.Priority == priority.Value);
+            if (status.HasValue)
+                query = query.Where(n => (int)n.ApprovalStatus == status.Value);
+            if (gapType.HasValue)
+                query = query.Where(n => n.GapType != null && (int)n.GapType == gapType.Value);
 
             var needs = await query.ToListAsync();
 
             var totalRequired = needs.Sum(n => n.RequiredLevel);
             var totalCurrent = needs.Sum(n => Math.Min(n.CurrentLevel, n.RequiredLevel));
 
+            // الميزانية المركزية للسنة المالية الحالية (للمؤشر % المستخدم)
+            var budget = await GetOrmCurrentBudgetAsync();
+            var estimatedTotal = needs.Sum(n => n.EstimatedCost > 0 ? n.EstimatedCost : n.PlannedCost);
+            var budgetUsed = budget != null ? budget.CommittedBudget + budget.ActualSpending : 0m;
+            var budgetAllocated = budget?.AllocatedBudget ?? 0m;
+
             var vm = new TnaDashboardViewModel
             {
                 TotalNeeds = needs.Count,
                 EmployeeCount = needs.Select(n => (n.EmployeeNumber ?? "") + "|" + n.EmployeeName).Distinct().Count(),
                 HighPriorityCount = needs.Count(n => n.Priority == TrainingNeedPriority.High || n.Priority == TrainingNeedPriority.Critical),
+                CriticalCount = needs.Count(n => n.Priority == TrainingNeedPriority.Critical),
                 PendingApprovals = needs.Count(n => n.ApprovalStatus == TrainingNeedApprovalStatus.SubmittedToManager ||
-                                                    n.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved),
+                                                    n.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved ||
+                                                    n.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview),
                 ApprovedCount = needs.Count(n => n.ApprovalStatus == TrainingNeedApprovalStatus.HRApproved),
                 Readiness = totalRequired > 0 ? (int)Math.Round(100.0 * totalCurrent / totalRequired) : 0,
+                EstimatedTotalCost = estimatedTotal,
+                BudgetAllocated = budgetAllocated,
+                BudgetUsed = budgetUsed,
+                BudgetUtilization = budgetAllocated > 0 ? (int)Math.Round(100m * budgetUsed / budgetAllocated) : 0,
+                ComplianceCount = needs.Count(n => n.IsCompliance ||
+                                                   n.TrainingReason == TrainingReason.MandatoryRequirement ||
+                                                   (n.GapType != null && n.GapType == SkillGapType.Compliance)),
+                PerformanceLinkedCount = needs.Count(n => n.TrainingReason == TrainingReason.PerformanceWeakness ||
+                                                          n.TrainingReason == TrainingReason.GoalFailure),
                 GapByDepartment = needs
                     .GroupBy(n => n.Department)
                     .Select(g => new DepartmentGap
@@ -966,6 +1000,10 @@ namespace TrainingSystem.Controllers
                     })
                     .OrderByDescending(d => d.AverageGap)
                     .ToList(),
+                DepartmentDistribution = needs
+                    .GroupBy(n => n.Department)
+                    .OrderByDescending(g => g.Count())
+                    .ToDictionary(g => g.Key, g => g.Count()),
                 PriorityDistribution = new Dictionary<string, int>
                 {
                     ["حرجة جداً"] = needs.Count(n => n.Priority == TrainingNeedPriority.Critical),
@@ -976,16 +1014,55 @@ namespace TrainingSystem.Controllers
                 CategoryDistribution = needs
                     .Where(n => !string.IsNullOrWhiteSpace(n.Category))
                     .GroupBy(n => n.Category!)
+                    .OrderByDescending(g => g.Count())
+                    .ToDictionary(g => g.Key, g => g.Count()),
+                GapTypeDistribution = needs
+                    .Where(n => n.GapType != null)
+                    .GroupBy(n => n.GapType!.Value.DisplayName())
                     .ToDictionary(g => g.Key, g => g.Count()),
                 ApprovalDistribution = needs
                     .GroupBy(n => TrainingNeed.GetApprovalStatusDisplayName(n.ApprovalStatus))
                     .ToDictionary(g => g.Key, g => g.Count()),
+                TopSkills = needs
+                    .GroupBy(n => n.SkillName)
+                    .Select(g => new SkillCount { SkillName = g.Key, Count = g.Count() })
+                    .OrderByDescending(s => s.Count)
+                    .Take(10)
+                    .ToList(),
+                TopSkillGaps = needs
+                    .GroupBy(n => n.SkillName)
+                    .Select(g => new SkillGap
+                    {
+                        SkillName = g.Key,
+                        AverageGap = Math.Round(g.Average(x => (double)Math.Max(0, x.RequiredLevel - x.CurrentLevel)), 1),
+                        Count = g.Count()
+                    })
+                    .OrderByDescending(s => s.AverageGap)
+                    .ThenByDescending(s => s.Count)
+                    .Take(10)
+                    .ToList(),
                 RecentNeeds = needs.OrderByDescending(n => n.CreatedAt).Take(8).ToList(),
                 IsPrivileged = IsPrivileged
             };
 
+            // خيارات الفلاتر (على كامل نطاق وصول المستخدم)
+            var scope = _context.TrainingNeeds.AsQueryable();
+            if (!IsPrivileged) scope = scope.Where(n => n.Department == myDept);
+
             ViewBag.Departments = await GetDepartmentsAsync();
+            ViewBag.Years = await scope.Select(n => n.CreatedAt.Year).Distinct().OrderByDescending(y => y).ToListAsync();
+            ViewBag.JobTitles = await scope.Where(n => n.JobTitle != null && n.JobTitle != "")
+                .Select(n => n.JobTitle!).Distinct().OrderBy(j => j).ToListAsync();
+            ViewBag.Categories = await scope.Where(n => n.Category != null && n.Category != "")
+                .Select(n => n.Category!).Distinct().OrderBy(c => c).ToListAsync();
+
             ViewBag.CurrentDepartment = IsPrivileged ? department : myDept;
+            ViewBag.FilterYear = year;
+            ViewBag.FilterJobTitle = jobTitle;
+            ViewBag.FilterCategory = category;
+            ViewBag.FilterPriority = priority;
+            ViewBag.FilterStatus = status;
+            ViewBag.FilterGapType = gapType;
             return View(vm);
         }
 
@@ -1536,7 +1613,7 @@ namespace TrainingSystem.Controllers
         private static string CurrentFinancialYear()
         {
             var y = DateTime.Now.Year;
-            // السنة المالية تبدأ يناير — يمكن تعديلها لاحقاً لتبدأ من ��هر آخر
+            // السنة المالية تبدأ يناير — ��مكن تعديلها لاحقاً لتبدأ من ��هر آخر
             return $"{y}/{y + 1}";
         }
 
@@ -2039,17 +2116,44 @@ namespace TrainingSystem.Controllers
     // لوحة مؤشرات TNA
     public class TnaDashboardViewModel
     {
+        // بطاقات المؤشرات
         public int TotalNeeds { get; set; }
         public int EmployeeCount { get; set; }
         public int HighPriorityCount { get; set; }
         public int PendingApprovals { get; set; }
         public int ApprovedCount { get; set; }
+        public int CriticalCount { get; set; }
         public int Readiness { get; set; }
+        public decimal EstimatedTotalCost { get; set; }
+        public decimal BudgetAllocated { get; set; }
+        public decimal BudgetUsed { get; set; }
+        public int BudgetUtilization { get; set; }
+        public int ComplianceCount { get; set; }
+        public int PerformanceLinkedCount { get; set; }
+
+        // توزيعات (للرسوم البيانية)
         public List<DepartmentGap> GapByDepartment { get; set; } = new();
+        public Dictionary<string, int> DepartmentDistribution { get; set; } = new();
         public Dictionary<string, int> PriorityDistribution { get; set; } = new();
         public Dictionary<string, int> CategoryDistribution { get; set; } = new();
+        public Dictionary<string, int> GapTypeDistribution { get; set; } = new();
         public Dictionary<string, int> ApprovalDistribution { get; set; } = new();
+        public List<SkillCount> TopSkills { get; set; } = new();
+        public List<SkillGap> TopSkillGaps { get; set; } = new();
         public List<TrainingNeed> RecentNeeds { get; set; } = new();
         public bool IsPrivileged { get; set; }
+    }
+
+    public class SkillCount
+    {
+        public string SkillName { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+
+    public class SkillGap
+    {
+        public string SkillName { get; set; } = string.Empty;
+        public double AverageGap { get; set; }
+        public int Count { get; set; }
     }
 }

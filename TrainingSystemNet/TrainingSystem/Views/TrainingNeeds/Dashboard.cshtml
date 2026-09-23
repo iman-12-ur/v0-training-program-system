@@ -1,173 +1,248 @@
+@using TrainingSystem.Models
 @model TrainingSystem.Controllers.TnaDashboardViewModel
 @{
     ViewData["Title"] = "لوحة مؤشرات الاحتياجات التدريبية";
     var departments = ViewBag.Departments as List<string> ?? new List<string>();
+    var years = ViewBag.Years as List<int> ?? new List<int>();
+    var jobTitles = ViewBag.JobTitles as List<string> ?? new List<string>();
+    var categories = ViewBag.Categories as List<string> ?? new List<string>();
     var currentDept = ViewBag.CurrentDepartment as string;
-    int maxGap = Model.GapByDepartment.Any() ? (int)Math.Ceiling(Model.GapByDepartment.Max(d => d.AverageGap)) : 5;
-    if (maxGap < 1) maxGap = 1;
+    var fYear = ViewBag.FilterYear as int?;
+    var fJob = ViewBag.FilterJobTitle as string;
+    var fCat = ViewBag.FilterCategory as string;
+    var fPriority = ViewBag.FilterPriority as int?;
+    var fStatus = ViewBag.FilterStatus as int?;
+    var fGapType = ViewBag.FilterGapType as int?;
+
+    // بيانات الرسوم
+    var deptData = Model.DepartmentDistribution;
+    var catData = Model.CategoryDistribution;
+    var prData = Model.PriorityDistribution.Where(x => x.Value > 0).ToDictionary(x => x.Key, x => x.Value);
+    var gapTypeData = Model.GapTypeDistribution;
+    var topSkills = Model.TopSkills;
+    var topGaps = Model.TopSkillGaps;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
         <h4 class="fw-bold mb-1">لوحة مؤشرات الاحتياجات التدريبية</h4>
-        <p class="text-muted mb-0">نظرة عامة على فجوات المهارات وحالة الاعتمادات</p>
+        <p class="text-muted mb-0">نظرة تحليلية شاملة على وحدة تحليل الاحتياج التدريبي (TNA)</p>
     </div>
-    <div class="d-flex gap-2">
-        @if (Model.IsPrivileged)
-        {
-            <form method="get" class="d-flex gap-2">
-                <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">كل الدوائر</option>
-                    @foreach (var d in departments)
+    <a asp-action="Reports" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-file-earmark-bar-graph me-1"></i> التقارير
+    </a>
+</div>
+
+<!-- الفلاتر -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">السنة</label>
+                <select name="year" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var y in years)
                     {
-                        <option value="@d" selected="@(d == currentDept)">@d</option>
+                        <option value="@y" selected="@(fYear == y)">@y</option>
                     }
                 </select>
-            </form>
-        }
-        <a asp-action="Reports" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-file-earmark-bar-graph me-1"></i> التقارير
-        </a>
+            </div>
+            @if (Model.IsPrivileged)
+            {
+                <div class="col-6 col-md-3 col-lg-2">
+                    <label class="form-label small text-muted mb-1">الدائرة</label>
+                    <select name="department" class="form-select form-select-sm">
+                        <option value="">كل الدوائر</option>
+                        @foreach (var d in departments)
+                        {
+                            <option value="@d" selected="@(d == currentDept)">@d</option>
+                        }
+                    </select>
+                </div>
+            }
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">المسمى الوظيفي</label>
+                <select name="jobTitle" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var j in jobTitles)
+                    {
+                        <option value="@j" selected="@(j == fJob)">@j</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">نوع المهارة</label>
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var c in categories)
+                    {
+                        <option value="@c" selected="@(c == fCat)">@c</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">مستوى الأولوية</label>
+                <select name="priority" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var p in Enum.GetValues<TrainingNeedPriority>())
+                    {
+                        <option value="@((int)p)" selected="@(fPriority == (int)p)">@TrainingNeed.GetPriorityDisplayName(p)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">حالة الطلب</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var s in Enum.GetValues<TrainingNeedApprovalStatus>())
+                    {
+                        <option value="@((int)s)" selected="@(fStatus == (int)s)">@TrainingNeed.GetApprovalStatusDisplayName(s)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">نوع الفجوة</label>
+                <select name="gapType" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var g in Enum.GetValues<SkillGapType>())
+                    {
+                        <option value="@((int)g)" selected="@(fGapType == (int)g)">@g.DisplayName()</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-lg-4 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-funnel me-1"></i> تطبيق الفلاتر
+                </button>
+                <a asp-action="Dashboard" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> إعادة تعيين
+                </a>
+            </div>
+        </form>
     </div>
 </div>
 
+<!-- بطاقات المؤشرات -->
 <div class="row g-3 mb-4">
-    <div class="col-md-6 col-lg-3">
-        <div class="card h-100"><div class="card-body">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="text-muted small">إجمالي الاحتياجات</div>
-                    <div class="fs-3 fw-bold">@Model.TotalNeeds</div>
+    @{
+        var kpis = new (string Title, string Value, string Icon, string Color)[]
+        {
+            ("إجمالي الاحتياجات", Model.TotalNeeds.ToString("N0"), "bi-clipboard-data", "primary"),
+            ("الاحتياجات المعتمدة", Model.ApprovedCount.ToString("N0"), "bi-patch-check", "success"),
+            ("قيد المراجعة", Model.PendingApprovals.ToString("N0"), "bi-hourglass-split", "warning"),
+            ("الاحتياجات الحرجة", Model.CriticalCount.ToString("N0"), "bi-exclamation-octagon", "danger"),
+            ("إجمالي التكلفة التقديرية", Model.EstimatedTotalCost.ToString("N0"), "bi-cash-stack", "info"),
+            ("الميزانية المستخدمة", Model.BudgetUtilization + "%", "bi-pie-chart", "dark"),
+        };
+    }
+    @foreach (var k in kpis)
+    {
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <span class="badge bg-@(k.Color)-subtle text-@k.Color fs-6 mb-2"><i class="bi @k.Icon"></i></span>
+                    <div class="fs-4 fw-bold">@k.Value</div>
+                    <div class="text-muted small">@k.Title</div>
                 </div>
-                <span class="badge bg-primary-subtle text-primary fs-5"><i class="bi bi-clipboard-data"></i></span>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- بطاقات ثانوية -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+                <div class="text-muted small">الاحتياجات المرتبطة بالأداء</div>
+                <div class="fs-3 fw-bold text-primary">@Model.PerformanceLinkedCount</div>
+            </div>
+            <i class="bi bi-graph-up-arrow fs-1 text-primary opacity-25"></i>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+                <div class="text-muted small">الاحتياجات الإلزامية</div>
+                <div class="fs-3 fw-bold text-danger">@Model.ComplianceCount</div>
+            </div>
+            <i class="bi bi-shield-check fs-1 text-danger opacity-25"></i>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between small mb-1">
+                <span class="text-muted">نسبة الجاهزية العامة</span>
+                <span class="fw-bold text-success">@Model.Readiness%</span>
+            </div>
+            <div class="progress mb-3" style="height: 10px;">
+                <div class="progress-bar bg-success" style="width: @Model.Readiness%"></div>
+            </div>
+            <div class="d-flex justify-content-between small mb-1">
+                <span class="text-muted">الميزانية: @Model.BudgetUsed.ToString("N0") / @Model.BudgetAllocated.ToString("N0")</span>
+                <span class="fw-bold">@Model.BudgetUtilization%</span>
+            </div>
+            <div class="progress" style="height: 10px;">
+                <div class="progress-bar @(Model.BudgetUtilization >= 90 ? "bg-danger" : Model.BudgetUtilization >= 70 ? "bg-warning" : "bg-info")"
+                     style="width: @(Math.Min(Model.BudgetUtilization, 100))%"></div>
             </div>
         </div></div>
     </div>
-    <div class="col-md-6 col-lg-3">
+</div>
+
+<!-- الرسوم البيانية -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
         <div class="card h-100"><div class="card-body">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="text-muted small">عدد الموظفين</div>
-                    <div class="fs-3 fw-bold">@Model.EmployeeCount</div>
-                </div>
-                <span class="badge bg-info-subtle text-info fs-5"><i class="bi bi-people"></i></span>
-            </div>
+            <h6 class="fw-bold mb-3">الاحتياجات حسب الإدارة</h6>
+            @if (!deptData.Any()) { <p class="text-muted mb-0">لا توجد بيانات.</p> }
+            else { <canvas id="chartDept" height="140"></canvas> }
         </div></div>
     </div>
-    <div class="col-md-6 col-lg-3">
+    <div class="col-lg-5">
         <div class="card h-100"><div class="card-body">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="text-muted small">أولوية عالية</div>
-                    <div class="fs-3 fw-bold text-danger">@Model.HighPriorityCount</div>
-                </div>
-                <span class="badge bg-danger-subtle text-danger fs-5"><i class="bi bi-exclamation-triangle"></i></span>
-            </div>
-        </div></div>
-    </div>
-    <div class="col-md-6 col-lg-3">
-        <div class="card h-100"><div class="card-body">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="text-muted small">بانتظار الاعتماد</div>
-                    <div class="fs-3 fw-bold text-warning">@Model.PendingApprovals</div>
-                </div>
-                <span class="badge bg-warning-subtle text-warning fs-5"><i class="bi bi-hourglass-split"></i></span>
-            </div>
+            <h6 class="fw-bold mb-3">الاحتياجات حسب نوع المهارة</h6>
+            @if (!catData.Any()) { <p class="text-muted mb-0">لا توجد تصنيفات مسجّلة.</p> }
+            else { <canvas id="chartCat" height="200"></canvas> }
         </div></div>
     </div>
 </div>
 
 <div class="row g-3 mb-4">
     <div class="col-lg-4">
-        <div class="card h-100"><div class="card-body text-center">
-            <div class="text-muted small mb-2">نسبة الجاهزية العامة</div>
-            <div class="position-relative d-inline-block my-2">
-                <div class="fs-1 fw-bold text-primary">@Model.Readiness%</div>
-            </div>
-            <div class="progress" style="height: 10px;">
-                <div class="progress-bar bg-primary" role="progressbar" style="width: @Model.Readiness%"
-                     aria-valuenow="@Model.Readiness" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-            <div class="mt-3 d-flex justify-content-around">
-                <div><div class="fw-bold text-success">@Model.ApprovedCount</div><div class="small text-muted">معتمد</div></div>
-                <div><div class="fw-bold text-warning">@Model.PendingApprovals</div><div class="small text-muted">معلّق</div></div>
-            </div>
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">الاحتياجات حسب الأولوية</h6>
+            @if (!prData.Any()) { <p class="text-muted mb-0">لا توجد بيانات.</p> }
+            else { <canvas id="chartPriority" height="220"></canvas> }
         </div></div>
     </div>
-
-    <div class="col-lg-8">
+    <div class="col-lg-4">
         <div class="card h-100"><div class="card-body">
-            <h6 class="fw-bold mb-3">متوسط الفجوة حسب الدائرة</h6>
-            @if (!Model.GapByDepartment.Any())
-            {
-                <p class="text-muted mb-0">لا توجد بيانات.</p>
-            }
-            else
-            {
-                foreach (var d in Model.GapByDepartment)
-                {
-                    var pct = (int)Math.Round(100.0 * d.AverageGap / maxGap);
-                    var barColor = d.AverageGap >= 3 ? "bg-danger" : d.AverageGap >= 2 ? "bg-warning" : "bg-success";
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>@d.Department</span>
-                            <span class="fw-bold">@d.AverageGap</span>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar @barColor" style="width: @pct%"></div>
-                        </div>
-                    </div>
-                }
-            }
+            <h6 class="fw-bold mb-3">الاحتياجات حسب نوع الفجوة</h6>
+            @if (!gapTypeData.Any()) { <p class="text-muted mb-0">لا توجد بيانات.</p> }
+            else { <canvas id="chartGapType" height="220"></canvas> }
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">أكثر المهارات طلباً</h6>
+            @if (!topSkills.Any()) { <p class="text-muted mb-0">لا توجد بيانات.</p> }
+            else { <canvas id="chartTopSkills" height="220"></canvas> }
         </div></div>
     </div>
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-lg-6">
-        <div class="card h-100"><div class="card-body">
-            <h6 class="fw-bold mb-3">توزيع الأولويات</h6>
-            @{
-                var totalPr = Model.PriorityDistribution.Values.Sum();
-            }
-            @foreach (var kv in Model.PriorityDistribution)
-            {
-                var pct = totalPr > 0 ? (int)Math.Round(100.0 * kv.Value / totalPr) : 0;
-                var col = kv.Key == "حرجة جداً" ? "bg-dark" : kv.Key == "عالية" ? "bg-danger" : kv.Key == "متوسطة" ? "bg-warning" : "bg-success";
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between small mb-1">
-                        <span>@kv.Key</span>
-                        <span class="fw-bold">@kv.Value (@pct%)</span>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar @col" style="width: @pct%"></div>
-                    </div>
-                </div>
-            }
-        </div></div>
-    </div>
-
-    <div class="col-lg-6">
-        <div class="card h-100"><div class="card-body">
-            <h6 class="fw-bold mb-3">التصنيفات الأكثر طلباً</h6>
-            @if (!Model.CategoryDistribution.Any())
-            {
-                <p class="text-muted mb-0">لا توجد تصنيفات مسجّلة.</p>
-            }
-            else
-            {
-                <div class="d-flex flex-wrap gap-2">
-                    @foreach (var kv in Model.CategoryDistribution.OrderByDescending(x => x.Value))
-                    {
-                        <span class="badge bg-light text-dark border py-2 px-3">@kv.Key <span class="badge bg-primary ms-1">@kv.Value</span></span>
-                    }
-                </div>
-            }
+    <div class="col-12">
+        <div class="card"><div class="card-body">
+            <h6 class="fw-bold mb-3">الفجوات المهارية الأعلى (متوسط الفجوة)</h6>
+            @if (!topGaps.Any()) { <p class="text-muted mb-0">لا توجد بيانات.</p> }
+            else { <canvas id="chartTopGaps" height="90"></canvas> }
         </div></div>
     </div>
 </div>
 
+<!-- أحدث الاحتياجات -->
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <h6 class="fw-bold mb-0">أحدث الاحتياجات المسجّلة</h6>
@@ -192,17 +267,76 @@
                 }
                 @foreach (var n in Model.RecentNeeds)
                 {
-                            var prBadge = TrainingSystem.Models.TrainingNeed.GetPriorityBadge(n.Priority);
+                    var prBadge = TrainingNeed.GetPriorityBadge(n.Priority);
                     <tr>
                         <td><a asp-action="Details" asp-route-id="@n.Id" class="text-decoration-none">@n.EmployeeName</a></td>
                         <td>@n.Department</td>
                         <td>@n.SkillName</td>
                         <td class="text-center"><span class="badge bg-secondary">@n.Gap</span></td>
-                        <td class="text-center"><span class="badge bg-@prBadge">@TrainingSystem.Models.TrainingNeed.GetPriorityDisplayName(n.Priority)</span></td>
-                        <td class="text-center"><span class="badge bg-@TrainingSystem.Models.TrainingNeed.GetApprovalStatusBadge(n.ApprovalStatus)">@TrainingSystem.Models.TrainingNeed.GetApprovalStatusDisplayName(n.ApprovalStatus)</span></td>
+                        <td class="text-center"><span class="badge bg-@prBadge">@TrainingNeed.GetPriorityDisplayName(n.Priority)</span></td>
+                        <td class="text-center"><span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(n.ApprovalStatus)">@TrainingNeed.GetApprovalStatusDisplayName(n.ApprovalStatus)</span></td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            const palette = ['#0d6efd', '#20c997', '#ffc107', '#dc3545', '#6610f2', '#fd7e14', '#0dcaf0', '#198754', '#6c757d', '#d63384'];
+            Chart.defaults.font.family = 'inherit';
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+            const deptData = @Html.Raw(Json.Serialize(deptData));
+            const catData = @Html.Raw(Json.Serialize(catData));
+            const prData = @Html.Raw(Json.Serialize(prData));
+            const gapTypeData = @Html.Raw(Json.Serialize(gapTypeData));
+            const topSkills = @Html.Raw(Json.Serialize(topSkills));
+            const topGaps = @Html.Raw(Json.Serialize(topGaps));
+
+            function keys(o) { return Object.keys(o); }
+            function vals(o) { return Object.values(o); }
+
+            const el = id => document.getElementById(id);
+
+            if (el('chartDept')) new Chart(el('chartDept'), {
+                type: 'bar',
+                data: { labels: keys(deptData), datasets: [{ label: 'عدد الاحتياجات', data: vals(deptData), backgroundColor: '#0d6efd', borderRadius: 4 }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+
+            if (el('chartCat')) new Chart(el('chartCat'), {
+                type: 'doughnut',
+                data: { labels: keys(catData), datasets: [{ data: vals(catData), backgroundColor: palette }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            if (el('chartPriority')) new Chart(el('chartPriority'), {
+                type: 'doughnut',
+                data: { labels: keys(prData), datasets: [{ data: vals(prData), backgroundColor: ['#212529', '#dc3545', '#ffc107', '#198754'] }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            if (el('chartGapType')) new Chart(el('chartGapType'), {
+                type: 'pie',
+                data: { labels: keys(gapTypeData), datasets: [{ data: vals(gapTypeData), backgroundColor: ['#0d6efd', '#20c997', '#dc3545'] }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            if (el('chartTopSkills')) new Chart(el('chartTopSkills'), {
+                type: 'bar',
+                data: { labels: topSkills.map(s => s.skillName), datasets: [{ label: 'عدد الطلبات', data: topSkills.map(s => s.count), backgroundColor: '#6610f2', borderRadius: 4 }] },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+
+            if (el('chartTopGaps')) new Chart(el('chartTopGaps'), {
+                type: 'bar',
+                data: { labels: topGaps.map(s => s.skillName), datasets: [{ label: 'متوسط الفجوة', data: topGaps.map(s => s.averageGap), backgroundColor: '#fd7e14', borderRadius: 4 }] },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, max: 5 } } }
+            });
+        })();
+    </script>
+}
