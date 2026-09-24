@@ -71,8 +71,16 @@
                 <span class="text-muted small">العائد التقديري (ROI)</span>
                 <i class="bi bi-piggy-bank text-info"></i>
             </div>
-            <div class="fs-3 fw-bold text-info">@Model.RoiPercent%</div>
-            <div class="small text-muted mt-2">تكلفة التدريب المنفّذ: @Model.TotalTrainingCost.ToString("N0")</div>
+            @if (Model.RoiAvailable)
+            {
+                <div class="fs-3 fw-bold text-info">@Model.RoiPercent%</div>
+                <div class="small text-muted mt-2">تكلفة التدريب المنفّذ: @Model.TotalTrainingCost.ToString("N0")</div>
+            }
+            else
+            {
+                <div class="fs-5 fw-bold text-muted">غير قابل للقياس</div>
+                <div class="small text-muted mt-2">لا يوجد عائد مالي مباشر لهذه البرامج</div>
+            }
         </div></div>
     </div>
 </div>

@@ -108,7 +108,8 @@ namespace TrainingSystem.Controllers
             vm.PlannedNeeds = kpi.PlannedNeeds;
             vm.PlannedCompleted = kpi.PlannedCompleted;
             vm.PlanCommitmentPercent = kpi.PlanCommitmentPercent;
-            // العائد على الاستثمار %
+            // العائد على الاستثمار % (اختياري)
+            vm.RoiAvailable = kpi.RoiAvailable;
             vm.RoiPercent = kpi.RoiPercent;
 
             // توزيع حسب الدائرة (للمخوّلين)
@@ -165,6 +166,8 @@ namespace TrainingSystem.Controllers
         public int PlanCommitmentPercent { get; set; }
 
         public decimal TotalTrainingCost { get; set; }
+        // ROI اختياري: بعض البرامج لا يمكن قياس عائدها المالي مباشرةً
+        public bool RoiAvailable { get; set; }
         public int RoiPercent { get; set; }
 
         public List<KpiDepartmentRow> ByDepartment { get; set; } = new();
