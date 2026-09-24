@@ -74,12 +74,25 @@ namespace TrainingSystem.Services
                     e.Message != null && e.Message.StartsWith(prefix));
                 if (alreadyReminded) continue;
 
-                var recipient = need.Employee?.ManagerUserId ?? need.CreatedByUserId;
-                if (string.IsNullOrEmpty(recipient)) continue;
+                // يصل التقييم للموظف والمدير المباشر معاً (وإلا مقدّم الطلب كبديل)
+                var recipients = new[]
+                {
+                    need.EmployeeUserId,
+                    need.Employee?.ManagerUserId,
+                    need.CreatedByUserId
+                }
+                .Where(r => !string.IsNullOrEmpty(r))
+                .Distinct()
+                .ToList();
 
-                Add(context, recipient, $"{prefix} {need.SkillName}",
-                    NotificationType.Warning, need.Id);
-                added = true;
+                if (recipients.Count == 0) continue;
+
+                foreach (var recipient in recipients)
+                {
+                    Add(context, recipient!, $"{prefix} {need.SkillName}",
+                        NotificationType.Warning, need.Id);
+                    added = true;
+                }
             }
 
             if (added)

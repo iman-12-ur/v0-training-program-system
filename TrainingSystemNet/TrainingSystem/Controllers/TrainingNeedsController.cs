@@ -172,7 +172,7 @@ namespace TrainingSystem.Controllers
             if (model.CurrentLevel < 0 || model.CurrentLevel > 5)
                 ModelState.AddModelError(nameof(model.CurrentLevel), "المستوى الحالي بين 0 و 5");
 
-            // المشرف لا يضيف احتياجاً لموظف خا���������������������� دائرته
+            // المشرف لا يضيف احتياجاً لموظف خا������������������������ دائرته
             if (!IsPrivileged && employee != null && employee.Department != myDept)
                 ModelState.AddModelError(string.Empty, "لا يمكنك إضافة احتياج لموظف خارج دائرتك");
 
@@ -886,6 +886,12 @@ namespace TrainingSystem.Controllers
 
             // إنشاء تقييمي الأثر تلقائياً: مباشر بعد التدريب + بعد 90 يوماً (إن لم يوجدا)
             var now = DateTime.Now;
+
+            // تاريخ إكمال التدريب: يُعتمد كأساس لحساب استحقاق تقييم الـ90 يوماً
+            if (!need.CompletionDate.HasValue)
+                need.CompletionDate = now;
+            var completionDate = need.CompletionDate.Value;
+
             var existingTypes = await _context.TrainingImpactAssessments
                 .Where(a => a.TrainingNeedId == need.Id)
                 .Select(a => a.AssessmentType)
@@ -897,7 +903,7 @@ namespace TrainingSystem.Controllers
                 {
                     TrainingNeedId = need.Id,
                     AssessmentType = ImpactAssessmentType.PostTraining,
-                    DueDate = now,
+                    DueDate = completionDate,
                     CreatedAt = now
                 });
             }
@@ -906,8 +912,9 @@ namespace TrainingSystem.Controllers
                 _context.TrainingImpactAssessments.Add(new TrainingImpactAssessment
                 {
                     TrainingNeedId = need.Id,
+                    // AssessmentDueDate = CompletionDate + 90 يوماً
                     AssessmentType = ImpactAssessmentType.Day90,
-                    DueDate = now.AddDays(90),
+                    DueDate = completionDate.AddDays(90),
                     CreatedAt = now
                 });
             }
@@ -1666,7 +1673,7 @@ namespace TrainingSystem.Controllers
 
         // ==================== مساعدات ====================
 
-        // تحقق صلاحية الوصول لسجل معيّن (منع IDOR): المشرف لدائرته فقط
+        // تحقق صلاحية الوصو�� لسجل معيّن (منع IDOR): المشرف لدائرته فقط
         private async Task<bool> CanAccessAsync(TrainingNeed need)
         {
             if (IsPrivileged) return true;
