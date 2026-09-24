@@ -1108,6 +1108,35 @@ namespace TrainingSystem.Controllers
                 IsPrivileged = IsPrivileged
             };
 
+            // ===== بيانات الرسوم الإضافية =====
+            // 1) الميزانية: Planned vs Actual
+            vm.BudgetActualSpending = budget?.ActualSpending ?? 0m;
+            vm.BudgetCommitted = budget?.CommittedBudget ?? 0m;
+
+            // 2) التدريب حسب الأشهر (آخر 12 شهراً حسب تاريخ الإنشاء)
+            var monthStart = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-11);
+            var monthly = new Dictionary<string, int>();
+            for (int i = 0; i < 12; i++)
+            {
+                var m = monthStart.AddMonths(i);
+                monthly[m.ToString("yyyy/MM")] = needs.Count(n =>
+                    n.CreatedAt.Year == m.Year && n.CreatedAt.Month == m.Month);
+            }
+            vm.MonthlyTrend = monthly;
+
+            // 3) أثر التدريب: Before vs After (من تقييمات الأثر المكتملة)
+            var needIdsForImpact = needs.Select(n => n.Id).ToList();
+            var completedImpact = await _context.TrainingImpactAssessments
+                .Where(a => a.CompletedAt != null && needIdsForImpact.Contains(a.TrainingNeedId))
+                .Select(a => new { a.BeforeScore, a.AfterScore })
+                .ToListAsync();
+            vm.ImpactAssessmentsCount = completedImpact.Count;
+            if (completedImpact.Count > 0)
+            {
+                vm.ImpactBeforeAvg = Math.Round(completedImpact.Average(a => (double)a.BeforeScore), 1);
+                vm.ImpactAfterAvg = Math.Round(completedImpact.Average(a => (double)a.AfterScore), 1);
+            }
+
             // ===== محرك مؤشرات الأداء (KPI) — عبر الخدمة المركزية =====
             // KPI 4 — ROI اختياري: يُحسب فقط عند تمرير عائد مالي (لا يُخزَّن)
             var roiCost = budget != null && budget.ActualSpending > 0 ? budget.ActualSpending : estimatedTotal;
@@ -2221,6 +2250,14 @@ namespace TrainingSystem.Controllers
         public List<SkillGap> TopSkillGaps { get; set; } = new();
         public List<TrainingNeed> RecentNeeds { get; set; } = new();
         public bool IsPrivileged { get; set; }
+
+        // بيانات رسوم إضافية
+        public decimal BudgetActualSpending { get; set; }   // الميزانية: Planned vs Actual
+        public decimal BudgetCommitted { get; set; }
+        public Dictionary<string, int> MonthlyTrend { get; set; } = new();  // التدريب حسب الأشهر
+        public double ImpactBeforeAvg { get; set; }          // أثر التدريب: Before vs After
+        public double ImpactAfterAvg { get; set; }
+        public int ImpactAssessmentsCount { get; set; }
 
         // محرك مؤشرات الأداء (KPI)
         public KpiEngine Kpis { get; set; } = new();

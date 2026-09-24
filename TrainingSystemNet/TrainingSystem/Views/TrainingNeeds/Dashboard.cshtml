@@ -360,6 +360,36 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">الميزانية — المخطط مقابل الفعلي</h6>
+            @if (Model.BudgetAllocated <= 0) { <p class="text-muted mb-0">لا توجد ميزانية معتمدة.</p> }
+            else { <canvas id="chartBudget" height="220"></canvas> }
+        </div></div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">التدريب حسب الأشهر (آخر 12 شهراً)</h6>
+            <canvas id="chartMonthly" height="150"></canvas>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card"><div class="card-body">
+            <h6 class="fw-bold mb-3">أثر التدريب — قبل مقابل بعد</h6>
+            @if (Model.ImpactAssessmentsCount == 0) { <p class="text-muted mb-0">لا توجد تقييمات أثر مكتملة بعد.</p> }
+            else
+            {
+                <canvas id="chartImpact" height="90"></canvas>
+                <div class="small text-muted mt-2">مبني على @Model.ImpactAssessmentsCount تقييم أثر مكتمل — متوسط قبل @Model.ImpactBeforeAvg / بعد @Model.ImpactAfterAvg (من 5)</div>
+            }
+        </div></div>
+    </div>
+</div>
+
 <!-- أحدث الاحتياجات -->
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -414,6 +444,13 @@
             const gapTypeData = @Html.Raw(Json.Serialize(gapTypeData));
             const topSkills = @Html.Raw(Json.Serialize(topSkills));
             const topGaps = @Html.Raw(Json.Serialize(topGaps));
+            const monthlyTrend = @Html.Raw(Json.Serialize(Model.MonthlyTrend));
+            const budgetData = {
+                planned: @Model.BudgetAllocated,
+                committed: @Model.BudgetCommitted,
+                actual: @Model.BudgetActualSpending
+            };
+            const impactData = { before: @Model.ImpactBeforeAvg, after: @Model.ImpactAfterAvg };
 
             function keys(o) { return Object.keys(o); }
             function vals(o) { return Object.values(o); }
@@ -454,6 +491,43 @@
                 type: 'bar',
                 data: { labels: topGaps.map(s => s.skillName), datasets: [{ label: 'متوسط الفجوة', data: topGaps.map(s => s.averageGap), backgroundColor: '#fd7e14', borderRadius: 4 }] },
                 options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, max: 5 } } }
+            });
+
+            // الميزانية — المخطط مقابل الفعلي (والملتزم)
+            if (el('chartBudget')) new Chart(el('chartBudget'), {
+                type: 'bar',
+                data: {
+                    labels: ['الميزانية'],
+                    datasets: [
+                        { label: 'المخطط', data: [budgetData.planned], backgroundColor: '#0d6efd', borderRadius: 4 },
+                        { label: 'الملتزم', data: [budgetData.committed], backgroundColor: '#ffc107', borderRadius: 4 },
+                        { label: 'الفعلي', data: [budgetData.actual], backgroundColor: '#198754', borderRadius: 4 }
+                    ]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            // التدريب حسب الأشهر — اتجاه شهري
+            if (el('chartMonthly')) new Chart(el('chartMonthly'), {
+                type: 'line',
+                data: {
+                    labels: keys(monthlyTrend),
+                    datasets: [{ label: 'عدد الاحتياجات', data: vals(monthlyTrend), borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,0.1)', fill: true, tension: 0.3, pointRadius: 3 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+
+            // أثر التدريب — قبل مقابل بعد
+            if (el('chartImpact')) new Chart(el('chartImpact'), {
+                type: 'bar',
+                data: {
+                    labels: ['متوسط التقييم'],
+                    datasets: [
+                        { label: 'قبل التدريب', data: [impactData.before], backgroundColor: '#adb5bd', borderRadius: 4 },
+                        { label: 'بعد التدريب', data: [impactData.after], backgroundColor: '#198754', borderRadius: 4 }
+                    ]
+                },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { beginAtZero: true, max: 5 } } }
             });
         })();
     </script>
