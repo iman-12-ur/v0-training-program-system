@@ -114,14 +114,20 @@
                     <span>الاعتمادات</span>
                 </a>
 
-                @* الميزانية — مؤجّلة في المرحلة الحالية *@
-
                 <a href="@Url.Action("LinkedPrograms", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "LinkedPrograms" ? "active" : "")">
                     <i class="bi bi-diagram-3"></i>
                     <span>البرامج التدريبية المرتبطة بالاحتياجات</span>
                 </a>
 
-                @* تقييم أثر التدريب — مؤجّل في المرحلة الحالية *@
+                <a href="@Url.Action("Index", "ImpactAssessments")" class="nav-item @(tnaController == "ImpactAssessments" ? "active" : "")">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>تقييم أثر التدريب</span>
+                </a>
+
+                <a href="@Url.Action("Index", "Kpi")" class="nav-item @(tnaController == "Kpi" ? "active" : "")">
+                    <i class="bi bi-bullseye"></i>
+                    <span>مؤشرات الأداء (KPI)</span>
+                </a>
 
                 <a href="@Url.Action("Reports", "TrainingNeeds")" class="nav-item @(inTna && tnaAction == "Reports" ? "active" : "")">
                     <i class="bi bi-file-earmark-bar-graph"></i>
@@ -132,7 +138,10 @@
                 {
                     <div class="nav-divider"></div>
 
-                    @* ميزانية التدريب — مؤجّلة في المرحلة الحالية *@
+                    <a href="@Url.Action("Index", "TrainingBudgets")" class="nav-item @(tnaController == "TrainingBudgets" ? "active" : "")">
+                        <i class="bi bi-wallet2"></i>
+                        <span>ميزانية التدريب</span>
+                    </a>
 
                     <a href="@Url.Action("Index", "Skills")" class="nav-item @(tnaController == "Skills" ? "active" : "")">
                         <i class="bi bi-list-stars"></i>
