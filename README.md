@@ -1,35 +1,57 @@
-# v0-training-program-system
+# نظام إدارة البرامج التدريبية | Training Program System
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+مستودع يضم مكوّنين مستقلّين. **البرنامج الفعلي هو تطبيق .NET MVC** الموجود في مجلد `TrainingSystemNet/`.
 
-## Built with v0
+---
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+## أين أفتح لتشغيل / رفع البرنامج؟
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_ukjVP2G284Vsv6znYBogynr0NGUn)
+البرنامج مكتوب بلغة **.NET MVC** (وليس Next.js). لتشغيله أو رفعه:
 
-## Getting Started
+| الأداة | الملف الذي تفتحه |
+|---|---|
+| **Visual Studio** | `TrainingSystemNet/TrainingSystem.sln` |
+| **الطرفية (Terminal)** | `cd TrainingSystemNet/TrainingSystem` ثم `dotnet run` |
+| **النشر / الرفع** | `cd TrainingSystemNet/TrainingSystem` ثم `dotnet publish -c Release` — ثم ارفع محتوى مجلد `bin/Release/net*/publish/` |
 
-First, run the development server:
+> بعد التشغيل يفتح المتصفح على العنوان الذي يعرضه `dotnet run` (عادةً `https://localhost:5xxx`).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+---
+
+## بنية المستودع
+
+```
+v0-training-program-system/
+│
+├── TrainingSystemNet/          ★ البرنامج الفعلي (.NET MVC) — افتح هذا
+│   └── TrainingSystem/
+│       ├── TrainingSystem.sln   ← ملف الحل (Visual Studio)
+│       ├── Controllers/         منطق التطبيق (14 وحدة تحكم)
+│       ├── Models/              الكيانات (13 كياناً)
+│       ├── Views/               واجهات Razor (عربي RTL / Bootstrap 5.3.2)
+│       ├── Data/                ApplicationDbContext
+│       ├── Services/            الإشعارات + مؤشرات الأداء
+│       └── wwwroot/             CSS / JS / الأصول
+│
+├── docs/                       الوثائق (هيكل المشروع + خريطة ERD بصيغتَي PDF و Word)
+│
+├── app/ · components/ · lib/ · hooks/ · styles/ · public/
+│                               تطبيق معاينة Next.js (خاص بـ v0 فقط — ليس البرنامج)
+│
+└── _archive/                   أرشيف النسخ القديمة وملفات ZIP السابقة (غير مستخدَم)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## الوثائق
 
-## Learn More
+- `docs/هيكلة-المشروع.md` — وثيقة الهيكلة الكاملة (نصّية، سهلة التحديث).
+- `docs/نظام-التدريب-الهيكل-وERD.pdf` — الهيكل الكامل وخريطة ERD (PDF).
+- `docs/نظام-التدريب-الهيكل-وERD.docx` — نفس المحتوى بصيغة Word قابلة للتحرير.
 
-To learn more, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+## ملاحظات
 
-<a href="https://v0.app/chat/api/kiro/clone/iman-12-ur/v0-training-program-system" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+- مجلد `_archive/` يحوي أرشيفات ونسخاً **قديمة** متجاوَزة، محفوظة للرجوع فقط. لا تستخدمها للتشغيل.
+- تطبيق Next.js في الجذر هو سطح معاينة v0 ولا علاقة له بمنطق نظام التدريب.
