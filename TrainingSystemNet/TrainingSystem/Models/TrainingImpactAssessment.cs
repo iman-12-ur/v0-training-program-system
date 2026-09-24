@@ -31,9 +31,13 @@ namespace TrainingSystem.Models
         [Range(0, 5)]
         public int SkillImprovement { get; set; }
 
-        [Display(Name = "الأثر على العمل")]
+        [Display(Name = "تحسّن الأداء الوظيفي")]
         [Range(0, 5)]
         public int WorkImpact { get; set; }
+
+        [Display(Name = "أثر التدريب على جودة العمل")]
+        [Range(0, 5)]
+        public int WorkQuality { get; set; }
 
         [Display(Name = "انخفاض الأخطاء")]
         [Range(0, 5)]
@@ -73,11 +77,11 @@ namespace TrainingSystem.Models
         [NotMapped]
         public bool IsCompleted => CompletedAt.HasValue;
 
-        // متوسط المحاور الستة
+        // متوسط المحاور السبعة
         [NotMapped]
         public double AverageScore =>
-            Math.Round((KnowledgeApplication + SkillImprovement + WorkImpact +
-                        ErrorReduction + ProductivityGain + ApplicationAbility) / 6.0, 1);
+            Math.Round((KnowledgeApplication + SkillImprovement + WorkImpact + WorkQuality +
+                        ErrorReduction + ProductivityGain + ApplicationAbility) / 7.0, 1);
 
         // الفرق المطلق قبل/بعد: Improvement = AfterScore - BeforeScore
         [NotMapped]

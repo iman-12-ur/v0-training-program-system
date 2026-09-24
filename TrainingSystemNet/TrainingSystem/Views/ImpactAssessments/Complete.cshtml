@@ -5,8 +5,9 @@
     var axes = new (string Prop, string Label)[]
     {
         (nameof(Model.KnowledgeApplication), "تطبيق المعرفة المكتسبة"),
-        (nameof(Model.SkillImprovement), "تحسّن المهارة/الأداء"),
-        (nameof(Model.WorkImpact), "الأثر على العمل"),
+        (nameof(Model.SkillImprovement), "تحسّن المهارة"),
+        (nameof(Model.WorkImpact), "تحسّن الأداء الوظيفي"),
+        (nameof(Model.WorkQuality), "أثر التدريب على جودة العمل"),
         (nameof(Model.ErrorReduction), "انخفاض الأخطاء"),
         (nameof(Model.ProductivityGain), "تحسّن الإنتاجية"),
         (nameof(Model.ApplicationAbility), "القدرة على التطبيق العملي"),
@@ -16,6 +17,7 @@
         [nameof(Model.KnowledgeApplication)] = Model.KnowledgeApplication,
         [nameof(Model.SkillImprovement)] = Model.SkillImprovement,
         [nameof(Model.WorkImpact)] = Model.WorkImpact,
+        [nameof(Model.WorkQuality)] = Model.WorkQuality,
         [nameof(Model.ErrorReduction)] = Model.ErrorReduction,
         [nameof(Model.ProductivityGain)] = Model.ProductivityGain,
         [nameof(Model.ApplicationAbility)] = Model.ApplicationAbility,

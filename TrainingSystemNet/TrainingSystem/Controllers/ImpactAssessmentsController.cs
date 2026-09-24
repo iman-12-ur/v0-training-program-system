@@ -77,6 +77,7 @@ namespace TrainingSystem.Controllers
             assessment.KnowledgeApplication = Math.Clamp(model.KnowledgeApplication, 1, 5);
             assessment.SkillImprovement = Math.Clamp(model.SkillImprovement, 1, 5);
             assessment.WorkImpact = Math.Clamp(model.WorkImpact, 1, 5);
+            assessment.WorkQuality = Math.Clamp(model.WorkQuality, 1, 5);
             assessment.ErrorReduction = Math.Clamp(model.ErrorReduction, 1, 5);
             assessment.ProductivityGain = Math.Clamp(model.ProductivityGain, 1, 5);
             assessment.ApplicationAbility = Math.Clamp(model.ApplicationAbility, 1, 5);
