@@ -1480,18 +1480,120 @@ namespace TrainingSystem.Controllers
 
         // ==================== التقارير ====================
 
-        public async Task<IActionResult> Reports(string? department)
+        public async Task<IActionResult> Reports(int? year, string? department, string? section,
+            string? skill, int? gapType, int? priority, int? status, int? programId)
         {
             var actor = await _userManager.GetUserAsync(User);
             var myDept = actor?.Department;
 
-            var query = _context.TrainingNeeds.AsQueryable();
+            var query = _context.TrainingNeeds
+                .Include(n => n.LinkedTrainingProgram)
+                .AsQueryable();
+
+            // نطاق الوصول: غير المخوّل يرى دائرته فقط
             if (!IsPrivileged)
                 query = query.Where(n => n.Department == myDept);
             else if (!string.IsNullOrWhiteSpace(department))
                 query = query.Where(n => n.Department == department);
 
+            // الفلاتر الثمانية
+            if (year.HasValue)
+                query = query.Where(n => n.CreatedAt.Year == year.Value);
+            if (!string.IsNullOrWhiteSpace(section))          // القسم = المسمى الوظيفي (أدق مستوى تنظيمي متاح)
+                query = query.Where(n => n.JobTitle == section);
+            if (!string.IsNullOrWhiteSpace(skill))
+                query = query.Where(n => n.SkillName == skill);
+            if (gapType.HasValue)
+                query = query.Where(n => n.GapType != null && (int)n.GapType == gapType.Value);
+            if (priority.HasValue)
+                query = query.Where(n => (int)n.Priority == priority.Value);
+            if (status.HasValue)
+                query = query.Where(n => (int)n.ApprovalStatus == status.Value);
+            if (programId.HasValue && programId.Value > 0)
+                query = query.Where(n => n.LinkedTrainingProgramId == programId.Value);
+
             var needs = await query.ToListAsync();
+
+            // التقرير 1 — الاحتياجات التدريبية السنوية
+            var byYear = needs
+                .GroupBy(n => n.CreatedAt.Year)
+                .Select(g => new YearReportRow
+                {
+                    Year = g.Key,
+                    NeedsCount = g.Count(),
+                    EmployeeCount = g.Select(x => (x.EmployeeNumber ?? "") + "|" + x.EmployeeName).Distinct().Count(),
+                    HighPriority = g.Count(x => x.Priority == TrainingNeedPriority.High),
+                    Critical = g.Count(x => x.Priority == TrainingNeedPriority.Critical),
+                    EstimatedCost = g.Sum(x => x.EstimatedCost)
+                })
+                .OrderByDescending(r => r.Year)
+                .ToList();
+
+            // التقرير 5 — الاحتياجات الحرجة
+            var criticalNeeds = needs
+                .Where(n => n.Priority == TrainingNeedPriority.Critical)
+                .OrderByDescending(n => n.PriorityScore)
+                .ThenByDescending(n => n.CreatedAt)
+                .ToList();
+
+            // التقرير 6 — البرامج التدريبية المرتبطة بالاحتياجات
+            var byProgram = needs
+                .Where(n => n.LinkedTrainingProgramId != null)
+                .GroupBy(n => n.LinkedTrainingProgram?.Title ?? "—")
+                .Select(g => new ProgramNeedsRow
+                {
+                    ProgramTitle = g.Key,
+                    NeedsCount = g.Count(),
+                    EmployeeCount = g.Select(x => (x.EmployeeNumber ?? "") + "|" + x.EmployeeName).Distinct().Count(),
+                    CompletedCount = g.Count(x => TrainingKpiService.CompletedStatuses.Contains(x.ApprovalStatus)),
+                    EstimatedCost = g.Sum(x => x.EstimatedCost)
+                })
+                .OrderByDescending(r => r.NeedsCount)
+                .ToList();
+
+            // التقرير 7 — الميزانية التدريبية (كل السنوات المالية)
+            var budgets = await _context.TrainingBudgets
+                .OrderByDescending(b => b.FinancialYear)
+                .ToListAsync();
+            var budgetCompliance = budgets
+                .Select(b => new BudgetComplianceRow
+                {
+                    FinancialYear = b.FinancialYear,
+                    Allocated = b.AllocatedBudget,
+                    Committed = b.CommittedBudget,
+                    Actual = b.ActualSpending
+                })
+                .ToList();
+
+            // التقرير 9 — تقييم أثر التدريب (من تقييمات الأثر ضمن نطاق الفلترة)
+            var needIdsForImpact = needs.Select(n => n.Id).ToList();
+            var impactAssessments = await _context.TrainingImpactAssessments
+                .Where(a => needIdsForImpact.Contains(a.TrainingNeedId))
+                .Select(a => new { a.BeforeScore, a.AfterScore, a.CompletedAt })
+                .ToListAsync();
+            var impactResults = new List<ImpactResultRow>();
+            if (impactAssessments.Any())
+            {
+                var completed = impactAssessments.Where(a => a.CompletedAt != null).ToList();
+                impactResults.Add(new ImpactResultRow
+                {
+                    Type = "إجمالي تقييمات الأثر",
+                    Completed = completed.Count,
+                    Pending = impactAssessments.Count - completed.Count,
+                    AverageScore = completed.Any() ? Math.Round(completed.Average(a => (double)a.AfterScore), 1) : 0,
+                    AverageImprovement = completed.Any() ? Math.Round(completed.Average(a => (double)(a.AfterScore - a.BeforeScore)), 1) : 0
+                });
+            }
+
+            // التقرير 10 — مؤشرات الأداء KPI (عبر الخدمة المركزية)
+            var reportBudget = await GetOrmCurrentBudgetAsync();
+            var reportEstimated = needs.Sum(n => n.EstimatedCost > 0 ? n.EstimatedCost : n.PlannedCost);
+            var kpis = await _kpiService.ComputeAsync(
+                needs,
+                budgetPlanned: reportBudget?.AllocatedBudget ?? 0m,
+                budgetActual: reportBudget?.ActualSpending ?? 0m,
+                budgetCommitted: reportBudget?.CommittedBudget ?? 0m,
+                hasBudget: reportBudget != null && reportBudget.AllocatedBudget > 0);
 
             // تقرير حسب الدائرة
             var byDept = needs
@@ -1588,15 +1690,19 @@ namespace TrainingSystem.Controllers
                 .Take(10)
                 .ToList();
 
-            // الموازنة والأثر مؤجّلة في المرحلة الحالية — لا تُحسب هنا
-
             var vm = new TnaReportsViewModel
             {
+                ByYear = byYear,
                 ByDepartment = byDept,
                 ByCategory = byCategory,
                 TopSkills = topSkills,
                 ByPriority = byPriority,
+                CriticalNeeds = criticalNeeds,
+                ByProgram = byProgram,
+                BudgetCompliance = budgetCompliance,
                 ByStatus = byStatus,
+                ImpactResults = impactResults,
+                Kpis = kpis,
                 CostByDepartment = costByDept,
                 TopEmployeeGaps = topGaps,
                 ComplianceNeeds = needs.Count(n => n.IsCompliance),
@@ -1606,12 +1712,34 @@ namespace TrainingSystem.Controllers
                 CurrentDepartment = IsPrivileged ? department : myDept
             };
 
+            // خيارات الفلاتر (على كامل نطاق وصول المستخدم)
+            var scope = _context.TrainingNeeds.AsQueryable();
+            if (!IsPrivileged) scope = scope.Where(n => n.Department == myDept);
+
             ViewBag.Departments = await GetDepartmentsAsync();
+            ViewBag.Years = await scope.Select(n => n.CreatedAt.Year).Distinct().OrderByDescending(y => y).ToListAsync();
+            ViewBag.Sections = await scope.Where(n => n.JobTitle != null && n.JobTitle != "")
+                .Select(n => n.JobTitle!).Distinct().OrderBy(j => j).ToListAsync();
+            ViewBag.Skills = await scope.Where(n => n.SkillName != null && n.SkillName != "")
+                .Select(n => n.SkillName).Distinct().OrderBy(s => s).ToListAsync();
+            ViewBag.Programs = await _context.TrainingPrograms
+                .OrderBy(p => p.Title)
+                .Select(p => new { p.Id, p.Title })
+                .ToListAsync();
+
+            ViewBag.FilterYear = year;
+            ViewBag.FilterSection = section;
+            ViewBag.FilterSkill = skill;
+            ViewBag.FilterGapType = gapType;
+            ViewBag.FilterPriority = priority;
+            ViewBag.FilterStatus = status;
+            ViewBag.FilterProgramId = programId;
             return View(vm);
         }
 
-        // تصدير الاحتياجات إلى Excel
-        public async Task<IActionResult> ExportNeeds(string? department)
+        // تصدير الاحتياجات إلى Excel (يحترم نفس فلاتر صفحة التقارير)
+        public async Task<IActionResult> ExportNeeds(int? year, string? department, string? section,
+            string? skill, int? gapType, int? priority, int? status, int? programId)
         {
             var actor = await _userManager.GetUserAsync(User);
             var myDept = actor?.Department;
@@ -1621,6 +1749,21 @@ namespace TrainingSystem.Controllers
                 query = query.Where(n => n.Department == myDept);
             else if (!string.IsNullOrWhiteSpace(department))
                 query = query.Where(n => n.Department == department);
+
+            if (year.HasValue)
+                query = query.Where(n => n.CreatedAt.Year == year.Value);
+            if (!string.IsNullOrWhiteSpace(section))
+                query = query.Where(n => n.JobTitle == section);
+            if (!string.IsNullOrWhiteSpace(skill))
+                query = query.Where(n => n.SkillName == skill);
+            if (gapType.HasValue)
+                query = query.Where(n => n.GapType != null && (int)n.GapType == gapType.Value);
+            if (priority.HasValue)
+                query = query.Where(n => (int)n.Priority == priority.Value);
+            if (status.HasValue)
+                query = query.Where(n => (int)n.ApprovalStatus == status.Value);
+            if (programId.HasValue && programId.Value > 0)
+                query = query.Where(n => n.LinkedTrainingProgramId == programId.Value);
 
             var needs = await query
                 .OrderBy(n => n.Department)
@@ -2204,20 +2347,56 @@ namespace TrainingSystem.Controllers
 
     public class TnaReportsViewModel
     {
+        // التقرير 1 — الاحتياجات التدريبية السنوية
+        public List<YearReportRow> ByYear { get; set; } = new();
+        // التقرير 2 — الاحتياجات حسب الإدارة
         public List<DepartmentReportRow> ByDepartment { get; set; } = new();
-        public List<CategoryReportRow> ByCategory { get; set; } = new();
+        // التقرير 3 — تحليل الفجوات المهارية
         public List<SkillReportRow> TopSkills { get; set; } = new();
-        public List<LabelCountRow> ByPriority { get; set; } = new();
-        public List<LabelCountRow> ByStatus { get; set; } = new();
-        public List<CostReportRow> CostByDepartment { get; set; } = new();
-        public List<BudgetComplianceRow> BudgetCompliance { get; set; } = new();
-        public List<ImpactResultRow> ImpactResults { get; set; } = new();
         public List<EmployeeGapRow> TopEmployeeGaps { get; set; } = new();
+        // التقرير 4 — الاحتياجات حسب الأولوية
+        public List<LabelCountRow> ByPriority { get; set; } = new();
+        // التقرير 5 — الاحتياجات الحرجة
+        public List<TrainingNeed> CriticalNeeds { get; set; } = new();
+        // التقرير 6 — البرامج التدريبية المرتبطة بالاحتياجات
+        public List<ProgramNeedsRow> ByProgram { get; set; } = new();
+        // التقرير 7 — الميزانية التدريبية
+        public List<BudgetComplianceRow> BudgetCompliance { get; set; } = new();
+        public List<CostReportRow> CostByDepartment { get; set; } = new();
+        // التقرير 8 — حالة تنفيذ الاحتياجات
+        public List<LabelCountRow> ByStatus { get; set; } = new();
+        // التقرير 9 — تقييم أثر التدريب
+        public List<ImpactResultRow> ImpactResults { get; set; } = new();
+        // التقرير 10 — مؤشرات الأداء KPI
+        public KpiEngine Kpis { get; set; } = new();
+
+        // تصنيف الاحتياجات (مساعد)
+        public List<CategoryReportRow> ByCategory { get; set; } = new();
+
         public int ComplianceNeeds { get; set; }
         public decimal TotalEstimatedCost { get; set; }
         public int TotalNeeds { get; set; }
         public bool IsPrivileged { get; set; }
         public string? CurrentDepartment { get; set; }
+    }
+
+    public class YearReportRow
+    {
+        public int Year { get; set; }
+        public int NeedsCount { get; set; }
+        public int EmployeeCount { get; set; }
+        public int HighPriority { get; set; }
+        public int Critical { get; set; }
+        public decimal EstimatedCost { get; set; }
+    }
+
+    public class ProgramNeedsRow
+    {
+        public string ProgramTitle { get; set; } = string.Empty;
+        public int NeedsCount { get; set; }
+        public int EmployeeCount { get; set; }
+        public int CompletedCount { get; set; }
+        public decimal EstimatedCost { get; set; }
     }
 
     // لوحة مؤشرات TNA
