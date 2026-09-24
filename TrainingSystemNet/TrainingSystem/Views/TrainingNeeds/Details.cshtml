@@ -241,8 +241,152 @@
             </div>
         }
 
+        @{
+            var histAll = Model.StatusHistory.OrderBy(x => x.ActionAt).ThenBy(x => x.Id).ToList();
+            TrainingNeedStatusHistory? LastOf(params TrainingNeedApprovalStatus[] set)
+                => histAll.LastOrDefault(h => set.Contains(h.Status));
+
+            int RankOf(TrainingNeedApprovalStatus s) => s switch
+            {
+                TrainingNeedApprovalStatus.Draft => 0,
+                TrainingNeedApprovalStatus.SubmittedToManager => 1,
+                TrainingNeedApprovalStatus.ReturnedForModification => 1,
+                TrainingNeedApprovalStatus.ManagerRejected => 1,
+                TrainingNeedApprovalStatus.ManagerApproved => 2,
+                TrainingNeedApprovalStatus.HRRejected => 2,
+                TrainingNeedApprovalStatus.BudgetReview => 3,
+                TrainingNeedApprovalStatus.HRApproved => 4,
+                TrainingNeedApprovalStatus.TrainingScheduled => 5,
+                TrainingNeedApprovalStatus.TrainingCompleted => 6,
+                TrainingNeedApprovalStatus.ImpactAssessmentPending => 7,
+                TrainingNeedApprovalStatus.ImpactAssessmentCompleted => 8,
+                TrainingNeedApprovalStatus.Closed => 9,
+                _ => 0
+            };
+
+            var progressRank = RankOf(Model.ApprovalStatus);
+            var isRejected = Model.ApprovalStatus is TrainingNeedApprovalStatus.ManagerRejected
+                             or TrainingNeedApprovalStatus.HRRejected;
+            var isReturned = Model.ApprovalStatus == TrainingNeedApprovalStatus.ReturnedForModification;
+
+            // (العنوان، الأيقونة، الرتبة على المسار السعيد، مرحلة انتظار؟، حالات اشتقاق التفاصيل)
+            var stages = new (string Label, string Icon, int Rank, bool Waiting, TrainingNeedApprovalStatus[] Detail)[]
+            {
+                ("تم إنشاء الطلب",       "bi-file-earmark-plus", 0, false, new[]{ TrainingNeedApprovalStatus.Draft }),
+                ("تم الإرسال",           "bi-send",              1, false, new[]{ TrainingNeedApprovalStatus.SubmittedToManager }),
+                ("مراجعة المدير",        "bi-search",            1, true,  new[]{ TrainingNeedApprovalStatus.SubmittedToManager }),
+                ("اعتماد المدير",        "bi-person-check",      2, false, new[]{ TrainingNeedApprovalStatus.ManagerApproved }),
+                ("مراجعة دائرة التدريب", "bi-people",            2, true,  new[]{ TrainingNeedApprovalStatus.ManagerApproved }),
+                ("التحقق من الميزانية",  "bi-cash-coin",         3, true,  new[]{ TrainingNeedApprovalStatus.BudgetReview }),
+                ("اعتماد",               "bi-patch-check",       4, false, new[]{ TrainingNeedApprovalStatus.HRApproved }),
+                ("البرنامج التدريبي",    "bi-mortarboard",       5, false, new[]{ TrainingNeedApprovalStatus.TrainingScheduled }),
+                ("تنفيذ التدريب",        "bi-easel",             6, false, new[]{ TrainingNeedApprovalStatus.TrainingCompleted }),
+                ("تقييم الأثر",          "bi-graph-up-arrow",    7, false, new[]{ TrainingNeedApprovalStatus.ImpactAssessmentPending, TrainingNeedApprovalStatus.ImpactAssessmentCompleted }),
+                ("إغلاق الاحتياج",       "bi-flag",              9, false, new[]{ TrainingNeedApprovalStatus.Closed }),
+            };
+        }
+
+        <div class="card mb-3">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-1"></i>مسار الاحتياج (Timeline)</h6></div>
+            <div class="card-body">
+                @if (isRejected)
+                {
+                    var rj = LastOf(TrainingNeedApprovalStatus.ManagerRejected, TrainingNeedApprovalStatus.HRRejected);
+                    <div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
+                        <i class="bi bi-x-octagon-fill mt-1"></i>
+                        <div>
+                            <div class="fw-semibold">تم رفض الطلب</div>
+                            @if (rj != null)
+                            {
+                                <div class="small">@(rj.ActionByName ?? "—") — @rj.ActionAt.ToString("yyyy/MM/dd HH:mm")</div>
+                                @if (!string.IsNullOrWhiteSpace(rj.Comment)) { <div class="small">@rj.Comment</div> }
+                            }
+                        </div>
+                    </div>
+                }
+                else if (isReturned)
+                {
+                    var rt = LastOf(TrainingNeedApprovalStatus.ReturnedForModification);
+                    <div class="alert alert-warning d-flex align-items-start gap-2 mb-3">
+                        <i class="bi bi-arrow-counterclockwise mt-1"></i>
+                        <div>
+                            <div class="fw-semibold">أُعيد الطلب للتعديل</div>
+                            @if (rt != null)
+                            {
+                                <div class="small">@(rt.ActionByName ?? "—") — @rt.ActionAt.ToString("yyyy/MM/dd HH:mm")</div>
+                                @if (!string.IsNullOrWhiteSpace(rt.Comment)) { <div class="small">@rt.Comment</div> }
+                            }
+                        </div>
+                    </div>
+                }
+
+                <ul class="tna-timeline list-unstyled mb-0">
+                    @foreach (var st in stages)
+                    {
+                        string state;
+                        if (progressRank > st.Rank) { state = "done"; }
+                        else if (progressRank == st.Rank) { state = st.Waiting ? "current" : "done"; }
+                        else { state = "pending"; }
+
+                        var rec = LastOf(st.Detail);
+                        DateTime? date = rec?.ActionAt;
+                        string? user = rec?.ActionByName;
+                        string? note = rec?.Comment;
+
+                        // احتياطات لبعض المراحل عند غياب سجل صريح
+                        if (st.Label == "تم إنشاء الطلب" && date == null) { date = Model.CreatedAt; }
+                        if (st.Label == "اعتماد المدير" && rec == null && Model.ManagerActionAt != null)
+                        { date = Model.ManagerActionAt; note = Model.ManagerComment; }
+                        if (st.Label == "اعتماد" && rec == null && Model.HRActionAt != null)
+                        { date = Model.HRActionAt; note = Model.HRComment; }
+                        if (st.Label == "البرنامج التدريبي" && Model.LinkedTrainingProgram != null && string.IsNullOrWhiteSpace(note))
+                        { note = "البرنامج: " + Model.LinkedTrainingProgram.Title; }
+
+                        var dotClass = state == "done" ? "bg-success" : state == "current" ? "bg-primary" : "bg-light border";
+                        var iconColor = state == "pending" ? "text-muted" : "text-white";
+                        var titleClass = state == "pending" ? "text-muted" : "fw-semibold";
+
+                        <li class="tna-step @(state == "pending" ? "is-pending" : "")">
+                            <span class="tna-dot @dotClass @iconColor"><i class="bi @st.Icon"></i></span>
+                            <div class="tna-body">
+                                <div class="d-flex align-items-center flex-wrap gap-2">
+                                    <span class="@titleClass">@st.Label</span>
+                                    @if (state == "current")
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary">المرحلة الحالية</span>
+                                    }
+                                    else if (state == "done")
+                                    {
+                                        <span class="badge bg-success-subtle text-success"><i class="bi bi-check2"></i> مكتملة</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted">لم تبدأ</span>
+                                    }
+                                </div>
+                                @if (state != "pending" && (date != null || !string.IsNullOrWhiteSpace(user) || !string.IsNullOrWhiteSpace(note)))
+                                {
+                                    <div class="small text-muted mt-1 d-flex flex-wrap gap-3">
+                                        @if (date != null)
+                                        {
+                                            <span><i class="bi bi-clock me-1"></i>@date.Value.ToString("yyyy/MM/dd HH:mm")</span>
+                                        }
+                                        <span><i class="bi bi-person me-1"></i>@(string.IsNullOrWhiteSpace(user) ? "—" : user)</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(note))
+                                    {
+                                        <div class="small text-muted mt-1"><i class="bi bi-chat-left-text me-1"></i>@note</div>
+                                    }
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
         <div class="card">
-            <div class="card-header bg-white"><h6 class="fw-bold mb-0">سجل مراحل الاعتماد</h6></div>
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">سجل مراحل الاعتماد (تفصيلي)</h6></div>
             <div class="card-body">
                 @if (!Model.StatusHistory.Any())
                 {
@@ -510,3 +654,35 @@
         </div>
     </div>
 </div>
+
+<style>
+    .tna-timeline { position: relative; margin: 0; padding: 0; }
+    .tna-timeline .tna-step { position: relative; padding-inline-start: 3rem; padding-bottom: 1.25rem; }
+    .tna-timeline .tna-step:last-child { padding-bottom: 0; }
+    /* الخط الرأسي الواصل بين المراحل */
+    .tna-timeline .tna-step::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: 0.9rem;
+        top: 1.9rem;
+        bottom: -0.15rem;
+        width: 2px;
+        background: #e9ecef;
+    }
+    .tna-timeline .tna-step:last-child::before { display: none; }
+    .tna-timeline .tna-dot {
+        position: absolute;
+        inset-inline-start: 0;
+        top: 0;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        z-index: 1;
+    }
+    .tna-timeline .tna-step.is-pending .tna-dot i { opacity: 0.55; }
+    .tna-timeline .tna-body { padding-top: 0.15rem; }
+</style>
