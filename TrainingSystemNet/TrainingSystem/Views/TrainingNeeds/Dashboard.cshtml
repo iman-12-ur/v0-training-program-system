@@ -239,17 +239,21 @@
 <!-- بطاقات المؤشرات -->
 <div class="row g-3 mb-4">
     @{
-        var kpis = new (string Title, string Value, string Icon, string Color)[]
+        var summaryCards = new (string Title, string Value, string Icon, string Color)[]
         {
             ("إجمالي الاحتياجات", Model.TotalNeeds.ToString("N0"), "bi-clipboard-data", "primary"),
             ("الاحتياجات المعتمدة", Model.ApprovedCount.ToString("N0"), "bi-patch-check", "success"),
-            ("قيد المراجعة", Model.PendingApprovals.ToString("N0"), "bi-hourglass-split", "warning"),
+            ("الاحتياجات قيد المراجعة", Model.PendingApprovals.ToString("N0"), "bi-hourglass-split", "warning"),
             ("الاحتياجات الحرجة", Model.CriticalCount.ToString("N0"), "bi-exclamation-octagon", "danger"),
-            ("إجمالي التكلفة التقديرية", Model.EstimatedTotalCost.ToString("N0"), "bi-cash-stack", "info"),
-            ("الميزانية المستخدمة", Model.BudgetUtilization + "%", "bi-pie-chart", "dark"),
+            ("البرامج المنفذة", Model.ExecutedPrograms.ToString("N0"), "bi-mortarboard", "info"),
+            ("الموظفون المدربون", kpi.TrainedEmployees.ToString("N0"), "bi-people-fill", "primary"),
+            ("الميزانية المعتمدة", Model.BudgetAllocated.ToString("N0"), "bi-wallet2", "success"),
+            ("الميزانية المستخدمة", Model.BudgetUsed.ToString("N0"), "bi-cash-stack", "dark"),
+            ("نسبة تغطية الاحتياجات", kpi.CoveragePercent + "%", "bi-pie-chart", "info"),
+            ("نسبة تحسن الأداء", (kpi.AssessedEmployees > 0 ? kpi.PerformanceImprovementPercent + "%" : "—"), "bi-graph-up-arrow", "warning"),
         };
     }
-    @foreach (var k in kpis)
+    @foreach (var k in summaryCards)
     {
         <div class="col-6 col-md-4 col-xl-2">
             <div class="card h-100 border-0 shadow-sm">

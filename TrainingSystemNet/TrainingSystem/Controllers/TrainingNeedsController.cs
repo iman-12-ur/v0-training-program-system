@@ -1038,6 +1038,12 @@ namespace TrainingSystem.Controllers
                                                     n.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved ||
                                                     n.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview),
                 ApprovedCount = needs.Count(n => n.ApprovalStatus == TrainingNeedApprovalStatus.HRApproved),
+                // البرامج المنفذة = البرامج التدريبية المميّزة المرتبطة باحتياجات أُكمل تدريبها
+                ExecutedPrograms = needs
+                    .Where(n => TrainingKpiService.CompletedStatuses.Contains(n.ApprovalStatus)
+                                && n.LinkedTrainingProgramId != null)
+                    .Select(n => n.LinkedTrainingProgramId)
+                    .Distinct().Count(),
                 Readiness = totalRequired > 0 ? (int)Math.Round(100.0 * totalCurrent / totalRequired) : 0,
                 EstimatedTotalCost = estimatedTotal,
                 BudgetAllocated = budgetAllocated,
@@ -2202,6 +2208,7 @@ namespace TrainingSystem.Controllers
         public int BudgetUtilization { get; set; }
         public int ComplianceCount { get; set; }
         public int PerformanceLinkedCount { get; set; }
+        public int ExecutedPrograms { get; set; }
 
         // توزيعات (للرسوم البيانية)
         public List<DepartmentGap> GapByDepartment { get; set; } = new();
