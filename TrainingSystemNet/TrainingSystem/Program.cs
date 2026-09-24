@@ -36,6 +36,9 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddControllersWithViews();
 
+// الخدمة المركزية لحساب مؤشرات الأداء (KPI)
+builder.Services.AddScoped<TrainingSystem.Services.TrainingKpiService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

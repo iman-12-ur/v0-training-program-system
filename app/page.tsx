@@ -13,6 +13,8 @@ import { AddProgramForm } from '@/components/add-program-form';
 import { EditProgramForm } from '@/components/edit-program-form';
 import { BatchesManager } from '@/components/batches-manager';
 import { ReportsView } from '@/components/reports-view';
+import { TrainingNeedsView } from '@/components/training-needs-view';
+import { TrainingNeedsSummary } from '@/components/training-needs-summary';
 import { UsersManager } from '@/components/users-manager';
 import {
   Dialog,
@@ -497,21 +499,24 @@ export default function TrainingManagementSystem() {
 
               <Card
                 className="cursor-pointer border-none shadow-sm transition-all hover:shadow-md"
-                onClick={() => setActiveTab('reports')}
+                onClick={() => setActiveTab('training-needs')}
               >
                 <CardContent className="flex items-center gap-4 p-6">
                   <div className="rounded-full bg-violet-500/10 p-3">
                     <TrendingUp className="h-6 w-6 text-violet-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">التقارير</p>
+                    <p className="font-medium text-foreground">الاحتياجات التدريبية</p>
                     <p className="text-sm text-muted-foreground">
-                      عرض الإحصائيات
+                      تحليل الفجوات المهارية
                     </p>
                   </div>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Training Needs Summary */}
+            <TrainingNeedsSummary onOpen={() => setActiveTab('training-needs')} />
 
             {/* Recent Registrations */}
             <div>
@@ -660,6 +665,9 @@ export default function TrainingManagementSystem() {
             stats={stats}
           />
         );
+
+      case 'training-needs':
+        return <TrainingNeedsView />;
 
       case 'settings':
         return (

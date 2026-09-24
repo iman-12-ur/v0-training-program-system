@@ -1,0 +1,190 @@
+@model TrainingSystem.Controllers.KpiViewModel
+@{
+    ViewData["Title"] = "محرك مؤشرات الأداء";
+    var departments = ViewBag.Departments as List<string> ?? new List<string>();
+    var currentDept = ViewBag.CurrentDepartment as string;
+    var isPrivileged = (bool)(ViewBag.IsPrivileged ?? false);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">محرك مؤشرات الأداء (KPI)</h4>
+        <p class="text-muted mb-0">مؤشرات تغطية الاحتياجات والالتزام بالميزانية وتحسّن الأداء والعائد</p>
+    </div>
+    @if (isPrivileged)
+    {
+        <form method="get">
+            <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">كل الدوائر</option>
+                @foreach (var d in departments)
+                {
+                    <option value="@d" selected="@(d == currentDept)">@d</option>
+                }
+            </select>
+        </form>
+    }
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">تغطية الاحتياجات</span>
+                <i class="bi bi-bullseye text-primary"></i>
+            </div>
+            <div class="fs-3 fw-bold">@Model.CoveragePercent%</div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-primary" style="width: @Model.CoveragePercent%"></div>
+            </div>
+            <div class="small text-muted mt-2">@Model.ApprovedNeeds من @Model.TotalNeeds احتياج معتمد</div>
+        </div></div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">الالتزام بالميزانية</span>
+                <i class="bi bi-cash-coin text-warning"></i>
+            </div>
+            <div class="fs-3 fw-bold">@Model.BudgetUtilizationPercent%</div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-warning" style="width: @Math.Min(Model.BudgetUtilizationPercent, 100)%"></div>
+            </div>
+            <div class="small text-muted mt-2">الفارق: @Model.BudgetVariance.ToString("N0")</div>
+        </div></div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">تحسّن الأداء</span>
+                <i class="bi bi-graph-up-arrow text-success"></i>
+            </div>
+            <div class="fs-3 fw-bold text-success">@Model.AveragePerformanceImprovement%</div>
+            <div class="small text-muted mt-2">من @Model.CompletedAssessments تقييم مكتمل</div>
+        </div></div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">العائد التقديري (ROI)</span>
+                <i class="bi bi-piggy-bank text-info"></i>
+            </div>
+            @if (Model.RoiAvailable)
+            {
+                <div class="fs-3 fw-bold text-info">@Model.RoiPercent%</div>
+                <div class="small text-muted mt-2">تكلفة التدريب المنفّذ: @Model.TotalTrainingCost.ToString("N0")</div>
+            }
+            else
+            {
+                <div class="fs-5 fw-bold text-muted">غير قابل للقياس</div>
+                <div class="small text-muted mt-2">لا يوجد عائد مالي مباشر لهذه البرامج</div>
+            }
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">نسبة إغلاق الاحتياجات</span>
+                <i class="bi bi-check2-circle text-success"></i>
+            </div>
+            <div class="fs-3 fw-bold text-success">@Model.NeedsClosurePercent%</div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-success" style="width: @Model.NeedsClosurePercent%"></div>
+            </div>
+            <div class="small text-muted mt-2">@Model.CompletedNeeds مكتمل من @Model.ApprovedNeeds معتمد</div>
+        </div></div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">الاحتياجات الحرجة المعالَجة</span>
+                <i class="bi bi-exclamation-octagon text-danger"></i>
+            </div>
+            <div class="fs-3 fw-bold text-danger">@Model.CriticalAddressedPercent%</div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-danger" style="width: @Model.CriticalAddressedPercent%"></div>
+            </div>
+            <div class="small text-muted mt-2">@Model.CriticalCompleted معالَج من @Model.CriticalNeeds حرج</div>
+        </div></div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">الالتزام بخطة التدريب</span>
+                <i class="bi bi-calendar-check text-primary"></i>
+            </div>
+            <div class="fs-3 fw-bold text-primary">@Model.PlanCommitmentPercent%</div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-primary" style="width: @Model.PlanCommitmentPercent%"></div>
+            </div>
+            <div class="small text-muted mt-2">@Model.PlannedCompleted منفّذ من @Model.PlannedNeeds مخطط</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small mb-1">الميزانية المخططة</div>
+            <div class="fs-4 fw-bold">@Model.PlannedBudget.ToString("N0")</div>
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small mb-1">الملتزم به</div>
+            <div class="fs-4 fw-bold text-warning">@Model.CommittedBudget.ToString("N0")</div>
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small mb-1">المصروف الفعلي</div>
+            <div class="fs-4 fw-bold text-info">@Model.ActualSpending.ToString("N0")</div>
+        </div></div>
+    </div>
+</div>
+
+@if (Model.ByDepartment.Count > 1)
+{
+    <div class="card">
+        <div class="card-header bg-white fw-semibold">التغطية حسب الدائرة</div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>الدائرة</th>
+                        <th>إجمالي الاحتياجات</th>
+                        <th>المعتمدة</th>
+                        <th>نسبة التغطية</th>
+                        <th>التكلفة التقديرية</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.ByDepartment)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@r.Department</td>
+                            <td>@r.TotalNeeds</td>
+                            <td>@r.ApprovedNeeds</td>
+                            <td style="min-width: 140px;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                        <div class="progress-bar bg-primary" style="width: @r.CoveragePercent%"></div>
+                                    </div>
+                                    <span class="small text-muted">@r.CoveragePercent%</span>
+                                </div>
+                            </td>
+                            <td>@r.EstimatedCost.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

@@ -1,0 +1,92 @@
+@model List<TrainingSystem.Models.TrainingNeed>
+@using TrainingSystem.Models
+@using TrainingSystem.Controllers
+@{
+    ViewData["Title"] = "تحليل الفجوات";
+    var departments = ViewBag.Departments as List<string> ?? new List<string>();
+    var currentDept = ViewBag.CurrentDepartment as string;
+    var isPrivileged = (bool)(ViewBag.IsPrivileged ?? false);
+    var suggestions = ViewBag.Suggestions as Dictionary<int, ProgramSuggestion> ?? new();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">تحليل الفجوات</h4>
+        <p class="text-muted mb-0">الفرق بين المستوى المطلوب والحالي مع البرنامج المقترح</p>
+    </div>
+    <div class="d-flex gap-2">
+        @if (isPrivileged)
+        {
+            <form method="get">
+                <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">كل الدوائر</option>
+                    @foreach (var d in departments)
+                    {
+                        <option value="@d" selected="@(d == currentDept)">@d</option>
+                    }
+                </select>
+            </form>
+        }
+        <a asp-action="ExportNeeds" asp-route-department="@currentDept" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-file-earmark-excel me-1"></i> تصدير Excel
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>الموظف</th>
+                    <th>الدائرة</th>
+                    <th>المهارة</th>
+                    <th class="text-center">الحالي</th>
+                    <th class="text-center">المطلوب</th>
+                    <th style="min-width: 160px;">الفجوة</th>
+                    <th class="text-center">الأولوية</th>
+                    <th>البرنامج المقترح</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="8" class="text-center text-muted py-4">لا توجد بيانات</td></tr>
+                }
+                @foreach (var n in Model)
+                {
+                            var prBadge = TrainingNeed.GetPriorityBadge(n.Priority);
+                    var gapPct = (int)Math.Round(100.0 * n.Gap / 5);
+                    var gapColor = n.Gap >= 3 ? "bg-danger" : n.Gap == 2 ? "bg-warning" : "bg-success";
+                    suggestions.TryGetValue(n.Id, out var sug);
+                    <tr>
+                        <td><a asp-action="Details" asp-route-id="@n.Id" class="text-decoration-none">@n.EmployeeName</a></td>
+                        <td>@n.Department</td>
+                        <td>@n.SkillName</td>
+                        <td class="text-center">@n.CurrentLevel</td>
+                        <td class="text-center">@n.RequiredLevel</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 8px;">
+                                    <div class="progress-bar @gapColor" style="width: @gapPct%"></div>
+                                </div>
+                                <span class="badge bg-secondary">@n.Gap</span>
+                            </div>
+                        </td>
+                        <td class="text-center"><span class="badge bg-@prBadge">@TrainingNeed.GetPriorityDisplayName(n.Priority)</span></td>
+                        <td>
+                            @if (sug != null && sug.Matched)
+                            {
+                                <span class="text-success"><i class="bi bi-check-circle me-1"></i>@sug.Title</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">@(sug?.Title ?? "—")</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,91 @@
+@model TrainingSystem.Models.TrainingImpactAssessment
+@using TrainingSystem.Models
+@{
+    ViewData["Title"] = "تقييم الأثر";
+    var axes = new (string Prop, string Label)[]
+    {
+        (nameof(Model.KnowledgeApplication), "تطبيق المعرفة المكتسبة"),
+        (nameof(Model.SkillImprovement), "تحسّن المهارة"),
+        (nameof(Model.WorkImpact), "تحسّن الأداء الوظيفي"),
+        (nameof(Model.WorkQuality), "أثر التدريب على جودة العمل"),
+        (nameof(Model.ErrorReduction), "انخفاض الأخطاء"),
+        (nameof(Model.ProductivityGain), "تحسّن الإنتاجية"),
+        (nameof(Model.ApplicationAbility), "القدرة على التطبيق العملي"),
+    };
+    var values = new Dictionary<string, int>
+    {
+        [nameof(Model.KnowledgeApplication)] = Model.KnowledgeApplication,
+        [nameof(Model.SkillImprovement)] = Model.SkillImprovement,
+        [nameof(Model.WorkImpact)] = Model.WorkImpact,
+        [nameof(Model.WorkQuality)] = Model.WorkQuality,
+        [nameof(Model.ErrorReduction)] = Model.ErrorReduction,
+        [nameof(Model.ProductivityGain)] = Model.ProductivityGain,
+        [nameof(Model.ApplicationAbility)] = Model.ApplicationAbility,
+    };
+}
+
+<div class="mb-4">
+    <h4 class="fw-bold mb-1">@TrainingImpactAssessment.GetTypeDisplayName(Model.AssessmentType)</h4>
+    <p class="text-muted mb-0">@Model.TrainingNeed?.SkillName — @Model.TrainingNeed?.EmployeeName (@Model.TrainingNeed?.Department)</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Complete" asp-route-id="@Model.Id" method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div class="col-12">
+                <div class="fw-semibold mb-2">محاور التقييم (تقييم من 1 إلى 5)</div>
+            </div>
+
+            @foreach (var axis in axes)
+            {
+                var cur = values[axis.Prop] < 1 ? 3 : values[axis.Prop];
+                <div class="col-md-6">
+                    <label class="form-label">@axis.Label</label>
+                    <select name="@axis.Prop" class="form-select">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <option value="@i" selected="@(cur == i)">@i</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div class="col-12"><hr class="my-2" /></div>
+
+            <div class="col-md-6">
+                <label class="form-label">المستوى قبل التدريب (0 - 5)</label>
+                <select asp-for="BeforeScore" class="form-select">
+                    @for (int i = 0; i <= 5; i++)
+                    {
+                        <option value="@i" selected="@(Model.BeforeScore == i)">@i</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">المستوى بعد التدريب (0 - 5)</label>
+                <select asp-for="AfterScore" class="form-select">
+                    @for (int i = 0; i <= 5; i++)
+                    {
+                        <option value="@i" selected="@(Model.AfterScore == i)">@i</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">ملاحظات المدير</label>
+                <textarea asp-for="ManagerNotes" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="col-12 d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i> حفظ التقييم
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary">رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>

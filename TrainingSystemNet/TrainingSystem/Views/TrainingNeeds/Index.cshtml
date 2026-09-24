@@ -79,6 +79,69 @@
     </div>
 </div>
 
+<!-- How it works -->
+<div class="card mb-4 bg-light border-0">
+    <div class="card-body">
+        <h6 class="fw-bold mb-3">كيف تعمل الاحتياجات التدريبية؟</h6>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="d-flex gap-2">
+                    <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:2rem;height:2rem;">1</span>
+                    <div>
+                        <div class="fw-semibold">تحديد الفجوة</div>
+                        <small class="text-muted">قارن المستوى المطلوب للمهارة بالمستوى الحالي للموظف. الفارق = الفجوة.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex gap-2">
+                    <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:2rem;height:2rem;">2</span>
+                    <div>
+                        <div class="fw-semibold">ترتيب الأولوية</div>
+                        <small class="text-muted">يحسب النظام الأولوية تلقائياً: فجوة 3+ عالية، 2 متوسطة، 1 منخفضة.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex gap-2">
+                    <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:2rem;height:2rem;">3</span>
+                    <div>
+                        <div class="fw-semibold">ربط ببرنامج</div>
+                        <small class="text-muted">يقترح النظام برنامجاً تدريبياً من البرامج المتاحة لسدّ كل فجوة.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.GapByDepartment.Any())
+{
+    <div class="card mb-4">
+        <div class="card-header bg-white">
+            <i class="bi bi-graph-up-arrow text-primary me-1"></i>
+            متوسط الفجوة حسب الدائرة
+        </div>
+        <div class="card-body">
+            @foreach (var d in Model.GapByDepartment)
+            {
+                var pct = (int)Math.Round(d.AverageGap / 5.0 * 100);
+                var barClass = d.AverageGap >= 3 ? "bg-danger" : d.AverageGap >= 2 ? "bg-warning" : "bg-success";
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-semibold">@d.Department</span>
+                        <span class="small text-muted">متوسط الفجوة: @d.AverageGap</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar @barClass" role="progressbar" style="width: @pct%"
+                             aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
 <!-- Filters -->
 <div class="card mb-4">
     <div class="card-body">
@@ -130,8 +193,10 @@
                             <th class="text-center">الحالي</th>
                             <th class="text-center">الفجوة</th>
                             <th>الأولوية</th>
-                            <th>الحالة</th>
-                            <th style="width: 120px">الإجراءات</th>
+                            <th>البرنامج المقترح</th>
+                                <th>الحالة</th>
+                                <th>الاعتماد</th>
+                                <th style="width: 150px">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -159,17 +224,21 @@
                                     <span class="badge bg-secondary">@n.Gap</span>
                                 </td>
                                 <td>
-                                    @switch (n.Priority)
+                                    @{
+                                        var prBadge = TrainingNeed.GetPriorityBadge(n.Priority);
+                                        var prText = prBadge == "warning" ? "text-dark" : "";
+                                    }
+                                    <span class="badge bg-@prBadge @prText">@TrainingNeed.GetPriorityDisplayName(n.Priority)</span>
+                                </td>
+                                <td style="max-width: 220px;">
+                                    @{
+                                        var suggestion = Model.Suggestions.TryGetValue(n.Id, out var sg) ? sg : null;
+                                    }
+                                    @if (suggestion != null)
                                     {
-                                        case TrainingNeedPriority.High:
-                                            <span class="badge bg-danger">عالية</span>
-                                            break;
-                                        case TrainingNeedPriority.Medium:
-                                            <span class="badge bg-warning text-dark">متوسطة</span>
-                                            break;
-                                        default:
-                                            <span class="badge bg-success">منخفضة</span>
-                                            break;
+                                        <small class="@(suggestion.Matched ? "text-body" : "text-warning")">
+                                            <i class="bi bi-lightbulb me-1"></i>@suggestion.Title
+                                        </small>
                                     }
                                 </td>
                                 <td>
@@ -187,7 +256,16 @@
                                     }
                                 </td>
                                 <td>
+                                    <span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(n.ApprovalStatus)">
+                                        <i class="bi @TrainingNeed.GetApprovalStatusIcon(n.ApprovalStatus) me-1"></i>
+                                        @TrainingNeed.GetApprovalStatusDisplayName(n.ApprovalStatus)
+                                    </span>
+                                </td>
+                                <td>
                                     <div class="d-flex gap-1">
+                                        <a asp-action="Details" asp-route-id="@n.Id" class="btn btn-sm btn-outline-secondary" title="التفاصيل">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
                                         <a asp-action="Edit" asp-route-id="@n.Id" class="btn btn-sm btn-outline-primary" title="تعديل">
                                             <i class="bi bi-pencil"></i>
                                         </a>

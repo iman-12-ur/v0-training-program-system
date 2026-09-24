@@ -54,39 +54,221 @@
                 </div>
 
                 <div class="col-md-6">
+                    <label class="form-label">المسمى الوظيفي</label>
+                    <input asp-for="JobTitle" class="form-control" id="jobTitle" placeholder="مثال: محلل نظم" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الدرجة الوظيفية</label>
+                    <input asp-for="Grade" class="form-control" id="grade" placeholder="مثال: الرابعة" />
+                </div>
+                <div class="col-md-6" id="managerWrap" style="display:none;">
+                    <label class="form-label">المدير المباشر</label>
+                    <input type="text" class="form-control" id="managerName" readonly />
+                    <small class="text-muted">يُعرض من بيانات الموظف (عبر الربط).</small>
+                </div>
+
+                @if (Model.Skills.Any())
+                {
+                    <div class="col-md-6">
+                        <label class="form-label">اختر مهارة من المكتبة (اختياري)</label>
+                        <select asp-for="SkillId" class="form-select" asp-items="Model.Skills">
+                            <option value="">— إدخال يدوي —</option>
+                        </select>
+                        <small class="text-muted">عند الاختيار يُملأ اسم المهارة وتصنيفها.</small>
+                    </div>
+                }
+                <div class="col-md-6">
                     <label class="form-label">المهارة <span class="text-danger">*</span></label>
                     <input asp-for="SkillName" class="form-control" placeholder="مثال: إدارة المشاريع" />
                     <span asp-validation-for="SkillName" class="text-danger"></span>
                 </div>
+                @if (Model.SkillCategoryOptions.Any())
+                {
+                    <div class="col-md-6">
+                        <label class="form-label">تصنيف المهارة</label>
+                        <select asp-for="SkillCategoryId" class="form-select" asp-items="Model.SkillCategoryOptions">
+                            <option value="">— غير محدد —</option>
+                        </select>
+                    </div>
+                }
                 <div class="col-md-6">
-                    <label class="form-label">التصنيف</label>
-                    <input asp-for="Category" class="form-control" placeholder="تقنية / سلوكية / قيادية" />
+                    <label class="form-label">التصنيف (نص حر)</label>
+                    <input asp-for="Category" class="form-control" placeholder="تقنية / سلوكية / قيادية" list="categoryList" />
+                    <datalist id="categoryList">
+                        @foreach (var c in Model.Categories)
+                        {
+                            <option value="@c.Text"></option>
+                        }
+                    </datalist>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">نوع الفجوة المهارية</label>
+                    <select asp-for="GapType" class="form-select" asp-items="Html.GetEnumSelectList<TrainingSystem.Models.SkillGapType>()">
+                        <option value="">— يُشتقّ تلقائياً من تصنيف المهارة —</option>
+                    </select>
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">المستوى المطلوب <span class="text-danger">*</span></label>
-                    <select asp-for="RequiredLevel" class="form-select">
-                        @for (int i = 1; i <= 5; i++)
-                        {
-                            <option value="@i">@i</option>
-                        }
-                    </select>
-                    <span asp-validation-for="RequiredLevel" class="text-danger"></span>
-                </div>
-                <div class="col-md-6">
                     <label class="form-label">المستوى الحالي <span class="text-danger">*</span></label>
-                    <select asp-for="CurrentLevel" class="form-select">
+                    <select asp-for="CurrentLevel" class="form-select" id="currentLevel">
                         @for (int i = 0; i <= 5; i++)
                         {
-                            <option value="@i">@i</option>
+                            <option value="@i">@i – @TrainingSystem.Models.TrainingNeed.LevelName(i)</option>
                         }
                     </select>
                     <span asp-validation-for="CurrentLevel" class="text-danger"></span>
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label">المستوى المطلوب <span class="text-danger">*</span></label>
+                    <select asp-for="RequiredLevel" class="form-select" id="requiredLevel">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <option value="@i">@i – @TrainingSystem.Models.TrainingNeed.LevelName(i)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="RequiredLevel" class="text-danger"></span>
+                </div>
+                <div class="col-12">
+                    <partial name="_GapMeter" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">الفترة الزمنية المقترحة</label>
+                    <input asp-for="SuggestedTimeframe" class="form-control" placeholder="مثال: الربع الثاني 2026" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">مبرر طلب التدريب <span class="text-danger">*</span></label>
+                    <select asp-for="TrainingReason" class="form-select" id="trainingReason" asp-items="Html.GetEnumSelectList<TrainingSystem.Models.TrainingReason>()">
+                        <option value="">— اختر المبرر —</option>
+                    </select>
+                    <span asp-validation-for="TrainingReason" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">مبرر إضافي / تفاصيل</label>
+                    <input asp-for="Justification" class="form-control" placeholder="تفاصيل إضافية (اختياري)" />
+                </div>
+
+                <div class="col-md-6 performance-weakness-field" style="display:none;">
+                    <label class="form-label">رقم الهدف المتعثر</label>
+                    <input asp-for="FailedGoalNumber" class="form-control" placeholder="مثال: هدف رقم 3" />
+                </div>
+                <div class="col-md-6 performance-weakness-field" style="display:none;">
+                    <label class="form-label">وصف الفجوة في الأداء</label>
+                    <input asp-for="PerformanceGapDescription" class="form-control" placeholder="اشرح الفجوة في الأداء" />
+                </div>
 
                 <div class="col-12">
-                    <label class="form-label">ملاحظات</label>
+                    <label class="form-label">وصف الاحتياج</label>
+                    <textarea asp-for="NeedDescription" class="form-control" rows="2" placeholder="وصف تفصيلي للاحتياج التدريبي"></textarea>
+                </div>
+                <div class="col-12"><hr class="my-1" /><div class="fw-semibold text-muted small">البرنامج التدريبي المقترح</div></div>
+
+                @if (Model.Programs.Any())
+                {
+                    <div class="col-12">
+                        <label class="form-label">هل البرنامج موجود مسبقاً في النظام؟</label>
+                        <select asp-for="LinkedTrainingProgramId" class="form-select" id="linkedProgram" asp-items="Model.Programs">
+                            <option value="">— لا، برنامج مقترح جديد (إدخال يدوي) —</option>
+                        </select>
+                        <div class="form-text">عند اختيار برنامج قائم يُربط عبر Foreign Key ولا يُنشأ برنامج جديد.</div>
+                    </div>
+                }
+                <div class="col-md-6">
+                    <label class="form-label">اسم البرنامج المقترح</label>
+                    <input asp-for="ProposedTrainingProgram" class="form-control" placeholder="اسم البرنامج المقترح (نصياً)" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الجهة التدريبية المفضّلة</label>
+                    <input asp-for="PreferredTrainingProvider" class="form-control" placeholder="جهة/مركز التدريب المفضّل" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">وصف مختصر للبرنامج</label>
+                    <textarea asp-for="ProposedProgramDescription" class="form-control" rows="2" placeholder="نبذة موجزة عن محتوى البرنامج"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">نمط التدريب</label>
+                    <select asp-for="TrainingMode" class="form-select" asp-items="Html.GetEnumSelectList<TrainingSystem.Models.TrainingMode>()">
+                        <option value="">— غير محدد —</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">المدة المقترحة</label>
+                    <input asp-for="ProposedDuration" class="form-control" placeholder="مثال: 5 أيام / 20 ساعة" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">تاريخ مقترح</label>
+                    <input asp-for="PlannedDate" type="date" class="form-control" />
+                </div>
+
+                <div class="col-12"><hr class="my-1" /><div class="fw-semibold text-muted small">التكلفة والتنفيذ</div></div>
+
+                @if (Model.Batches.Any())
+                {
+                    <div class="col-md-6">
+                        <label class="form-label">الدفعة التدريبية</label>
+                        <select asp-for="TrainingBatchId" class="form-select" asp-items="Model.Batches">
+                            <option value="">— بدون دفعة —</option>
+                        </select>
+                        <div class="form-text">عند اختيار دفعة يُضبط البرنامج تلقائياً حسبها.</div>
+                    </div>
+                }
+                <div class="col-md-6">
+                    <label class="form-label">التكلفة التقديرية</label>
+                    <input asp-for="EstimatedCost" type="number" step="0.01" min="0" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">التكلفة المخطّطة</label>
+                    <input asp-for="PlannedCost" type="number" step="0.01" min="0" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">التكلفة الفعلية</label>
+                    <input asp-for="ActualCost" type="number" step="0.01" min="0" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">تاريخ الإنجاز</label>
+                    <input asp-for="CompletionDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">عدد المشاركين المقترح</label>
+                    <input asp-for="ParticipantsCount" type="number" min="1" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">تأثير الفجوة على العمل</label>
+                    <select asp-for="ImpactScore" class="form-select">
+                        @for (int i = 1; i <= 4; i++)
+                        {
+                            <option value="@i">@i – @TrainingSystem.Models.TrainingNeed.ImpactRiskName(i)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">مستوى المخاطر</label>
+                    <select asp-for="RiskScore" class="form-select">
+                        @for (int i = 1; i <= 4; i++)
+                        {
+                            <option value="@i">@i – @TrainingSystem.Models.TrainingNeed.ImpactRiskName(i)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check">
+                        <input asp-for="IsCompliance" class="form-check-input" type="checkbox" id="isCompliance" />
+                        <label class="form-check-label" for="isCompliance">احتياج امتثال إلزامي (يرفع الأولوية)</label>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">م��احظات</label>
                     <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="col-12">
+                    <div class="form-check">
+                        <input asp-for="SubmitForApproval" class="form-check-input" type="checkbox" id="submitForApproval" />
+                        <label class="form-check-label" for="submitForApproval">
+                            إرسال للاعتماد فور الحفظ (بدلاً من حفظه كمسودة)
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -103,18 +285,71 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // ملء بيانات الموظف تلقائياً عند الاختيار من القائمة
+        // إظهار حقلي "رقم الهدف المتعثر" و"وصف الفجوة في الأداء" عند اختيار ضعف تقييم الأداء
+        (function () {
+            var reason = document.getElementById('trainingReason');
+            if (!reason) return;
+            var pwValue = '@((int)TrainingSystem.Models.TrainingReason.PerformanceWeakness)';
+            var fields = document.querySelectorAll('.performance-weakness-field');
+            function toggle() {
+                var show = reason.value === pwValue;
+                fields.forEach(function (f) { f.style.display = show ? '' : 'none'; });
+            }
+            reason.addEventListener('change', toggle);
+            toggle();
+        })();
+    </script>
+    <script>
+        // تعبئة بيانات الموظف تلقائياً عبر الربط (FK) عند الاختيار — دون تكرار الإدخال
         (function () {
             var select = document.getElementById('employeeSelect');
             if (!select) return;
+
+            var infoUrl = '@Url.Action("EmployeeInfo", "TrainingNeeds")';
+            var fName = document.getElementById('employeeName');
+            var fNumber = document.getElementById('employeeNumber');
+            var fDept = document.getElementById('department'); // متاح للمخوّلين فقط
+            var fJob = document.getElementById('jobTitle');
+            var fGrade = document.getElementById('grade');
+            var fManager = document.getElementById('managerName');
+            var managerWrap = document.getElementById('managerWrap');
+
+            // الحقول التي تُملأ من بيانات الموظف وتصبح للقراءة عند الاختيار
+            var linked = [fName, fNumber, fDept, fJob, fGrade].filter(Boolean);
+
+            function setLinked(readonly) {
+                linked.forEach(function (el) {
+                    el.readOnly = readonly;
+                    el.classList.toggle('bg-light', readonly);
+                });
+            }
+
+            function clearManual() {
+                if (fManager) fManager.value = '';
+                if (managerWrap) managerWrap.style.display = 'none';
+            }
+
             select.addEventListener('change', function () {
-                var text = this.options[this.selectedIndex].text;
-                var nameField = document.getElementById('employeeName');
-                if (this.value && text.indexOf('—') !== -1) {
-                    nameField.value = text.split('—')[0].trim();
-                } else if (this.value) {
-                    nameField.value = text.trim();
+                var id = this.value;
+                if (!id) {
+                    setLinked(false);
+                    clearManual();
+                    return;
                 }
+                fetch(infoUrl + '?id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        if (!d || !d.ok) { setLinked(false); clearManual(); return; }
+                        if (fName) fName.value = d.fullName || '';
+                        if (fNumber) fNumber.value = d.employeeNumber || '';
+                        if (fDept) fDept.value = d.department || '';
+                        if (fJob) fJob.value = d.jobTitle || '';
+                        if (fGrade) fGrade.value = d.grade || '';
+                        if (fManager) fManager.value = d.managerName || '—';
+                        if (managerWrap) managerWrap.style.display = '';
+                        setLinked(true);
+                    })
+                    .catch(function () { setLinked(false); clearManual(); });
             });
         })();
     </script>

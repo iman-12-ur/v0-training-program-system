@@ -1,0 +1,706 @@
+@model TrainingSystem.Models.TrainingNeed
+@using TrainingSystem.Models
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "تفاصيل الاحتياج التدريبي";
+    var isPrivileged = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+    var currentUserId = UserManager.GetUserId(User);
+    // مطابق للحارس الخادمي CanActAsManager: مدير الدائرة/المشرف فقط، مع منع الاعتماد الذاتي.
+    // رئيس القسم يرفع الطلب ولا يعتمده، ودائرة التدريب/مدير النظام جهة اعتماد أعلى.
+    var isManagerTier = User.IsInRole("DepartmentManager") || User.IsInRole("Supervisor");
+    var canActAsManager = isPrivileged ||
+        (isManagerTier && Model.CreatedByUserId != currentUserId && Model.EmployeeUserId != currentUserId);
+    var readiness = Model.RequiredLevel > 0
+        ? (int)Math.Round(100.0 * Math.Min(Model.CurrentLevel, Model.RequiredLevel) / Model.RequiredLevel) : 0;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">تفاصيل الاحتياج التدريبي</h4>
+        <p class="text-muted mb-0">@Model.EmployeeName — @Model.SkillName</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i> تعديل
+        </a>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-right me-1"></i> رجوع
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">بيانات الاحتياج</h6>
+                <span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(Model.ApprovalStatus) fs-6">
+                    <i class="bi @TrainingNeed.GetApprovalStatusIcon(Model.ApprovalStatus) me-1"></i>
+                    @TrainingNeed.GetApprovalStatusDisplayName(Model.ApprovalStatus)
+                </span>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3 text-muted">اسم الموظف</dt><dd class="col-sm-3">@Model.EmployeeName</dd>
+                    <dt class="col-sm-3 text-muted">الرقم الوظيفي</dt><dd class="col-sm-3">@(Model.EmployeeNumber ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">المسمى الوظيفي</dt><dd class="col-sm-3">@(Model.JobTitle ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">الدرجة</dt><dd class="col-sm-3">@(Model.Grade ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">الدائرة</dt><dd class="col-sm-3">@Model.Department</dd>
+                    <dt class="col-sm-3 text-muted">المدير المباشر</dt><dd class="col-sm-3">@(ViewBag.ManagerName as string ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">الموظف مرتبط بالنظام</dt>
+                    <dd class="col-sm-3">
+                        @if (Model.Employee != null)
+                        {
+                            <span class="badge bg-success-subtle text-success"><i class="bi bi-link-45deg"></i> مرتبط</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary">إدخال يدوي</span>
+                        }
+                    </dd>
+                    <dt class="col-sm-3 text-muted">التصنيف</dt><dd class="col-sm-3">@(Model.SkillCategoryRef?.Name ?? Model.Category ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">المهارة</dt><dd class="col-sm-3">@Model.SkillName</dd>
+                    <dt class="col-sm-3 text-muted">نوع الفجوة</dt><dd class="col-sm-3">@(Model.GapType?.DisplayName() ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">درجة الفجوة</dt><dd class="col-sm-3">@Model.GapScore</dd>
+                    <dt class="col-sm-3 text-muted">الفترة المقترحة</dt><dd class="col-sm-3">@(Model.SuggestedTimeframe ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">البرنامج المقترح</dt><dd class="col-sm-3">@(Model.ProposedTrainingProgram ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">الجهة التدريبية المفضّلة</dt><dd class="col-sm-3">@(Model.PreferredTrainingProvider ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">وصف البرنامج</dt><dd class="col-sm-9">@(Model.ProposedProgramDescription ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">نمط التدريب</dt><dd class="col-sm-3">@(Model.TrainingMode?.DisplayName() ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">المدة المقترحة</dt><dd class="col-sm-3">@(Model.ProposedDuration ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">تاريخ الإنشاء</dt><dd class="col-sm-3">@Model.CreatedAt.ToString("yyyy/MM/dd")</dd>
+                    <dt class="col-sm-3 text-muted">تاريخ الاعتماد</dt><dd class="col-sm-3">@(Model.ApprovalDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">مبرر طلب التدريب</dt><dd class="col-sm-9">@(Model.TrainingReason?.DisplayName() ?? "—")</dd>
+                    @if (Model.TrainingReason == TrainingSystem.Models.TrainingReason.PerformanceWeakness)
+                    {
+                        <dt class="col-sm-3 text-muted">رقم الهدف المتعثر</dt><dd class="col-sm-3">@(Model.FailedGoalNumber ?? "—")</dd>
+                        <dt class="col-sm-3 text-muted">وصف الفجوة في الأداء</dt><dd class="col-sm-3">@(Model.PerformanceGapDescription ?? "—")</dd>
+                    }
+                    <dt class="col-sm-3 text-muted">مبرر إضافي</dt><dd class="col-sm-9">@(Model.Justification ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">وصف الاحتياج</dt><dd class="col-sm-9">@(Model.NeedDescription ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">ملاحظات</dt><dd class="col-sm-9">@(Model.Notes ?? "—")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">التكلفة والأولوية</h6></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3 text-muted">البرنامج المرتبط</dt><dd class="col-sm-3">@(Model.LinkedTrainingProgram?.Title ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">الدفعة التدريبية</dt><dd class="col-sm-3">@(Model.TrainingBatch != null ? Model.TrainingBatch.Name : "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">التكلفة التقديرية</dt><dd class="col-sm-3">@Model.EstimatedCost.ToString("N0")</dd>
+                    <dt class="col-sm-3 text-muted">التكلفة المخطّطة</dt><dd class="col-sm-3">@Model.PlannedCost.ToString("N0")</dd>
+
+                    @{
+                        var budgetVm = ViewBag.CurrentBudget as TrainingSystem.Models.TrainingBudget;
+                        var needCostVm = ViewBag.NeedBudgetCost as decimal? ?? 0m;
+                    }
+                    @if (budgetVm != null && needCostVm > 0)
+                    {
+                        var availableVm = (decimal)(ViewBag.AvailableBudget ?? budgetVm.RemainingBudget);
+                        var overBudget = ViewBag.BudgetOverrun as bool? ?? (needCostVm > availableVm);
+                        <dt class="col-sm-3 text-muted">حالة الميزانية</dt>
+                        <dd class="col-sm-9">
+                            @if (overBudget)
+                            {
+                                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>Over Budget — تجاوز الميزانية</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Available — ضمن الميزانية</span>
+                            }
+                            <span class="small text-muted ms-2">
+                                المتاح: <b>@availableVm.ToString("N0")</b> — التكلفة: <b>@needCostVm.ToString("N0")</b>
+                                (المخصص @budgetVm.AllocatedBudget.ToString("N0") − الملتزم @budgetVm.CommittedBudget.ToString("N0") − الفعلي @budgetVm.ActualSpending.ToString("N0"))
+                            </span>
+                            @if (overBudget)
+                            {
+                                <div class="small text-danger mt-1"><i class="bi bi-info-circle me-1"></i>لا يُرفض الطلب تلقائياً — يُحوَّل إلى «مراجعة الميزانية» ليقرّر المخوّل.</div>
+                            }
+                        </dd>
+                    }
+
+                    <dt class="col-sm-3 text-muted">التكلفة الفعلية</dt><dd class="col-sm-3">@Model.ActualCost.ToString("N0")</dd>
+                    <dt class="col-sm-3 text-muted">التاريخ المخطّط</dt><dd class="col-sm-3">@(Model.PlannedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+
+                    <dt class="col-sm-3 text-muted">تاريخ الإنجاز</dt><dd class="col-sm-3">@(Model.CompletionDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+                    <dt class="col-sm-3 text-muted">عدد المشاركين</dt><dd class="col-sm-3">@Model.ParticipantsCount</dd>
+                    <dt class="col-sm-3 text-muted">درجة الأولوية المحسوبة</dt>
+                    <dd class="col-sm-3">
+                        <span class="badge bg-@TrainingNeed.GetPriorityBadge(Model.Priority)">@Model.PriorityScore / 100</span>
+                        <span class="small text-muted ms-1">(@TrainingNeed.GetPriorityDisplayName(Model.Priority))</span>
+                    </dd>
+
+                    <dt class="col-sm-3 text-muted">تأثير الفجوة على العمل</dt><dd class="col-sm-3">@Model.ImpactScore – @TrainingNeed.ImpactRiskName(Model.ImpactScore)</dd>
+                    <dt class="col-sm-3 text-muted">مستوى المخاطر</dt><dd class="col-sm-3">@Model.RiskScore – @TrainingNeed.ImpactRiskName(Model.RiskScore)</dd>
+
+                    <dt class="col-sm-3 text-muted">امتثال إلزامي</dt>
+                    <dd class="col-sm-9">
+                        @if (Model.IsCompliance)
+                        {
+                            <span class="badge bg-danger">نعم — إلزامي</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">لا</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (Model.ImpactAssessments.Any())
+        {
+            <div class="card mb-3">
+                <div class="card-header bg-white"><h6 class="fw-bold mb-0">تقييمات الأثر</h6></div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var a in Model.ImpactAssessments.OrderBy(x => x.AssessmentType))
+                        {
+                            <li class="pb-3 mb-3 border-bottom">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <div class="fw-semibold">@TrainingImpactAssessment.GetTypeDisplayName(a.AssessmentType)</div>
+                                        <div class="small text-muted">الاستحقاق: @(a.DueDate?.ToString("yyyy/MM/dd") ?? "—")</div>
+                                    </div>
+                                    <div class="text-end">
+                                        @if (a.IsCompleted)
+                                        {
+                                            <span class="badge bg-success">متوسط المحاور @a.AverageScore / 5</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">قيد الانتظار</span>
+                                            @if (isPrivileged || User.IsInRole("Supervisor"))
+                                            {
+                                                <div class="mt-1">
+                                                    <a asp-controller="ImpactAssessments" asp-action="Complete" asp-route-id="@a.Id"
+                                                       class="btn btn-sm btn-outline-primary py-0 px-2">
+                                                        <i class="bi bi-pencil-square me-1"></i> تعبئة
+                                                    </a>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+
+                                @if (a.IsCompleted)
+                                {
+                                    <!-- مقارنة قبل/بعد التدريب -->
+                                    <div class="row g-2 text-center align-items-center">
+                                        <div class="col">
+                                            <div class="border rounded p-2 bg-light h-100">
+                                                <div class="small text-muted">قبل التدريب</div>
+                                                <div class="fs-4 fw-bold text-secondary">@a.BeforeScore<span class="fs-6 text-muted">/5</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="bi bi-arrow-left-circle fs-4 text-primary"></i>
+                                        </div>
+                                        <div class="col">
+                                            <div class="border rounded p-2 bg-light h-100">
+                                                <div class="small text-muted">بعد التدريب</div>
+                                                <div class="fs-4 fw-bold text-primary">@a.AfterScore<span class="fs-6 text-muted">/5</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            @{
+                                                var impColor = a.Improvement > 0 ? "success" : (a.Improvement < 0 ? "danger" : "secondary");
+                                                var impIcon = a.Improvement > 0 ? "bi-graph-up-arrow" : (a.Improvement < 0 ? "bi-graph-down-arrow" : "bi-dash");
+                                            }
+                                            <div class="border rounded p-2 bg-@impColor bg-opacity-10 h-100">
+                                                <div class="small text-muted">التحسّن</div>
+                                                <div class="fs-5 fw-bold text-@impColor">
+                                                    <i class="bi @impIcon me-1"></i>@(a.Improvement > 0 ? "+" : "")@a.Improvement
+                                                </div>
+                                                @if (a.HasImprovementPercent)
+                                                {
+                                                    <div class="small text-@impColor fw-semibold">@(a.ImprovementPercent > 0 ? "+" : "")@a.ImprovementPercent%</div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="small text-muted" title="لا تُحسب النسبة عندما يكون تقييم ما قبل التدريب = 0">النسبة غير متاحة</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(a.ManagerNotes))
+                                    {
+                                        <div class="small text-muted mt-2"><i class="bi bi-chat-left-text me-1"></i>@a.ManagerNotes</div>
+                                    }
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
+        @{
+            var histAll = Model.StatusHistory.OrderBy(x => x.ActionAt).ThenBy(x => x.Id).ToList();
+            TrainingNeedStatusHistory? LastOf(params TrainingNeedApprovalStatus[] set)
+                => histAll.LastOrDefault(h => set.Contains(h.Status));
+
+            int RankOf(TrainingNeedApprovalStatus s) => s switch
+            {
+                TrainingNeedApprovalStatus.Draft => 0,
+                TrainingNeedApprovalStatus.SubmittedToManager => 1,
+                TrainingNeedApprovalStatus.ReturnedForModification => 1,
+                TrainingNeedApprovalStatus.ManagerRejected => 1,
+                TrainingNeedApprovalStatus.ManagerApproved => 2,
+                TrainingNeedApprovalStatus.HRRejected => 2,
+                TrainingNeedApprovalStatus.BudgetReview => 3,
+                TrainingNeedApprovalStatus.HRApproved => 4,
+                TrainingNeedApprovalStatus.TrainingScheduled => 5,
+                TrainingNeedApprovalStatus.TrainingCompleted => 6,
+                TrainingNeedApprovalStatus.ImpactAssessmentPending => 7,
+                TrainingNeedApprovalStatus.ImpactAssessmentCompleted => 8,
+                TrainingNeedApprovalStatus.Closed => 9,
+                _ => 0
+            };
+
+            var progressRank = RankOf(Model.ApprovalStatus);
+            var isRejected = Model.ApprovalStatus is TrainingNeedApprovalStatus.ManagerRejected
+                             or TrainingNeedApprovalStatus.HRRejected;
+            var isReturned = Model.ApprovalStatus == TrainingNeedApprovalStatus.ReturnedForModification;
+
+            // (العنوان، الأيقونة، الرتبة على المسار السعيد، مرحلة انتظار؟، حالات اشتقاق التفاصيل)
+            var stages = new (string Label, string Icon, int Rank, bool Waiting, TrainingNeedApprovalStatus[] Detail)[]
+            {
+                ("تم إنشاء الطلب",       "bi-file-earmark-plus", 0, false, new[]{ TrainingNeedApprovalStatus.Draft }),
+                ("تم الإرسال",           "bi-send",              1, false, new[]{ TrainingNeedApprovalStatus.SubmittedToManager }),
+                ("مراجعة المدير",        "bi-search",            1, true,  new[]{ TrainingNeedApprovalStatus.SubmittedToManager }),
+                ("اعتماد المدير",        "bi-person-check",      2, false, new[]{ TrainingNeedApprovalStatus.ManagerApproved }),
+                ("مراجعة دائرة التدريب", "bi-people",            2, true,  new[]{ TrainingNeedApprovalStatus.ManagerApproved }),
+                ("التحقق من الميزانية",  "bi-cash-coin",         3, true,  new[]{ TrainingNeedApprovalStatus.BudgetReview }),
+                ("اعتماد",               "bi-patch-check",       4, false, new[]{ TrainingNeedApprovalStatus.HRApproved }),
+                ("البرنامج التدريبي",    "bi-mortarboard",       5, false, new[]{ TrainingNeedApprovalStatus.TrainingScheduled }),
+                ("تنفيذ التدريب",        "bi-easel",             6, false, new[]{ TrainingNeedApprovalStatus.TrainingCompleted }),
+                ("تقييم الأثر",          "bi-graph-up-arrow",    7, false, new[]{ TrainingNeedApprovalStatus.ImpactAssessmentPending, TrainingNeedApprovalStatus.ImpactAssessmentCompleted }),
+                ("إغلاق الاحتياج",       "bi-flag",              9, false, new[]{ TrainingNeedApprovalStatus.Closed }),
+            };
+        }
+
+        <div class="card mb-3">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-1"></i>مسار الاحتياج (Timeline)</h6></div>
+            <div class="card-body">
+                @if (isRejected)
+                {
+                    var rj = LastOf(TrainingNeedApprovalStatus.ManagerRejected, TrainingNeedApprovalStatus.HRRejected);
+                    <div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
+                        <i class="bi bi-x-octagon-fill mt-1"></i>
+                        <div>
+                            <div class="fw-semibold">تم رفض الطلب</div>
+                            @if (rj != null)
+                            {
+                                <div class="small">@(rj.ActionByName ?? "—") — @rj.ActionAt.ToString("yyyy/MM/dd HH:mm")</div>
+                                @if (!string.IsNullOrWhiteSpace(rj.Comment)) { <div class="small">@rj.Comment</div> }
+                            }
+                        </div>
+                    </div>
+                }
+                else if (isReturned)
+                {
+                    var rt = LastOf(TrainingNeedApprovalStatus.ReturnedForModification);
+                    <div class="alert alert-warning d-flex align-items-start gap-2 mb-3">
+                        <i class="bi bi-arrow-counterclockwise mt-1"></i>
+                        <div>
+                            <div class="fw-semibold">أُعيد الطلب للتعديل</div>
+                            @if (rt != null)
+                            {
+                                <div class="small">@(rt.ActionByName ?? "—") — @rt.ActionAt.ToString("yyyy/MM/dd HH:mm")</div>
+                                @if (!string.IsNullOrWhiteSpace(rt.Comment)) { <div class="small">@rt.Comment</div> }
+                            }
+                        </div>
+                    </div>
+                }
+
+                <ul class="tna-timeline list-unstyled mb-0">
+                    @foreach (var st in stages)
+                    {
+                        string state;
+                        if (progressRank > st.Rank) { state = "done"; }
+                        else if (progressRank == st.Rank) { state = st.Waiting ? "current" : "done"; }
+                        else { state = "pending"; }
+
+                        var rec = LastOf(st.Detail);
+                        DateTime? date = rec?.ActionAt;
+                        string? user = rec?.ActionByName;
+                        string? note = rec?.Comment;
+
+                        // احتياطات لبعض المراحل عند غياب سجل صريح
+                        if (st.Label == "تم إنشاء الطلب" && date == null) { date = Model.CreatedAt; }
+                        if (st.Label == "اعتماد المدير" && rec == null && Model.ManagerActionAt != null)
+                        { date = Model.ManagerActionAt; note = Model.ManagerComment; }
+                        if (st.Label == "اعتماد" && rec == null && Model.HRActionAt != null)
+                        { date = Model.HRActionAt; note = Model.HRComment; }
+                        if (st.Label == "البرنامج التدريبي" && Model.LinkedTrainingProgram != null && string.IsNullOrWhiteSpace(note))
+                        { note = "البرنامج: " + Model.LinkedTrainingProgram.Title; }
+
+                        var dotClass = state == "done" ? "bg-success" : state == "current" ? "bg-primary" : "bg-light border";
+                        var iconColor = state == "pending" ? "text-muted" : "text-white";
+                        var titleClass = state == "pending" ? "text-muted" : "fw-semibold";
+
+                        <li class="tna-step @(state == "pending" ? "is-pending" : "")">
+                            <span class="tna-dot @dotClass @iconColor"><i class="bi @st.Icon"></i></span>
+                            <div class="tna-body">
+                                <div class="d-flex align-items-center flex-wrap gap-2">
+                                    <span class="@titleClass">@st.Label</span>
+                                    @if (state == "current")
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary">المرحلة الحالية</span>
+                                    }
+                                    else if (state == "done")
+                                    {
+                                        <span class="badge bg-success-subtle text-success"><i class="bi bi-check2"></i> مكتملة</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted">لم تبدأ</span>
+                                    }
+                                </div>
+                                @if (state != "pending" && (date != null || !string.IsNullOrWhiteSpace(user) || !string.IsNullOrWhiteSpace(note)))
+                                {
+                                    <div class="small text-muted mt-1 d-flex flex-wrap gap-3">
+                                        @if (date != null)
+                                        {
+                                            <span><i class="bi bi-clock me-1"></i>@date.Value.ToString("yyyy/MM/dd HH:mm")</span>
+                                        }
+                                        <span><i class="bi bi-person me-1"></i>@(string.IsNullOrWhiteSpace(user) ? "—" : user)</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(note))
+                                    {
+                                        <div class="small text-muted mt-1"><i class="bi bi-chat-left-text me-1"></i>@note</div>
+                                    }
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">سجل مراحل الاعتماد (تفصيلي)</h6></div>
+            <div class="card-body">
+                @if (!Model.StatusHistory.Any())
+                {
+                    <p class="text-muted mb-0">لا يوجد سجل بعد.</p>
+                }
+                else
+                {
+                    @* ترتيب زمني تصاعدي لاشتقاق الحالة السابقة من الحالة المخزّنة في السجل الأقدم مباشرة *@
+                    var chrono = Model.StatusHistory.OrderBy(x => x.ActionAt).ThenBy(x => x.Id).ToList();
+                    <ul class="list-unstyled mb-0">
+                        @for (int i = chrono.Count - 1; i >= 0; i--)
+                        {
+                            var h = chrono[i];
+                            var hasPrev = i > 0;
+                            var prevStatus = hasPrev ? chrono[i - 1].Status : (TrainingNeedApprovalStatus?)null;
+                            <li class="d-flex gap-3 pb-3 mb-3 border-bottom">
+                                <div><span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(h.Status) rounded-pill">&nbsp;</span></div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">@h.Action</div>
+                                    <div class="d-flex align-items-center flex-wrap gap-1 my-1">
+                                        @if (prevStatus.HasValue)
+                                        {
+                                            <span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(prevStatus.Value) bg-opacity-75">@TrainingNeed.GetApprovalStatusDisplayName(prevStatus.Value)</span>
+                                            <i class="bi bi-arrow-left-short text-muted"></i>
+                                        }
+                                        <span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(h.Status)">@TrainingNeed.GetApprovalStatusDisplayName(h.Status)</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(h.Comment))
+                                    {
+                                        <div class="small text-muted"><i class="bi bi-chat-left-text me-1"></i>@h.Comment</div>
+                                    }
+                                    <div class="small text-muted">
+                                        <i class="bi bi-person me-1"></i>@(h.ActionByName ?? "—")
+                                        <i class="bi bi-clock ms-2 me-1"></i>@h.ActionAt.ToString("yyyy/MM/dd HH:mm")
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-body text-center">
+                <div class="text-muted small mb-2">مستوى الجاهزية للمهارة</div>
+                <div class="fs-1 fw-bold text-primary">@readiness%</div>
+                <div class="progress my-2" style="height: 10px;">
+                    <div class="progress-bar bg-primary" style="width: @readiness%"></div>
+                </div>
+
+                @{
+                    var gapBadgeClass = Model.Gap >= 3 ? "bg-danger" : Model.Gap == 2 ? "bg-warning text-dark" : Model.Gap == 1 ? "bg-info text-dark" : "bg-success";
+                }
+                <div class="text-start mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small text-muted">قياس الفجوة المهارية</span>
+                        <span class="badge rounded-pill @gapBadgeClass">الفجوة: @Model.Gap</span>
+                    </div>
+                    <div class="d-flex gap-1" dir="ltr">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            var color = i <= Model.CurrentLevel ? "#0d6efd" : (i <= Model.RequiredLevel ? "#dc3545" : "#e9ecef");
+                            <div class="flex-fill rounded" title="مستوى @i – @TrainingSystem.Models.TrainingNeed.LevelName(i)" style="height: 14px; background-color: @color;"></div>
+                        }
+                    </div>
+                    <div class="d-flex justify-content-around small text-muted mt-2">
+                        <div class="text-center">
+                            <div class="fw-bold text-dark">@Model.CurrentLevel</div>
+                            <div>الحالي: @TrainingSystem.Models.TrainingNeed.LevelName(Model.CurrentLevel)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="fw-bold text-dark">@Model.RequiredLevel</div>
+                            <div>المطلوب: @TrainingSystem.Models.TrainingNeed.LevelName(Model.RequiredLevel)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="fw-bold text-danger">@Model.Gap</div>
+                            <div>الفجوة</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <partial name="_ApprovalWorkflow" model="Model" />
+
+        <div class="card">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">إجراءات الاعتم��د</h6></div>
+            <div class="card-body">
+                @if (Model.ApprovalStatus == TrainingNeedApprovalStatus.Draft ||
+                     Model.ApprovalStatus == TrainingNeedApprovalStatus.ManagerRejected ||
+                     Model.ApprovalStatus == TrainingNeedApprovalStatus.HRRejected)
+                {
+                    <form asp-action="Submit" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-send me-1"></i> إرسال لاعتماد المدير
+                        </button>
+                    </form>
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.SubmittedToManager)
+                {
+                    <p class="small text-muted">بانتظار اعتماد المدير المباشر.</p>
+                    @if (canActAsManager)
+                    {
+                        <form asp-action="ManagerApprove" asp-route-id="@Model.Id" method="post" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="تعليق (اختياري)" />
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-check-lg me-1"></i> اعتماد المدير
+                            </button>
+                        </form>
+                        <form asp-action="ManagerRequestChanges" asp-route-id="@Model.Id" method="post" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="التعديل المطلوب" required />
+                            <button type="submit" class="btn btn-outline-warning w-100">
+                                <i class="bi bi-pencil-square me-1"></i> طلب تعديل
+                            </button>
+                        </form>
+                        <form asp-action="ManagerReject" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="سبب الرفض" />
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-x-lg me-1"></i> رفض
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            لا يمكنك اعتماد احتياج قمت بتقديمه بنفسك — يبتّ فيه مدير آخر أو دائرة التدريب.
+                        </div>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.ManagerApproved)
+                {
+                    @if (isPrivileged)
+                    {
+                        <p class="small text-muted">بانتظار اعتماد دائرة التدريب.</p>
+                        @{
+                            var hrBudget = ViewBag.CurrentBudget as TrainingBudget;
+                            var hrCost = (decimal)(ViewBag.NeedBudgetCost ?? 0m);
+                        }
+                        @if (hrBudget != null && hrCost > 0)
+                        {
+                            var over = hrCost > hrBudget.RemainingBudget;
+                            <div class="alert @(over ? "alert-warning" : "alert-info") py-2 px-3 small mb-2">
+                                <i class="bi @(over ? "bi-exclamation-triangle" : "bi-info-circle") me-1"></i>
+                                التكلفة التقديرية @hrCost.ToString("N0") — المتبقي من الميزانية @hrBudget.RemainingBudget.ToString("N0")
+                                @if (over)
+                                {
+                                    <span class="fw-bold d-block mt-1">التكلفة تتجاوز المتاح؛ سيُنقل الطلب تلقائياً لمراجعة الميزانية.</span>
+                                }
+                            </div>
+                        }
+                        <form asp-action="HRApprove" asp-route-id="@Model.Id" method="post" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="تعليق (اختياري)" />
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-check2-all me-1"></i> اعتماد دائرة التدريب
+                            </button>
+                        </form>
+                        <form asp-action="HRReject" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="سبب الرفض" />
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-x-lg me-1"></i> رفض
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="small text-muted mb-0">اعتمده المدير — بانتظار دائرة التدريب.</p>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.BudgetReview)
+                {
+                    <div class="alert alert-warning mb-2">
+                        <i class="bi bi-cash-coin me-1"></i> يتطلب مراجعة الميزانية
+                        @{
+                            var budget = ViewBag.CurrentBudget as TrainingBudget;
+                            var cost = (decimal)(ViewBag.NeedBudgetCost ?? 0m);
+                        }
+                        @if (budget != null)
+                        {
+                            <div class="small mt-1">التكلفة التقديرية: @cost.ToString("N0") — المتبقي من الميزانية: @budget.RemainingBudget.ToString("N0")</div>
+                        }
+                    </div>
+                    @if (isPrivileged)
+                    {
+                        <form asp-action="BudgetReviewApprove" asp-route-id="@Model.Id" method="post" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="مبرر التجاوز (اختياري)" />
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-check2-all me-1"></i> اعتماد رغم التجاوز
+                            </button>
+                        </form>
+                        <form asp-action="BudgetReviewReject" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <input name="comment" class="form-control form-control-sm mb-2" placeholder="سبب الرفض" />
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-x-lg me-1"></i> رفض لتجاوز الميزانية
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="small text-muted mb-0">الطلب قيد مراجعة الميزانية لدى دائرة التدريب.</p>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.HRApproved)
+                {
+                    <div class="alert alert-success mb-2"><i class="bi bi-check-circle me-1"></i> معتمد نهائياً</div>
+                    @if (isPrivileged)
+                    {
+                        <form asp-action="ScheduleTraining" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-calendar-check me-1"></i> جدولة التدريب وتسجيل الموظف
+                            </button>
+                        </form>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.TrainingScheduled)
+                {
+                    <div class="alert alert-info mb-2"><i class="bi bi-calendar-check me-1"></i> التدريب مجدول</div>
+                    @if (isPrivileged)
+                    {
+                        <form asp-action="CompleteTraining" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-flag me-1"></i> إنهاء التدريب
+                            </button>
+                        </form>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.ReturnedForModification)
+                {
+                    <div class="alert alert-warning mb-2">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> أُعيد الطلب للتعديل
+                        @if (!string.IsNullOrWhiteSpace(Model.ManagerComment))
+                        {
+                            <div class="small mt-1">المطلوب: @Model.ManagerComment</div>
+                        }
+                    </div>
+                    <form asp-action="Submit" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-send me-1"></i> إعادة الإرسال بعد التعديل
+                        </button>
+                    </form>
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.TrainingCompleted ||
+                         Model.ApprovalStatus == TrainingNeedApprovalStatus.ImpactAssessmentCompleted)
+                {
+                    <div class="alert alert-success mb-2"><i class="bi bi-check-circle me-1"></i> @TrainingNeed.GetApprovalStatusDisplayName(Model.ApprovalStatus)</div>
+                    @if (isPrivileged)
+                    {
+                        <form asp-action="CloseNeed" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-dark w-100">
+                                <i class="bi bi-lock me-1"></i> إغلاق الطلب
+                            </button>
+                        </form>
+                    }
+                }
+                else if (Model.ApprovalStatus == TrainingNeedApprovalStatus.Closed)
+                {
+                    <div class="alert alert-dark mb-0"><i class="bi bi-lock me-1"></i> الطلب مغلق</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tna-timeline { position: relative; margin: 0; padding: 0; }
+    .tna-timeline .tna-step { position: relative; padding-inline-start: 3rem; padding-bottom: 1.25rem; }
+    .tna-timeline .tna-step:last-child { padding-bottom: 0; }
+    /* الخط الرأسي الواصل بين المراحل */
+    .tna-timeline .tna-step::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: 0.9rem;
+        top: 1.9rem;
+        bottom: -0.15rem;
+        width: 2px;
+        background: #e9ecef;
+    }
+    .tna-timeline .tna-step:last-child::before { display: none; }
+    .tna-timeline .tna-dot {
+        position: absolute;
+        inset-inline-start: 0;
+        top: 0;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        z-index: 1;
+    }
+    .tna-timeline .tna-step.is-pending .tna-dot i { opacity: 0.55; }
+    .tna-timeline .tna-body { padding-top: 0.15rem; }
+</style>

@@ -1,0 +1,534 @@
+@using TrainingSystem.Models
+@model TrainingSystem.Controllers.TnaDashboardViewModel
+@{
+    ViewData["Title"] = "لوحة مؤشرات الاحتياجات التدريبية";
+    var departments = ViewBag.Departments as List<string> ?? new List<string>();
+    var years = ViewBag.Years as List<int> ?? new List<int>();
+    var jobTitles = ViewBag.JobTitles as List<string> ?? new List<string>();
+    var categories = ViewBag.Categories as List<string> ?? new List<string>();
+    var currentDept = ViewBag.CurrentDepartment as string;
+    var fYear = ViewBag.FilterYear as int?;
+    var fJob = ViewBag.FilterJobTitle as string;
+    var fCat = ViewBag.FilterCategory as string;
+    var fPriority = ViewBag.FilterPriority as int?;
+    var fStatus = ViewBag.FilterStatus as int?;
+    var fGapType = ViewBag.FilterGapType as int?;
+
+    // بيانات الرسوم
+    var deptData = Model.DepartmentDistribution;
+    var catData = Model.CategoryDistribution;
+    var prData = Model.PriorityDistribution.Where(x => x.Value > 0).ToDictionary(x => x.Key, x => x.Value);
+    var gapTypeData = Model.GapTypeDistribution;
+    var topSkills = Model.TopSkills;
+    var topGaps = Model.TopSkillGaps;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">لوحة مؤشرات الاحتياجات التدريبية</h4>
+        <p class="text-muted mb-0">نظرة تحليلية شاملة على وحدة تحليل الاحتياج التدريبي (TNA)</p>
+    </div>
+    <a asp-action="Reports" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-file-earmark-bar-graph me-1"></i> التقارير
+    </a>
+</div>
+
+<!-- الفلاتر -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">السنة</label>
+                <select name="year" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var y in years)
+                    {
+                        <option value="@y" selected="@(fYear == y)">@y</option>
+                    }
+                </select>
+            </div>
+            @if (Model.IsPrivileged)
+            {
+                <div class="col-6 col-md-3 col-lg-2">
+                    <label class="form-label small text-muted mb-1">الدائرة</label>
+                    <select name="department" class="form-select form-select-sm">
+                        <option value="">كل الدوائر</option>
+                        @foreach (var d in departments)
+                        {
+                            <option value="@d" selected="@(d == currentDept)">@d</option>
+                        }
+                    </select>
+                </div>
+            }
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">المسمى الوظيفي</label>
+                <select name="jobTitle" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var j in jobTitles)
+                    {
+                        <option value="@j" selected="@(j == fJob)">@j</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">نوع المهارة</label>
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var c in categories)
+                    {
+                        <option value="@c" selected="@(c == fCat)">@c</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">مستوى الأولوية</label>
+                <select name="priority" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var p in Enum.GetValues<TrainingNeedPriority>())
+                    {
+                        <option value="@((int)p)" selected="@(fPriority == (int)p)">@TrainingNeed.GetPriorityDisplayName(p)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">حالة الطلب</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var s in Enum.GetValues<TrainingNeedApprovalStatus>())
+                    {
+                        <option value="@((int)s)" selected="@(fStatus == (int)s)">@TrainingNeed.GetApprovalStatusDisplayName(s)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label small text-muted mb-1">نوع الفجوة</label>
+                <select name="gapType" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    @foreach (var g in Enum.GetValues<SkillGapType>())
+                    {
+                        <option value="@((int)g)" selected="@(fGapType == (int)g)">@g.DisplayName()</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-lg-4 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-funnel me-1"></i> تطبيق الفلاتر
+                </button>
+                <a asp-action="Dashboard" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> إعادة تعيين
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- محرك مؤشرات الأداء (KPI) -->
+@{
+    var kpi = Model.Kpis;
+}
+<h5 class="fw-bold mb-3"><i class="bi bi-speedometer2 me-2 text-primary"></i> مؤشرات الأداء الرئيسية</h5>
+<div class="row g-3 mb-4">
+    <!-- KPI 1 — نسبة التغطية -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border-top border-4 border-primary shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-semibold">نسبة تغطية الاحتياجات التدريبية</span>
+                    <i class="bi bi-people-fill text-primary"></i>
+                </div>
+                <div class="display-6 fw-bold text-primary mb-1">@kpi.CoveragePercent%</div>
+                <div class="progress mb-2" style="height:6px;">
+                    <div class="progress-bar bg-primary" style="width:@kpi.CoveragePercent%"></div>
+                </div>
+                <div class="small text-muted">@kpi.TrainedEmployees مُدرَّب من @kpi.TargetedEmployees مستهدَف</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI 2 — الالتزام بالميزانية -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border-top border-4 border-success shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-semibold">الالتزام بالميزانية</span>
+                    <i class="bi bi-cash-coin text-success"></i>
+                </div>
+                @if (kpi.HasBudget)
+                {
+                    <div class="display-6 fw-bold text-success mb-1">@kpi.BudgetUtilizationPercent%</div>
+                    <div class="progress mb-2" style="height:6px;">
+                        <div class="progress-bar bg-success" style="width:@(Math.Min(100, kpi.BudgetUtilizationPercent))%"></div>
+                    </div>
+                    <div class="small text-muted d-flex flex-column gap-1">
+                        <span>المخطط: <b>@kpi.BudgetPlanned.ToString("N0")</b></span>
+                        <span>الفعلي: <b>@kpi.BudgetActual.ToString("N0")</b></span>
+                        <span>الفرق: <b class="@(kpi.BudgetVariance < 0 ? "text-danger" : "text-success")">@kpi.BudgetVariance.ToString("N0")</b></span>
+                    </div>
+                }
+                else
+                {
+                    <div class="fs-5 fw-bold text-muted mb-1">—</div>
+                    <div class="small text-muted">لم تُعرّف ميزانية للسنة المالية الحالية</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI 3 — معدل تحسن الأداء -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border-top border-4 border-info shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-semibold">معدل تحسن الأداء بعد التدريب</span>
+                    <i class="bi bi-graph-up-arrow text-info"></i>
+                </div>
+                @if (kpi.AssessedEmployees > 0)
+                {
+                    <div class="display-6 fw-bold text-info mb-1">@kpi.PerformanceImprovementPercent%</div>
+                    <div class="progress mb-2" style="height:6px;">
+                        <div class="progress-bar bg-info" style="width:@kpi.PerformanceImprovementPercent%"></div>
+                    </div>
+                    <div class="small text-muted">@kpi.ImprovedEmployees تحسّن أداؤهم من @kpi.AssessedEmployees مُقيَّم</div>
+                }
+                else
+                {
+                    <div class="fs-5 fw-bold text-muted mb-1">—</div>
+                    <div class="small text-muted">لا توجد تقييمات أثر مكتملة بعد</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI 4 — العائد على الاستثمار (اختياري) -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border-top border-4 border-warning shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-semibold">العائد على الاستثمار التدريبي (ROI)</span>
+                    <i class="bi bi-currency-exchange text-warning"></i>
+                </div>
+                @if (kpi.RoiAvailable)
+                {
+                    <div class="display-6 fw-bold @(kpi.RoiPercent >= 0 ? "text-warning" : "text-danger") mb-1">@kpi.RoiPercent%</div>
+                    <div class="small text-muted d-flex flex-column gap-1">
+                        <span>العائد المالي: <b>@kpi.RoiFinancialReturn.ToString("N0")</b></span>
+                        <span>تكلفة التدريب: <b>@kpi.RoiTrainingCost.ToString("N0")</b></span>
+                    </div>
+                }
+                else
+                {
+                    <div class="fs-6 fw-bold text-muted mb-2">مؤشر اختياري</div>
+                    <p class="small text-muted mb-2">بعض البرامج لا يمكن قياس عائدها المالي مباشرة. أدخل العائد المالي المقدّر لحساب المؤشر.</p>
+                    <form method="get" class="input-group input-group-sm">
+                        <input type="hidden" name="year" value="@fYear" />
+                        <input type="hidden" name="department" value="@currentDept" />
+                        <input type="hidden" name="jobTitle" value="@fJob" />
+                        <input type="hidden" name="category" value="@fCat" />
+                        <input type="hidden" name="priority" value="@fPriority" />
+                        <input type="hidden" name="status" value="@fStatus" />
+                        <input type="hidden" name="gapType" value="@fGapType" />
+                        <input type="number" step="any" min="0" name="roiReturn" class="form-control" placeholder="العائد المالي المقدّر" />
+                        <button type="submit" class="btn btn-warning">احسب</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- بطاقات المؤشرات -->
+<div class="row g-3 mb-4">
+    @{
+        var summaryCards = new (string Title, string Value, string Icon, string Color)[]
+        {
+            ("إجمالي الاحتياجات", Model.TotalNeeds.ToString("N0"), "bi-clipboard-data", "primary"),
+            ("الاحتياجات المعتمدة", Model.ApprovedCount.ToString("N0"), "bi-patch-check", "success"),
+            ("الاحتياجات قيد المراجعة", Model.PendingApprovals.ToString("N0"), "bi-hourglass-split", "warning"),
+            ("الاحتياجات الحرجة", Model.CriticalCount.ToString("N0"), "bi-exclamation-octagon", "danger"),
+            ("البرامج المنفذة", Model.ExecutedPrograms.ToString("N0"), "bi-mortarboard", "info"),
+            ("الموظفون المدربون", kpi.TrainedEmployees.ToString("N0"), "bi-people-fill", "primary"),
+            ("الميزانية المعتمدة", Model.BudgetAllocated.ToString("N0"), "bi-wallet2", "success"),
+            ("الميزانية المستخدمة", Model.BudgetUsed.ToString("N0"), "bi-cash-stack", "dark"),
+            ("نسبة تغطية الاحتياجات", kpi.CoveragePercent + "%", "bi-pie-chart", "info"),
+            ("نسبة تحسن الأداء", (kpi.AssessedEmployees > 0 ? kpi.PerformanceImprovementPercent + "%" : "—"), "bi-graph-up-arrow", "warning"),
+        };
+    }
+    @foreach (var k in summaryCards)
+    {
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <span class="badge bg-@(k.Color)-subtle text-@k.Color fs-6 mb-2"><i class="bi @k.Icon"></i></span>
+                    <div class="fs-4 fw-bold">@k.Value</div>
+                    <div class="text-muted small">@k.Title</div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- بطاقات ثانوية -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+                <div class="text-muted small">الاحتياجات المرتبطة بالأد��ء</div>
+                <div class="fs-3 fw-bold text-primary">@Model.PerformanceLinkedCount</div>
+            </div>
+            <i class="bi bi-graph-up-arrow fs-1 text-primary opacity-25"></i>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+                <div class="text-muted small">الاحتياجات الإلزامية</div>
+                <div class="fs-3 fw-bold text-danger">@Model.ComplianceCount</div>
+            </div>
+            <i class="bi bi-shield-check fs-1 text-danger opacity-25"></i>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between small mb-1">
+                <span class="text-muted">نسبة الجاهزية العامة</span>
+                <span class="fw-bold text-success">@Model.Readiness%</span>
+            </div>
+            <div class="progress mb-3" style="height: 10px;">
+                <div class="progress-bar bg-success" style="width: @Model.Readiness%"></div>
+            </div>
+            <div class="d-flex justify-content-between small mb-1">
+                <span class="text-muted">الميزانية: @Model.BudgetUsed.ToString("N0") / @Model.BudgetAllocated.ToString("N0")</span>
+                <span class="fw-bold">@Model.BudgetUtilization%</span>
+            </div>
+            <div class="progress" style="height: 10px;">
+                <div class="progress-bar @(Model.BudgetUtilization >= 90 ? "bg-danger" : Model.BudgetUtilization >= 70 ? "bg-warning" : "bg-info")"
+                     style="width: @(Math.Min(Model.BudgetUtilization, 100))%"></div>
+            </div>
+        </div></div>
+    </div>
+</div>
+
+<!-- الرسوم البيانية -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">الاحتياجات حسب الإدارة</h6>
+            @if (!deptData.Any()) { <p class="text-muted mb-0">لا توجد بيانات.</p> }
+            else { <canvas id="chartDept" height="140"></canvas> }
+        </div></div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">الاحتياجات حسب نوع المهارة</h6>
+            @if (!catData.Any()) { <p class="text-muted mb-0">لا توجد تصنيفات مسجّلة.</p> }
+            else { <canvas id="chartCat" height="200"></canvas> }
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">الاحتياجات حسب الأولوية</h6>
+            @if (!prData.Any()) { <p class="text-muted mb-0">لا توجد بيانات.</p> }
+            else { <canvas id="chartPriority" height="220"></canvas> }
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">الاحتياجات حسب نوع الفجوة</h6>
+            @if (!gapTypeData.Any()) { <p class="text-muted mb-0">لا توجد بيانات.</p> }
+            else { <canvas id="chartGapType" height="220"></canvas> }
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">أكثر المهارات طلباً</h6>
+            @if (!topSkills.Any()) { <p class="text-muted mb-0">لا توجد بيانات.</p> }
+            else { <canvas id="chartTopSkills" height="220"></canvas> }
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card"><div class="card-body">
+            <h6 class="fw-bold mb-3">الفجوات المهارية الأعلى (متوسط الفجوة)</h6>
+            @if (!topGaps.Any()) { <p class="text-muted mb-0">لا توجد بيانات.</p> }
+            else { <canvas id="chartTopGaps" height="90"></canvas> }
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">الميزانية — المخطط مقابل الفعلي</h6>
+            @if (Model.BudgetAllocated <= 0) { <p class="text-muted mb-0">لا توجد ميزانية معتمدة.</p> }
+            else { <canvas id="chartBudget" height="220"></canvas> }
+        </div></div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card h-100"><div class="card-body">
+            <h6 class="fw-bold mb-3">التدريب حسب الأشهر (آخر 12 شهراً)</h6>
+            <canvas id="chartMonthly" height="150"></canvas>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card"><div class="card-body">
+            <h6 class="fw-bold mb-3">أثر التدريب — قبل مقابل بعد</h6>
+            @if (Model.ImpactAssessmentsCount == 0) { <p class="text-muted mb-0">لا توجد تقييمات أثر مكتملة بعد.</p> }
+            else
+            {
+                <canvas id="chartImpact" height="90"></canvas>
+                <div class="small text-muted mt-2">مبني على @Model.ImpactAssessmentsCount تقييم أثر مكتمل — متوسط قبل @Model.ImpactBeforeAvg / بعد @Model.ImpactAfterAvg (من 5)</div>
+            }
+        </div></div>
+    </div>
+</div>
+
+<!-- أحدث الاحتياجات -->
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0">أحدث الاحتياجات المسجّلة</h6>
+        <a asp-action="Index" class="btn btn-sm btn-link">عرض الكل</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>الموظف</th>
+                    <th>الدائرة</th>
+                    <th>المهارة</th>
+                    <th class="text-center">الفجوة</th>
+                    <th class="text-center">الأولوية</th>
+                    <th class="text-center">الاعتماد</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.RecentNeeds.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">لا توجد بيانات</td></tr>
+                }
+                @foreach (var n in Model.RecentNeeds)
+                {
+                    var prBadge = TrainingNeed.GetPriorityBadge(n.Priority);
+                    <tr>
+                        <td><a asp-action="Details" asp-route-id="@n.Id" class="text-decoration-none">@n.EmployeeName</a></td>
+                        <td>@n.Department</td>
+                        <td>@n.SkillName</td>
+                        <td class="text-center"><span class="badge bg-secondary">@n.Gap</span></td>
+                        <td class="text-center"><span class="badge bg-@prBadge">@TrainingNeed.GetPriorityDisplayName(n.Priority)</span></td>
+                        <td class="text-center"><span class="badge bg-@TrainingNeed.GetApprovalStatusBadge(n.ApprovalStatus)">@TrainingNeed.GetApprovalStatusDisplayName(n.ApprovalStatus)</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            const palette = ['#0d6efd', '#20c997', '#ffc107', '#dc3545', '#6610f2', '#fd7e14', '#0dcaf0', '#198754', '#6c757d', '#d63384'];
+            Chart.defaults.font.family = 'inherit';
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+            const deptData = @Html.Raw(Json.Serialize(deptData));
+            const catData = @Html.Raw(Json.Serialize(catData));
+            const prData = @Html.Raw(Json.Serialize(prData));
+            const gapTypeData = @Html.Raw(Json.Serialize(gapTypeData));
+            const topSkills = @Html.Raw(Json.Serialize(topSkills));
+            const topGaps = @Html.Raw(Json.Serialize(topGaps));
+            const monthlyTrend = @Html.Raw(Json.Serialize(Model.MonthlyTrend));
+            const budgetData = {
+                planned: @Model.BudgetAllocated,
+                committed: @Model.BudgetCommitted,
+                actual: @Model.BudgetActualSpending
+            };
+            const impactData = { before: @Model.ImpactBeforeAvg, after: @Model.ImpactAfterAvg };
+
+            function keys(o) { return Object.keys(o); }
+            function vals(o) { return Object.values(o); }
+
+            const el = id => document.getElementById(id);
+
+            if (el('chartDept')) new Chart(el('chartDept'), {
+                type: 'bar',
+                data: { labels: keys(deptData), datasets: [{ label: 'عدد الاحتياجات', data: vals(deptData), backgroundColor: '#0d6efd', borderRadius: 4 }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+
+            if (el('chartCat')) new Chart(el('chartCat'), {
+                type: 'doughnut',
+                data: { labels: keys(catData), datasets: [{ data: vals(catData), backgroundColor: palette }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            if (el('chartPriority')) new Chart(el('chartPriority'), {
+                type: 'doughnut',
+                data: { labels: keys(prData), datasets: [{ data: vals(prData), backgroundColor: ['#212529', '#dc3545', '#ffc107', '#198754'] }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            if (el('chartGapType')) new Chart(el('chartGapType'), {
+                type: 'pie',
+                data: { labels: keys(gapTypeData), datasets: [{ data: vals(gapTypeData), backgroundColor: ['#0d6efd', '#20c997', '#dc3545'] }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            if (el('chartTopSkills')) new Chart(el('chartTopSkills'), {
+                type: 'bar',
+                data: { labels: topSkills.map(s => s.skillName), datasets: [{ label: 'عدد الطلبات', data: topSkills.map(s => s.count), backgroundColor: '#6610f2', borderRadius: 4 }] },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+
+            if (el('chartTopGaps')) new Chart(el('chartTopGaps'), {
+                type: 'bar',
+                data: { labels: topGaps.map(s => s.skillName), datasets: [{ label: 'متوسط الفجوة', data: topGaps.map(s => s.averageGap), backgroundColor: '#fd7e14', borderRadius: 4 }] },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, max: 5 } } }
+            });
+
+            // الميزانية — المخطط مقابل الفعلي (والملتزم)
+            if (el('chartBudget')) new Chart(el('chartBudget'), {
+                type: 'bar',
+                data: {
+                    labels: ['الميزانية'],
+                    datasets: [
+                        { label: 'المخطط', data: [budgetData.planned], backgroundColor: '#0d6efd', borderRadius: 4 },
+                        { label: 'الملتزم', data: [budgetData.committed], backgroundColor: '#ffc107', borderRadius: 4 },
+                        { label: 'الفعلي', data: [budgetData.actual], backgroundColor: '#198754', borderRadius: 4 }
+                    ]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            // التدريب حسب الأشهر — اتجاه شهري
+            if (el('chartMonthly')) new Chart(el('chartMonthly'), {
+                type: 'line',
+                data: {
+                    labels: keys(monthlyTrend),
+                    datasets: [{ label: 'عدد الاحتياجات', data: vals(monthlyTrend), borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,0.1)', fill: true, tension: 0.3, pointRadius: 3 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+
+            // أثر التدريب — قبل مقابل بعد
+            if (el('chartImpact')) new Chart(el('chartImpact'), {
+                type: 'bar',
+                data: {
+                    labels: ['متوسط التقييم'],
+                    datasets: [
+                        { label: 'قبل التدريب', data: [impactData.before], backgroundColor: '#adb5bd', borderRadius: 4 },
+                        { label: 'بعد التدريب', data: [impactData.after], backgroundColor: '#198754', borderRadius: 4 }
+                    ]
+                },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { beginAtZero: true, max: 5 } } }
+            });
+        })();
+    </script>
+}

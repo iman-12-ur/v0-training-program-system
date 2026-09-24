@@ -8,7 +8,7 @@ using TrainingSystem.Models;
 
 namespace TrainingSystem.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
+    [Authorize(Roles = "SuperAdmin,Admin,DepartmentManager,SectionHead,Supervisor")]
     public class SettingsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -212,7 +212,7 @@ namespace TrainingSystem.Controllers
             {
                 ModelState.AddModelError(nameof(model.Role), "الدور المحدد غير صالح");
             }
-            // لا يجوز لغير مدير النظام التصرّف في حساب مدير/مدير نظام آخر أو ترقية أحد إلى هذين الدورين (IDOR/تصعيد صلاحيات)
+            // ل�� يجوز لغير مدير النظام التصرّف في حساب مدير/مدير نظام آخر أو ترقية أحد إلى هذين الدورين (IDOR/تصعيد صلاحيات)
             if (!User.IsInRole(SystemRoles.SuperAdmin)
                 && (((targetIsSuperAdmin || targetIsAdmin) && !isSelf)
                     || model.Role == SystemRoles.SuperAdmin

@@ -1,0 +1,90 @@
+@model TrainingSystem.Models.TrainingBudget
+@{
+    ViewData["Title"] = "موازنة التدريب";
+    var years = ViewBag.Years as List<string> ?? new List<string>();
+    var selectedYear = ViewBag.SelectedYear as string;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">الموازنة المركزية لدائرة التدريب</h4>
+        <p class="text-muted mb-0">وعاء واحد للسنة المالية — متابعة المخصص والملتزم والمصروف الفعلي (بلا إيقاف للاعتمادات)</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get">
+            <select name="financialYear" class="form-select form-select-sm" onchange="this.form.submit()">
+                @foreach (var y in years)
+                {
+                    <option value="@y" selected="@(y == selectedYear)">@y</option>
+                }
+            </select>
+        </form>
+    </div>
+</div>
+
+@if (Model == null)
+{
+    <div class="card"><div class="card-body text-center text-muted py-5">
+        <i class="bi bi-cash-stack fs-1 d-block mb-2"></i>
+        لا توجد موازنة معرّفة للسنة المالية @selectedYear
+        <div class="mt-3">
+            <a asp-action="Create" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> تعريف الموازنة
+            </a>
+        </div>
+    </div></div>
+}
+else
+{
+    var pct = Model.UtilizationPercent;
+    var barColor = pct >= 100 ? "bg-danger" : pct >= 80 ? "bg-warning" : "bg-success";
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small mb-1">المخصص</div>
+                <div class="fs-4 fw-bold">@Model.AllocatedBudget.ToString("N0")</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small mb-1">الملتزم به</div>
+                <div class="fs-4 fw-bold text-warning">@Model.CommittedBudget.ToString("N0")</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small mb-1">المصروف الفعلي</div>
+                <div class="fs-4 fw-bold text-info">@Model.ActualSpending.ToString("N0")</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small mb-1">المتبقي</div>
+                <div class="fs-4 fw-bold @(Model.RemainingBudget < 0 ? "text-danger" : "text-success")">@Model.RemainingBudget.ToString("N0")</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-semibold">نسبة الاستهلاك</span>
+                <span class="fw-bold">@pct%</span>
+            </div>
+            <div class="progress mb-4" style="height: 12px;">
+                <div class="progress-bar @barColor" style="width: @(Math.Min(pct, 100))%"></div>
+            </div>
+            @if (Model.RemainingBudget < 0)
+            {
+                <div class="alert alert-warning py-2 small">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    تجاوز الاستهلاك المبلغ المخصّص — الموازنة للمتابعة فقط ولم تُوقف أي اعتماد.
+                </div>
+            }
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-pencil me-1"></i> تعديل المبلغ المخصّص
+            </a>
+        </div>
+    </div>
+}

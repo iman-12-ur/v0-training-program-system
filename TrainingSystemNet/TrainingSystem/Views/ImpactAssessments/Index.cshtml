@@ -1,0 +1,110 @@
+@model List<TrainingSystem.Models.TrainingImpactAssessment>
+@using TrainingSystem.Models
+@{
+    ViewData["Title"] = "تقييم أثر التدريب";
+    var status = ViewBag.Status as string;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">تقييم أثر التدريب</h4>
+        <p class="text-muted mb-0">تقييمات مباشرة وبعد 90 يوماً لقياس أثر التدريب على الأداء</p>
+    </div>
+    <div class="btn-group btn-group-sm">
+        <a asp-action="Index" class="btn @(string.IsNullOrEmpty(status) ? "btn-primary" : "btn-outline-primary")">الكل</a>
+        <a asp-action="Index" asp-route-status="pending" class="btn @(status == "pending" ? "btn-primary" : "btn-outline-primary")">قيد الانتظار</a>
+        <a asp-action="Index" asp-route-status="completed" class="btn @(status == "completed" ? "btn-primary" : "btn-outline-primary")">مكتملة</a>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card"><div class="card-body text-center text-muted py-5">
+        <i class="bi bi-clipboard-check fs-1 d-block mb-2"></i>
+        لا توجد تقييمات أثر مطابقة
+    </div></div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>المهارة / الموظف</th>
+                        <th>الدائرة</th>
+                        <th>نوع التقييم</th>
+                        <th>تاريخ الاستحقاق</th>
+                        <th>النتيجة</th>
+                        <th>التحسّن</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model)
+                    {
+                        var overdue = a.CompletedAt == null && a.DueDate.HasValue && a.DueDate.Value.Date < DateTime.Now.Date;
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@a.TrainingNeed?.SkillName</div>
+                                <div class="small text-muted">@a.TrainingNeed?.EmployeeName</div>
+                            </td>
+                            <td>@a.TrainingNeed?.Department</td>
+                            <td>
+                                <span class="badge bg-@(a.AssessmentType == ImpactAssessmentType.Day90 ? "info" : "primary")">
+                                    @TrainingImpactAssessment.GetTypeDisplayName(a.AssessmentType)
+                                </span>
+                            </td>
+                            <td>
+                                @(a.DueDate?.ToString("yyyy/MM/dd") ?? "-")
+                                @if (overdue)
+                                {
+                                    <span class="badge bg-danger ms-1">متأخر</span>
+                                }
+                            </td>
+                            <td>
+                                @if (a.IsCompleted)
+                                {
+                                    <span class="fw-semibold">@a.AverageScore / 5</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (a.IsCompleted)
+                                {
+                                    var impClr = a.Improvement > 0 ? "success" : (a.Improvement < 0 ? "danger" : "secondary");
+                                    <span class="badge bg-@impClr">@(a.Improvement > 0 ? "+" : "")@a.Improvement</span>
+                                    @if (a.HasImprovementPercent)
+                                    {
+                                        <span class="small text-@impClr ms-1">(@(a.ImprovementPercent > 0 ? "+" : "")@a.ImprovementPercent%)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="small text-muted ms-1" title="لا تُحسب النسبة عندما يكون تقييم ما قبل التدريب = 0">(النسبة غير متاحة)</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (a.IsCompleted)
+                                {
+                                    <a asp-action="Complete" asp-route-id="@a.Id" class="btn btn-sm btn-outline-secondary">عرض / تحديث</a>
+                                }
+                                else
+                                {
+                                    <a asp-action="Complete" asp-route-id="@a.Id" class="btn btn-sm btn-primary">إجراء التقييم</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
