@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TrainingSystem.Data;
 using TrainingSystem.Models;
+using TrainingSystem.Services;
 
 namespace TrainingSystem.Controllers
 {
@@ -13,11 +14,13 @@ namespace TrainingSystem.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly TrainingKpiService _kpiService;
 
-        public KpiController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public KpiController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, TrainingKpiService kpiService)
         {
             _context = context;
             _userManager = userManager;
+            _kpiService = kpiService;
         }
 
         private bool IsPrivileged =>
@@ -50,46 +53,52 @@ namespace TrainingSystem.Controllers
                 CompletedTraining = needs.Count(n => n.ApprovalStatus == TrainingNeedApprovalStatus.TrainingCompleted),
             };
 
-            // 1) تغطية الاحتياجات %
-            vm.CoveragePercent = vm.TotalNeeds > 0
-                ? (int)Math.Round(100.0 * vm.ApprovedNeeds / vm.TotalNeeds) : 0;
-
-            // 2) الالتزام بالموازنة المركزية (Planned/Actual/Variance/Utilization)
             // الموازنة مركزية لدائرة التدريب — لا تُفلتَر حسب الدائرة الطالبة.
             var budgets = await _context.TrainingBudgets.ToListAsync();
             vm.PlannedBudget = budgets.Sum(b => b.AllocatedBudget);
             vm.ActualSpending = budgets.Sum(b => b.ActualSpending);
             vm.CommittedBudget = budgets.Sum(b => b.CommittedBudget);
-            vm.BudgetVariance = vm.PlannedBudget - (vm.ActualSpending + vm.CommittedBudget);
-            vm.BudgetUtilizationPercent = vm.PlannedBudget > 0
-                ? (int)Math.Round(100m * (vm.ActualSpending + vm.CommittedBudget) / vm.PlannedBudget) : 0;
 
-            // 3) تحسّن الأداء % (من تقييمات الأثر المكتملة)
-            var assessmentsQuery = _context.TrainingImpactAssessments
-                .Include(a => a.TrainingNeed)
-                .Where(a => a.CompletedAt != null);
-            if (!IsPrivileged)
-                assessmentsQuery = assessmentsQuery.Where(a => a.TrainingNeed != null && a.TrainingNeed.Department == myDept);
-            else if (!string.IsNullOrWhiteSpace(department))
-                assessmentsQuery = assessmentsQuery.Where(a => a.TrainingNeed != null && a.TrainingNeed.Department == department);
-
-            var assessments = await assessmentsQuery.ToListAsync();
-            vm.CompletedAssessments = assessments.Count;
-            vm.AveragePerformanceImprovement = assessments.Any()
-                ? (int)Math.Round(assessments.Average(a => a.ImprovementPercent)) : 0;
-
-            // 4) ROI % (اختياري): (قيمة التحسّن التقديرية − التكلفة) / التكلفة
-            // نُقدّر قيمة التحسّن بنسبة التحسّن مضروبة في التكلفة كبديل تقريبي.
+            // تقدير قيمة التحسّن لعائد ROI (بديل تقريبي = التكلفة × (1 + متوسط نسبة التحسّن))
+            // يبقى هذا التقدير مدخلاً للخدمة؛ أما معادلة ROI نفسها فتُحسب مركزياً في الخدمة.
             var completedCost = needs
                 .Where(n => n.ApprovalStatus == TrainingNeedApprovalStatus.TrainingCompleted)
                 .Sum(n => n.EstimatedCost);
             vm.TotalTrainingCost = completedCost;
-            if (completedCost > 0 && assessments.Any())
+
+            decimal? roiReturn = null;
+            if (completedCost > 0)
             {
-                var avgImprovementRatio = assessments.Average(a => a.ImprovementPercent) / 100.0;
-                var estimatedValue = (double)completedCost * (1 + avgImprovementRatio);
-                vm.RoiPercent = (int)Math.Round(100.0 * (estimatedValue - (double)completedCost) / (double)completedCost);
+                var needIds = needs.Select(n => n.Id).ToList();
+                var avgImprovementPercent = await _context.TrainingImpactAssessments
+                    .Where(a => a.CompletedAt != null && needIds.Contains(a.TrainingNeedId))
+                    .Select(a => (double?)(a.AfterScore > a.BeforeScore && a.BeforeScore > 0
+                        ? 100.0 * (a.AfterScore - a.BeforeScore) / a.BeforeScore : 0))
+                    .AverageAsync() ?? 0;
+                if (avgImprovementPercent > 0)
+                    roiReturn = completedCost * (decimal)(1 + avgImprovementPercent / 100.0);
             }
+
+            // كل معادلات المؤشرات تُحسب مركزياً عبر TrainingKpiService
+            var kpi = await _kpiService.ComputeAsync(
+                needs,
+                budgetPlanned: vm.PlannedBudget,
+                budgetActual: vm.ActualSpending,
+                budgetCommitted: vm.CommittedBudget,
+                hasBudget: vm.PlannedBudget > 0,
+                roiTrainingCost: completedCost,
+                roiReturn: roiReturn);
+
+            // 1) تغطية الاحتياجات %
+            vm.CoveragePercent = kpi.CoveragePercent;
+            // 2) الالتزام بالموازنة
+            vm.BudgetVariance = kpi.BudgetVariance;
+            vm.BudgetUtilizationPercent = kpi.BudgetUtilizationPercent;
+            // 3) تحسّن الأداء %
+            vm.CompletedAssessments = kpi.AssessedEmployees;
+            vm.AveragePerformanceImprovement = kpi.PerformanceImprovementPercent;
+            // 4) العائد على الاستثمار %
+            vm.RoiPercent = kpi.RoiPercent;
 
             // توزيع حسب الدائرة (للمخوّلين)
             vm.ByDepartment = needs

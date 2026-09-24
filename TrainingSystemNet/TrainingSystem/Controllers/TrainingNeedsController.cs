@@ -18,11 +18,13 @@ namespace TrainingSystem.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly TrainingKpiService _kpiService;
 
-        public TrainingNeedsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public TrainingNeedsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, TrainingKpiService kpiService)
         {
             _context = context;
             _userManager = userManager;
+            _kpiService = kpiService;
         }
 
         private bool IsPrivileged =>
@@ -934,7 +936,7 @@ namespace TrainingSystem.Controllers
                     $"{NotificationHelper.PostTrainingDuePrefix} {need.SkillName}", NotificationType.Warning, need.Id);
 
             await _context.SaveChangesAsync();
-            TempData["Success"] = "تم إنهاء التدريب وإنشاء تقييمي الأثر تلقائياً";
+            TempData["Success"] = "تم إنهاء التدريب وإنشاء تقييم�� الأثر تلقائياً";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -1100,50 +1102,19 @@ namespace TrainingSystem.Controllers
                 IsPrivileged = IsPrivileged
             };
 
-            // ===== محرك مؤشرات الأداء (KPI) =====
-            string EmpKey(TrainingNeed n) => (n.EmployeeNumber ?? "") + "|" + n.EmployeeName;
-
-            var completedStatuses = new[]
-            {
-                TrainingNeedApprovalStatus.TrainingCompleted,
-                TrainingNeedApprovalStatus.ImpactAssessmentPending,
-                TrainingNeedApprovalStatus.ImpactAssessmentCompleted,
-                TrainingNeedApprovalStatus.Closed
-            };
-
-            // KPI 1 — نسبة التغطية: موظفون أُكمل تدريبهم ÷ إجمالي الموظفين المرصود لهم احتياج
-            var trainedEmployees = needs.Where(n => completedStatuses.Contains(n.ApprovalStatus))
-                .Select(EmpKey).Distinct().Count();
-            var targetedEmployees = needs.Select(EmpKey).Distinct().Count();
-
-            // KPI 3 — تحسن الأداء: من تقييمات الأثر المكتملة للاحتياجات المفلترة
-            var needIds = needs.Select(n => n.Id).ToList();
-            var assessments = await _context.TrainingImpactAssessments
-                .Where(a => needIds.Contains(a.TrainingNeedId) && a.CompletedAt != null)
-                .Select(a => new { a.TrainingNeedId, a.BeforeScore, a.AfterScore })
-                .ToListAsync();
-
-            var needToEmp = needs.ToDictionary(n => n.Id, EmpKey);
-            var assessedEmp = assessments.Select(a => needToEmp[a.TrainingNeedId]).Distinct().Count();
-            var improvedEmp = assessments.Where(a => a.AfterScore > a.BeforeScore)
-                .Select(a => needToEmp[a.TrainingNeedId]).Distinct().Count();
-
+            // ===== محرك مؤشرات الأداء (KPI) — عبر الخدمة المركزية =====
             // KPI 4 — ROI اختياري: يُحسب فقط عند تمرير عائد مالي (لا يُخزَّن)
             var roiCost = budget != null && budget.ActualSpending > 0 ? budget.ActualSpending : estimatedTotal;
 
-            vm.Kpis = new KpiEngine
-            {
-                TrainedEmployees = trainedEmployees,
-                TargetedEmployees = targetedEmployees,
-                HasBudget = budget != null && budgetAllocated > 0,
-                BudgetPlanned = budgetAllocated,
-                BudgetActual = budget != null ? budget.ActualSpending : 0m,
-                AssessedEmployees = assessedEmp,
-                ImprovedEmployees = improvedEmp,
-                RoiAvailable = roiReturn.HasValue && roiReturn.Value > 0,
-                RoiFinancialReturn = roiReturn ?? 0m,
-                RoiTrainingCost = roiCost
-            };
+            vm.Kpis = await _kpiService.ComputeAsync(
+                needs,
+                budgetPlanned: budgetAllocated,
+                budgetActual: budget?.ActualSpending ?? 0m,
+                budgetCommitted: budget?.CommittedBudget ?? 0m,
+                hasBudget: budget != null && budgetAllocated > 0,
+                roiTrainingCost: roiCost,
+                roiReturn: roiReturn);
+
             ViewBag.RoiReturn = roiReturn;
 
             // خيارات الفلاتر (على كامل نطاق وصول المستخدم)
@@ -2246,37 +2217,6 @@ namespace TrainingSystem.Controllers
 
         // محرك مؤشرات الأداء (KPI)
         public KpiEngine Kpis { get; set; } = new();
-    }
-
-    // مؤشرات الأداء الأربعة المحسوبة ��لوحة المعلومات
-    public class KpiEngine
-    {
-        // KPI 1 — نسبة تغطية الاحتياجات التدريبية
-        public int TrainedEmployees { get; set; }
-        public int TargetedEmployees { get; set; }
-        public int CoveragePercent => TargetedEmployees > 0
-            ? (int)Math.Round(100.0 * TrainedEmployees / TargetedEmployees) : 0;
-
-        // KPI 2 — الالتزام بالميزانية
-        public decimal BudgetPlanned { get; set; }
-        public decimal BudgetActual { get; set; }
-        public decimal BudgetVariance => BudgetPlanned - BudgetActual;
-        public int BudgetUtilizationPercent => BudgetPlanned > 0
-            ? (int)Math.Round(100m * BudgetActual / BudgetPlanned) : 0;
-        public bool HasBudget { get; set; }
-
-        // KPI 3 — معدل تحسن الأداء بعد التدريب
-        public int ImprovedEmployees { get; set; }
-        public int AssessedEmployees { get; set; }
-        public int PerformanceImprovementPercent => AssessedEmployees > 0
-            ? (int)Math.Round(100.0 * ImprovedEmployees / AssessedEmployees) : 0;
-
-        // KPI 4 — العائد على الاستثمار (اختياري)
-        public bool RoiAvailable { get; set; }
-        public decimal RoiFinancialReturn { get; set; }
-        public decimal RoiTrainingCost { get; set; }
-        public int RoiPercent => RoiAvailable && RoiTrainingCost > 0
-            ? (int)Math.Round(100m * (RoiFinancialReturn - RoiTrainingCost) / RoiTrainingCost) : 0;
     }
 
     public class SkillCount
