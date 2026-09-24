@@ -123,6 +123,23 @@ namespace TrainingSystem.Models
         public const string Reports_View = "Reports.View";
         public const string Reports_Export = "Reports.Export";
 
+        // --- صلاحيات وحدة الاحتياجات التدريبية (TNA) ---
+        // تُضاف ضمن نظام الصلاحيات القائم (Roles → Permissions → Users) وتظهر في شاشة إدارة الصلاحيات
+        // ليتمكن مدير النظام من منحها/سحبها لأي مستخدم دون إنشاء نظام صلاحيات منفصل.
+        public const string TrainingNeeds_View = "TrainingNeeds.View";
+        public const string TrainingNeeds_Create = "TrainingNeeds.Create";
+        public const string TrainingNeeds_Edit = "TrainingNeeds.Edit";
+        public const string TrainingNeeds_Submit = "TrainingNeeds.Submit";
+        public const string TrainingNeeds_Review = "TrainingNeeds.Review";
+        public const string TrainingNeeds_Approve = "TrainingNeeds.Approve";
+        public const string TrainingNeeds_Reject = "TrainingNeeds.Reject";
+        public const string TrainingNeeds_Return = "TrainingNeeds.Return";
+        public const string TrainingNeeds_Manage = "TrainingNeeds.Manage";
+        public const string TrainingNeeds_Budget = "TrainingNeeds.Budget";
+        public const string TrainingNeeds_ImpactAssessment = "TrainingNeeds.ImpactAssessment";
+        public const string TrainingNeeds_Reports = "TrainingNeeds.Reports";
+        public const string TrainingNeeds_Export = "TrainingNeeds.Export";
+
         // جميع الصلاحيات المتاحة
         public static List<string> AllPermissions => new()
         {
@@ -131,7 +148,12 @@ namespace TrainingSystem.Models
             Registrations_View, Registrations_Approve, Registrations_Reject, Registrations_Delete, Registrations_Export,
             Users_View, Users_Create, Users_Edit, Users_Delete,
             Settings_View, Settings_Edit,
-            Reports_View, Reports_Export
+            Reports_View, Reports_Export,
+            // صلاحيات وحدة TNA
+            TrainingNeeds_View, TrainingNeeds_Create, TrainingNeeds_Edit, TrainingNeeds_Submit,
+            TrainingNeeds_Review, TrainingNeeds_Approve, TrainingNeeds_Reject, TrainingNeeds_Return,
+            TrainingNeeds_Manage, TrainingNeeds_Budget, TrainingNeeds_ImpactAssessment,
+            TrainingNeeds_Reports, TrainingNeeds_Export
         };
 
         // أسماء الصلاحيات بالعربي
@@ -160,6 +182,19 @@ namespace TrainingSystem.Models
                 Settings_Edit => "تعديل الإعدادات",
                 Reports_View => "عرض التقارير",
                 Reports_Export => "تصدير التقارير",
+                TrainingNeeds_View => "عرض الاحتياجات التدريبية",
+                TrainingNeeds_Create => "إنشاء احتياج تدريبي",
+                TrainingNeeds_Edit => "تعديل الاحتياج التدريبي",
+                TrainingNeeds_Submit => "رفع الاحتياج للاعتماد",
+                TrainingNeeds_Review => "مراجعة الاحتياجات التدريبية",
+                TrainingNeeds_Approve => "اعتماد الاحتياج التدريبي",
+                TrainingNeeds_Reject => "رفض الاحتياج التدريبي",
+                TrainingNeeds_Return => "إعادة الاحتياج للتعديل",
+                TrainingNeeds_Manage => "إدارة وحدة الاحتياجات التدريبية",
+                TrainingNeeds_Budget => "مراجعة ميزانية التدريب",
+                TrainingNeeds_ImpactAssessment => "تقييم أثر التدريب",
+                TrainingNeeds_Reports => "تقارير الاحتياجات التدريبية",
+                TrainingNeeds_Export => "تصدير الاحتياجات التدريبية",
                 _ => permission
             };
         }
@@ -180,52 +215,73 @@ namespace TrainingSystem.Models
                     Programs_View,
                     Batches_View,
                     Registrations_View,
-                    Reports_View
+                    Reports_View,
+                    TrainingNeeds_View
                 }
             },
             {
-                // مدير الدائرة: عرض + اعتماد الاحتياجات المرفوعة إليه
+                // مدير الدائرة: مراجعة واعتماد/رفض/إعادة الاحتياجات المرفوعة إليه
                 SystemRoles.DepartmentManager, new List<string>
                 {
                     Programs_View,
                     Batches_View,
                     Registrations_View,
-                    Reports_View
+                    Reports_View,
+                    TrainingNeeds_View,
+                    TrainingNeeds_Review,
+                    TrainingNeeds_Approve,
+                    TrainingNeeds_Reject,
+                    TrainingNeeds_Return,
+                    TrainingNeeds_Reports,
+                    TrainingNeeds_Export
                 }
             },
             {
-                // رئيس القسم: عرض وإنشاء ورفع الاحتياجات
+                // رئيس القسم: عرض وإنشاء وتعديل ورفع احتياجات موظفي قسمه
                 SystemRoles.SectionHead, new List<string>
                 {
                     Programs_View,
                     Batches_View,
                     Registrations_View,
-                    Reports_View
+                    Reports_View,
+                    TrainingNeeds_View,
+                    TrainingNeeds_Create,
+                    TrainingNeeds_Edit,
+                    TrainingNeeds_Submit,
+                    TrainingNeeds_Reports,
+                    TrainingNeeds_Export
                 }
             }
         };
 
         public static bool HasPermission(string role, string permission, string? customPermissions = null)
         {
-            // مدير النظام والمدير لهم كل الصلاحيات
+            // مدير النظام ومسؤول النظام (دائرة التدريب) لهما كل الصلاحيات — لا تُقلَّص بإضافة TNA
             if (role == SystemRoles.SuperAdmin || role == SystemRoles.Admin)
             {
                 return true;
             }
 
-            // للمشرف: تحقق من الصلاحيات المخصصة أولاً
-            if (role == SystemRoles.Supervisor && !string.IsNullOrEmpty(customPermissions))
+            var custom = string.IsNullOrEmpty(customPermissions)
+                ? new List<string>()
+                : customPermissions.Split(',').Select(p => p.Trim()).Where(p => p.Length > 0).ToList();
+
+            // للمشرف: الصلاحيات المخصصة تُحدِّد وصوله (توافق مع السلوك الحالي)
+            if (role == SystemRoles.Supervisor && custom.Count > 0)
             {
-                var userPermissions = customPermissions.Split(',').ToList();
-                return userPermissions.Contains(permission);
+                return custom.Contains(permission);
             }
 
-            // الصلاحيات الافتراضية
-            if (RolePermissions.TryGetValue(role, out var permissions))
+            var hasDefault = RolePermissions.TryGetValue(role, out var permissions) && permissions.Contains(permission);
+
+            // مدير الدائرة ورئيس القسم: صلاحيات TNA قابلة للمنح/السحب من مدير النظام
+            // (اتحاد الافتراضي مع المخصص) دون المساس بسلوك بقية الأدوار
+            if (role == SystemRoles.DepartmentManager || role == SystemRoles.SectionHead)
             {
-                return permissions.Contains(permission);
+                return hasDefault || custom.Contains(permission);
             }
-            return false;
+
+            return hasDefault;
         }
     }
 }

@@ -237,8 +237,11 @@ namespace TrainingSystem.Controllers
             user.Department = model.Department;
             user.IsActive = model.IsActive;
             
-            // حفظ الصلاحيات المخصصة للمشرف
-            if (model.Role == SystemRoles.Supervisor)
+            // حفظ الصلاحيات المخصصة للأدوار القابلة للتخصيص (المشرف + مدير الدائرة + رئيس القسم)
+            // — تُضاف فوق صلاحيات الدور الافتراضية، ويمنحها/يسحبها مدير النظام من هذه الشاشة.
+            if (model.Role == SystemRoles.Supervisor ||
+                model.Role == SystemRoles.DepartmentManager ||
+                model.Role == SystemRoles.SectionHead)
             {
                 user.CustomPermissions = CustomPermissionsString;
             }
