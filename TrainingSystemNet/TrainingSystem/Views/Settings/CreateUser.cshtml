@@ -82,8 +82,8 @@
                         <div id="supervisorPermissions" class="mb-4" style="display: none;">
                             <div class="card bg-light">
                                 <div class="card-header">
-                                    <h6 class="mb-0"><i class="bi bi-shield-lock me-2"></i>صلاحيات المشرف المخصصة</h6>
-                                    <small class="text-muted">حدد الصلاحيات التي تريد منحها لهذا المشرف</small>
+                                    <h6 class="mb-0"><i class="bi bi-shield-lock me-2"></i>الصلاحيات المخصصة</h6>
+                                    <small class="text-muted">حدد الصلاحيات التي تريد منحها لهذا المستخدم (تُضاف فوق صلاحيات دوره الافتراضية)</small>
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
@@ -179,6 +179,69 @@
                                                 <label class="form-check-label" for="perm_settings_edit">تعديل الإعدادات</label>
                                             </div>
                                         </div>
+
+                                        <!-- الاحتياجات التدريبية (TNA) -->
+                                        <div class="col-md-8 mb-3">
+                                            <h6 class="text-primary"><i class="bi bi-clipboard-check me-2"></i>الاحتياجات التدريبية (TNA)</h6>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.View" id="perm_tna_view" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_view">عرض الاحتياجات التدريبية</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Create" id="perm_tna_create" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_create">إنشاء احتياج تدريبي</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Edit" id="perm_tna_edit" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_edit">تعديل الاحتياج التدريبي</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Submit" id="perm_tna_submit" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_submit">رفع الاحتياج للاعتماد</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Review" id="perm_tna_review" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_review">مراجعة الاحتياجات التدريبية</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Approve" id="perm_tna_approve" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_approve">اعتماد الاحتياج التدريبي</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Reject" id="perm_tna_reject" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_reject">رفض الاحتياج التدريبي</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Return" id="perm_tna_return" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_return">إعادة الاحتياج للتعديل</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Manage" id="perm_tna_manage" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_manage">إدارة وحدة الاحتياجات</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Budget" id="perm_tna_budget" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_budget">مراجعة ميزانية التدريب</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.ImpactAssessment" id="perm_tna_impact" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_impact">تقييم أثر التدريب</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Reports" id="perm_tna_reports" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_reports">تقارير الاحتياجات التدريبية</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input permission-check" type="checkbox" value="TrainingNeeds.Export" id="perm_tna_export" name="CustomPermissions">
+                                                        <label class="form-check-label" for="perm_tna_export">تصدير الاحتياجات التدريبية</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- أزرار سريعة -->
@@ -222,8 +285,12 @@
         var roleDescriptions = {
             'SuperAdmin': 'كل الصلاحيات - إدارة المستخدمين والإعدادات والبرامج',
             'Admin': 'كل الصلاحيات - إدارة المستخدمين والإعدادات والبرامج',
-            'Supervisor': 'صلاحيات مخصصة يحددها المدير'
+            'Supervisor': 'صلاحيات مخصصة يحددها المدير',
+            'DepartmentManager': 'مدير الدائرة — اعتماد احتياجات دائرته + صلاحيات TNA إضافية اختيارية',
+            'SectionHead': 'رئيس القسم — إنشاء ورفع احتياجات موظفي قسمه + صلاحيات TNA إضافية اختيارية'
         };
+
+        var customPermRoles = ['Supervisor', 'DepartmentManager', 'SectionHead'];
 
         document.addEventListener('DOMContentLoaded', function() {
             updatePermissionsSection();
@@ -239,11 +306,7 @@
             document.getElementById('roleDescText').textContent = desc;
             
             var permSection = document.getElementById('supervisorPermissions');
-            if (role === 'Supervisor') {
-                permSection.style.display = 'block';
-            } else {
-                permSection.style.display = 'none';
-            }
+            permSection.style.display = customPermRoles.indexOf(role) !== -1 ? 'block' : 'none';
         }
 
         function selectAllPermissions() {
