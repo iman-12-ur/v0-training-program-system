@@ -6,9 +6,11 @@
     ViewData["Title"] = "تفاصيل الاحتياج التدريبي";
     var isPrivileged = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
     var currentUserId = UserManager.GetUserId(User);
-    // منع الاعتماد الذاتي في الواجهة (مطابق للحارس الخادمي CanActAsManager)
+    // مطابق للحارس الخادمي CanActAsManager: مدير الدائرة/المشرف فقط، مع منع الاعتماد الذاتي.
+    // رئيس القسم يرفع الطلب ولا يعتمده، ودائرة التدريب/مدير النظام جهة اعتماد أعلى.
+    var isManagerTier = User.IsInRole("DepartmentManager") || User.IsInRole("Supervisor");
     var canActAsManager = isPrivileged ||
-        (Model.CreatedByUserId != currentUserId && Model.EmployeeUserId != currentUserId);
+        (isManagerTier && Model.CreatedByUserId != currentUserId && Model.EmployeeUserId != currentUserId);
     var readiness = Model.RequiredLevel > 0
         ? (int)Math.Round(100.0 * Math.Min(Model.CurrentLevel, Model.RequiredLevel) / Model.RequiredLevel) : 0;
 }

@@ -9,7 +9,7 @@ using TrainingSystem.Services;
 namespace TrainingSystem.Controllers
 {
     // محرك مؤشرات الأداء (KPI) لوحدة الاحتياجات التدريبية
-    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
+    [Authorize(Roles = "SuperAdmin,Admin,DepartmentManager,SectionHead,Supervisor")]
     public class KpiController : Controller
     {
         private readonly ApplicationDbContext _context;

@@ -9,7 +9,7 @@ using TrainingSystem.Services;
 namespace TrainingSystem.Controllers
 {
     // مركز الإشعارات — كل مستخدم يرى إشعاراته فقط
-    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
+    [Authorize(Roles = "SuperAdmin,Admin,DepartmentManager,SectionHead,Supervisor")]
     public class NotificationsController : Controller
     {
         private readonly ApplicationDbContext _context;

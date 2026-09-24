@@ -9,7 +9,7 @@ using TrainingSystem.Services;
 namespace TrainingSystem.Controllers
 {
     // تقييم أثر التدريب (مباشر وبعد 90 يوماً)
-    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
+    [Authorize(Roles = "SuperAdmin,Admin,DepartmentManager,SectionHead,Supervisor")]
     public class ImpactAssessmentsController : Controller
     {
         private readonly ApplicationDbContext _context;

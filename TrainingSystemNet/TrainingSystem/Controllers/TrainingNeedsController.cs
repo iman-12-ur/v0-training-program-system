@@ -13,7 +13,7 @@ namespace TrainingSystem.Controllers
 {
     // إدارة الاحتياجات التدريبية للموظفين حسب الدائرة (مصدر البيانات: قاعدة البيانات).
     // المشرف يرى ويدير دائرته فقط، والمدير/مدير النظام يديرون كل الدوائر.
-    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
+    [Authorize(Roles = "SuperAdmin,Admin,DepartmentManager,SectionHead,Supervisor")]
     public class TrainingNeedsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -576,7 +576,7 @@ namespace TrainingSystem.Controllers
 
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "تم اعتماد الاحتياج وإحالته للموارد البشرية";
+            TempData["Success"] = "تم اعتماد الاحتياج وإحالته لدائرة التدريب";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -936,7 +936,7 @@ namespace TrainingSystem.Controllers
                 });
             }
 
-            // الطلب ينتقل إلى مرحلة تقييم الأثر
+            // الطلب ينتقل إلى مرحلة تقييم الأ��ر
             need.ApprovalStatus = TrainingNeedApprovalStatus.ImpactAssessmentPending;
             AddHistory(need, need.ApprovalStatus, "إنهاء التدريب وإنشاء تقييمي الأثر (مباشر + بعد 90 يوماً)", null, actor);
 
@@ -1845,13 +1845,19 @@ namespace TrainingSystem.Controllers
             return actor?.Department != null && need.Department == actor.Department;
         }
 
-        // منع الاعتماد الذاتي: لا يعتمد مقدّم الطلب طلبه بصفة «مدير».
-        // دائرة التدريب/مدير النظام (Admin/SuperAdmin) مستثنون لأنهم جهة اعتماد أعلى.
+        // سلسلة الاعتماد: رئيس القسم يرفع فقط، والاعتماد الأوسط من صلاحية مدير الدائرة.
+        // القواعد:
+        //  - دائرة التدريب/مدير النظام (Admin/SuperAdmin) مستثنون (جهة اعتماد أعلى) → مسموح دائماً.
+        //  - رئيس القسم (SectionHead) لا يعتمد إطلاقاً؛ دوره جمع الاحتياجات ورفعها فقط.
+        //  - يجب أن يكون المُعتمِد بصفة مدير دائرة (DepartmentManager) أو مشرف (Supervisor للتوافق).
+        //  - منع الاعتماد الذاتي: لا يعتمد مقدّم الطلب أو صاحبه طلبَه بنفسه.
         private bool CanActAsManager(TrainingNeed need, ApplicationUser? actor)
         {
             if (IsPrivileged) return true;
             if (actor == null) return false;
-            return need.CreatedByUserId != actor.Id && need.EmployeeUserId != actor.Id;
+            if (need.CreatedByUserId == actor.Id || need.EmployeeUserId == actor.Id) return false;
+            // فقط أصحاب دور مُعتمِد أوسط (مدير الدائرة، أو المشرف للتوافق) — رئيس القسم يرفع ولا يعتمد.
+            return User.IsInRole(SystemRoles.DepartmentManager) || User.IsInRole(SystemRoles.Supervisor);
         }
 
         private async Task<List<string>> GetDepartmentsAsync()
@@ -1872,15 +1878,19 @@ namespace TrainingSystem.Controllers
             return admins.Concat(supers).Select(u => u.Id).Distinct().ToList();
         }
 
-        // معرّفات المدراء المسؤولين عن دائرة معيّنة (مشرفو الدائرة + دائرة التدريب)
+        // معرّفات المدراء المسؤولين عن دائرة معيّنة (مدير الدائرة + مشرفو الدائرة + دائرة التدريب)
         private async Task<List<string>> GetDepartmentManagerIdsAsync(string department)
         {
+            var deptManagers = await _userManager.GetUsersInRoleAsync(SystemRoles.DepartmentManager);
             var supervisors = await _userManager.GetUsersInRoleAsync(SystemRoles.Supervisor);
+            var deptManagerIds = deptManagers
+                .Where(u => u.Department == department)
+                .Select(u => u.Id);
             var deptSupervisors = supervisors
                 .Where(u => u.Department == department)
                 .Select(u => u.Id);
             var hr = await GetHRUserIdsAsync();
-            return deptSupervisors.Concat(hr).Distinct().ToList();
+            return deptManagerIds.Concat(deptSupervisors).Concat(hr).Distinct().ToList();
         }
 
         // ا��سنة المالية الحالية (تق��يم��ة) بصيغة 2025/2026

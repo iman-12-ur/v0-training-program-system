@@ -53,17 +53,21 @@ namespace TrainingSystem.Models
     public static class SystemRoles
     {
         public const string SuperAdmin = "SuperAdmin";  // مدير النظام - كل الصلاحيات
-        public const string Admin = "Admin";            // مدير - كل الصلاحيات (مثل مدير النظام)
-        public const string Supervisor = "Supervisor";  // مشرف - صلاحيات يحددها المدير
+        public const string Admin = "Admin";            // دائرة التدريب - المراجعة والاعتماد النهائي
+        public const string DepartmentManager = "DepartmentManager"; // مدير الدائرة - يعتمد ما يرفعه رؤساء الأقسام
+        public const string SectionHead = "SectionHead";             // رئيس القسم - يجمع احتياجات قسمه ويرفعها
+        public const string Supervisor = "Supervisor";  // مشرف - صلاحيات يحددها المدير (متوافقية مع النظام الحالي)
 
-        public static List<string> AllRoles => new() { SuperAdmin, Admin, Supervisor };
+        public static List<string> AllRoles => new() { SuperAdmin, Admin, DepartmentManager, SectionHead, Supervisor };
 
         public static string GetRoleDisplayName(string role)
         {
             return role switch
             {
                 SuperAdmin => "مدير النظام",
-                Admin => "مدير",
+                Admin => "دائرة التدريب",
+                DepartmentManager => "مدير الدائرة",
+                SectionHead => "رئيس القسم",
                 Supervisor => "مشرف",
                 _ => role
             };
@@ -74,7 +78,9 @@ namespace TrainingSystem.Models
             return role switch
             {
                 SuperAdmin => "كل الصلاحيات - إدارة المستخدمين والإعدادات والبرامج",
-                Admin => "كل الصلاحيات - إدارة المستخدمين والإعدادات والبرامج",
+                Admin => "دائرة التدريب - مراجعة الاحتياجات واعتمادها نهائياً وإدارة البرامج",
+                DepartmentManager => "مدير الدائرة - يعتمد الاحتياجات المرفوعة من رؤساء الأقسام في دائرته",
+                SectionHead => "رئيس القسم - يجمع احتياجات موظفي قسمه وينشئها ويرفعها للاعتماد",
                 Supervisor => "صلاحيات يحددها مدير النظام أو المدير",
                 _ => ""
             };
@@ -171,6 +177,26 @@ namespace TrainingSystem.Models
                 SystemRoles.Supervisor, new List<string>
                 {
                     // الصلاحيات الافتراضية للمشرف (يمكن تعديلها من قبل المدير)
+                    Programs_View,
+                    Batches_View,
+                    Registrations_View,
+                    Reports_View
+                }
+            },
+            {
+                // مدير الدائرة: عرض + اعتماد الاحتياجات المرفوعة إليه
+                SystemRoles.DepartmentManager, new List<string>
+                {
+                    Programs_View,
+                    Batches_View,
+                    Registrations_View,
+                    Reports_View
+                }
+            },
+            {
+                // رئيس القسم: عرض وإنشاء ورفع الاحتياجات
+                SystemRoles.SectionHead, new List<string>
+                {
                     Programs_View,
                     Batches_View,
                     Registrations_View,

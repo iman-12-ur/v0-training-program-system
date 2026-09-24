@@ -9,7 +9,7 @@ using TrainingSystem.Models;
 namespace TrainingSystem.Controllers
 {
     // السماح لجميع الأدوار بالعرض
-    [Authorize(Roles = "SuperAdmin,Admin,Supervisor")]
+    [Authorize(Roles = "SuperAdmin,Admin,DepartmentManager,SectionHead,Supervisor")]
     public class RegistrationsController : Controller
     {
         private readonly ApplicationDbContext _context;
