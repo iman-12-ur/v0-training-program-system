@@ -28,6 +28,17 @@ namespace TrainingSystem.Services
             TrainingNeedApprovalStatus.Closed
         };
 
+        // الحالات التي تُعتبر «احتياجاً معتمداً» (اعتمدته دائرة التدريب فما فوق).
+        public static readonly TrainingNeedApprovalStatus[] ApprovedStatuses =
+        {
+            TrainingNeedApprovalStatus.HRApproved,
+            TrainingNeedApprovalStatus.TrainingScheduled,
+            TrainingNeedApprovalStatus.TrainingCompleted,
+            TrainingNeedApprovalStatus.ImpactAssessmentPending,
+            TrainingNeedApprovalStatus.ImpactAssessmentCompleted,
+            TrainingNeedApprovalStatus.Closed
+        };
+
         // يحسب المؤشرات الأربعة من مجموعة الاحتياجات المفلترة + معطيات الميزانية + عائد ROI اختياري.
         // نطاق الصلاحية/الفلترة مسؤولية المستدعي؛ الخدمة تحسب المعادلات فقط.
         public async Task<KpiEngine> ComputeAsync(
@@ -60,6 +71,24 @@ namespace TrainingSystem.Services
                 .Where(a => a.AfterScore > a.BeforeScore)
                 .Select(a => needToEmp[a.TrainingNeedId]).Distinct().Count();
 
+            // KPI 4 — نسبة إغلاق الاحتياجات
+            // = (الاحتياجات المكتملة ÷ إجمالي الاحتياجات المعتمدة) × 100
+            var completedNeeds = needs.Count(n => CompletedStatuses.Contains(n.ApprovalStatus));
+            var approvedNeeds = needs.Count(n => ApprovedStatuses.Contains(n.ApprovalStatus));
+
+            // KPI 5 — نسبة الاحتياجات الحرجة التي تمت معالجتها
+            // = (الاحتياجات الحرجة المكتملة ÷ إجمالي الاحتياجات الحرجة) × 100
+            var criticalNeeds = needs.Count(n => n.Priority == TrainingNeedPriority.Critical);
+            var criticalCompleted = needs.Count(n => n.Priority == TrainingNeedPriority.Critical
+                && CompletedStatuses.Contains(n.ApprovalStatus));
+
+            // KPI 6 — نسبة الالتزام بخطة التدريب
+            // = (الاحتياجات المخططة المكتملة ÷ إجمالي الاحتياجات المخططة) × 100
+            // «مخطط» = له تاريخ تدريب مخطط (PlannedDate)
+            var plannedNeeds = needs.Count(n => n.PlannedDate.HasValue);
+            var plannedCompleted = needs.Count(n => n.PlannedDate.HasValue
+                && CompletedStatuses.Contains(n.ApprovalStatus));
+
             return new KpiEngine
             {
                 TrainedEmployees = trainedEmployees,
@@ -72,6 +101,15 @@ namespace TrainingSystem.Services
 
                 AssessedEmployees = assessedEmployees,
                 ImprovedEmployees = improvedEmployees,
+
+                CompletedNeeds = completedNeeds,
+                ApprovedNeeds = approvedNeeds,
+
+                CriticalNeeds = criticalNeeds,
+                CriticalCompleted = criticalCompleted,
+
+                PlannedNeeds = plannedNeeds,
+                PlannedCompleted = plannedCompleted,
 
                 RoiAvailable = roiReturn.HasValue && roiReturn.Value > 0,
                 RoiFinancialReturn = roiReturn ?? 0m,
@@ -105,7 +143,25 @@ namespace TrainingSystem.Services
         public int PerformanceImprovementPercent => AssessedEmployees > 0
             ? (int)Math.Round(100.0 * ImprovedEmployees / AssessedEmployees) : 0;
 
-        // KPI 4 — العائد على الاستثمار (اختياري)
+        // KPI 4 — نسبة إغلاق الاحتياجات
+        public int CompletedNeeds { get; set; }
+        public int ApprovedNeeds { get; set; }
+        public int NeedsClosurePercent => ApprovedNeeds > 0
+            ? (int)Math.Round(100.0 * CompletedNeeds / ApprovedNeeds) : 0;
+
+        // KPI 5 — نسبة الاحتياجات الحرجة التي تمت معالجتها
+        public int CriticalNeeds { get; set; }
+        public int CriticalCompleted { get; set; }
+        public int CriticalAddressedPercent => CriticalNeeds > 0
+            ? (int)Math.Round(100.0 * CriticalCompleted / CriticalNeeds) : 0;
+
+        // KPI 6 — نسبة الالتزام بخطة التدريب
+        public int PlannedNeeds { get; set; }
+        public int PlannedCompleted { get; set; }
+        public int PlanCommitmentPercent => PlannedNeeds > 0
+            ? (int)Math.Round(100.0 * PlannedCompleted / PlannedNeeds) : 0;
+
+        // العائد على الاستثمار (اختياري — مؤشر إضافي)
         public bool RoiAvailable { get; set; }
         public decimal RoiFinancialReturn { get; set; }
         public decimal RoiTrainingCost { get; set; }

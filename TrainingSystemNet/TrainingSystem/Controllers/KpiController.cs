@@ -97,7 +97,18 @@ namespace TrainingSystem.Controllers
             // 3) تحسّن الأداء %
             vm.CompletedAssessments = kpi.AssessedEmployees;
             vm.AveragePerformanceImprovement = kpi.PerformanceImprovementPercent;
-            // 4) العائد على الاستثمار %
+            // 4) نسبة إغلاق الاحتياجات
+            vm.CompletedNeeds = kpi.CompletedNeeds;
+            vm.NeedsClosurePercent = kpi.NeedsClosurePercent;
+            // 5) نسبة الاحتياجات الحرجة التي تمت معالجتها
+            vm.CriticalNeeds = kpi.CriticalNeeds;
+            vm.CriticalCompleted = kpi.CriticalCompleted;
+            vm.CriticalAddressedPercent = kpi.CriticalAddressedPercent;
+            // 6) نسبة الالتزام بخطة التدريب
+            vm.PlannedNeeds = kpi.PlannedNeeds;
+            vm.PlannedCompleted = kpi.PlannedCompleted;
+            vm.PlanCommitmentPercent = kpi.PlanCommitmentPercent;
+            // العائد على الاستثمار %
             vm.RoiPercent = kpi.RoiPercent;
 
             // توزيع حسب الدائرة (للمخوّلين)
@@ -138,6 +149,20 @@ namespace TrainingSystem.Controllers
 
         public int CompletedAssessments { get; set; }
         public int AveragePerformanceImprovement { get; set; }
+
+        // KPI 4 — نسبة إغلاق الاحتياجات
+        public int CompletedNeeds { get; set; }
+        public int NeedsClosurePercent { get; set; }
+
+        // KPI 5 — نسبة الاحتياجات الحرجة التي تمت معالجتها
+        public int CriticalNeeds { get; set; }
+        public int CriticalCompleted { get; set; }
+        public int CriticalAddressedPercent { get; set; }
+
+        // KPI 6 — نسبة الالتزام بخطة التدريب
+        public int PlannedNeeds { get; set; }
+        public int PlannedCompleted { get; set; }
+        public int PlanCommitmentPercent { get; set; }
 
         public decimal TotalTrainingCost { get; set; }
         public int RoiPercent { get; set; }

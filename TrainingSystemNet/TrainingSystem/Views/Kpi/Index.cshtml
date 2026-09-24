@@ -78,6 +78,50 @@
 </div>
 
 <div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">نسبة إغلاق الاحتياجات</span>
+                <i class="bi bi-check2-circle text-success"></i>
+            </div>
+            <div class="fs-3 fw-bold text-success">@Model.NeedsClosurePercent%</div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-success" style="width: @Model.NeedsClosurePercent%"></div>
+            </div>
+            <div class="small text-muted mt-2">@Model.CompletedNeeds مكتمل من @Model.ApprovedNeeds معتمد</div>
+        </div></div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">الاحتياجات الحرجة المعالَجة</span>
+                <i class="bi bi-exclamation-octagon text-danger"></i>
+            </div>
+            <div class="fs-3 fw-bold text-danger">@Model.CriticalAddressedPercent%</div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-danger" style="width: @Model.CriticalAddressedPercent%"></div>
+            </div>
+            <div class="small text-muted mt-2">@Model.CriticalCompleted معالَج من @Model.CriticalNeeds حرج</div>
+        </div></div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">الالتزام بخطة التدريب</span>
+                <i class="bi bi-calendar-check text-primary"></i>
+            </div>
+            <div class="fs-3 fw-bold text-primary">@Model.PlanCommitmentPercent%</div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-primary" style="width: @Model.PlanCommitmentPercent%"></div>
+            </div>
+            <div class="small text-muted mt-2">@Model.PlannedCompleted منفّذ من @Model.PlannedNeeds مخطط</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
     <div class="col-lg-4">
         <div class="card h-100"><div class="card-body">
             <div class="text-muted small mb-1">الميزانية المخططة</div>
