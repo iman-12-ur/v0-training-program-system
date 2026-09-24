@@ -553,6 +553,11 @@ namespace TrainingSystem.Controllers
             }
 
             var actor = await _userManager.GetUserAsync(User);
+            if (!CanActAsManager(need, actor))
+            {
+                TempData["Error"] = "لا يمكنك اعتماد احتياج قمت بتقديمه بنفسك — يعتمده مدير آخر أو دائرة التدريب";
+                return RedirectToAction(nameof(Details), new { id });
+            }
             need.ApprovalStatus = TrainingNeedApprovalStatus.ManagerApproved;
             need.ManagerUserId = actor?.Id;
             need.ManagerActionAt = DateTime.Now;
@@ -594,6 +599,11 @@ namespace TrainingSystem.Controllers
             }
 
             var actor = await _userManager.GetUserAsync(User);
+            if (!CanActAsManager(need, actor))
+            {
+                TempData["Error"] = "لا يمكنك رفض احتياج قمت بتقديمه بنفسك — يبتّ فيه مدير آخر أو دائرة التدريب";
+                return RedirectToAction(nameof(Details), new { id });
+            }
             need.ApprovalStatus = TrainingNeedApprovalStatus.ManagerRejected;
             need.ManagerUserId = actor?.Id;
             need.ManagerActionAt = DateTime.Now;
@@ -636,6 +646,11 @@ namespace TrainingSystem.Controllers
             }
 
             var actor = await _userManager.GetUserAsync(User);
+            if (!CanActAsManager(need, actor))
+            {
+                TempData["Error"] = "لا يمكنك طلب تعديل على احتياج قمت بتقديمه بنفسك — يراجعه مدير آخر أو دائرة التدريب";
+                return RedirectToAction(nameof(Details), new { id });
+            }
             need.ApprovalStatus = TrainingNeedApprovalStatus.ReturnedForModification;
             need.ManagerUserId = actor?.Id;
             need.ManagerActionAt = DateTime.Now;
@@ -1830,6 +1845,15 @@ namespace TrainingSystem.Controllers
             return actor?.Department != null && need.Department == actor.Department;
         }
 
+        // منع الاعتماد الذاتي: لا يعتمد مقدّم الطلب طلبه بصفة «مدير».
+        // دائرة التدريب/مدير النظام (Admin/SuperAdmin) مستثنون لأنهم جهة اعتماد أعلى.
+        private bool CanActAsManager(TrainingNeed need, ApplicationUser? actor)
+        {
+            if (IsPrivileged) return true;
+            if (actor == null) return false;
+            return need.CreatedByUserId != actor.Id && need.EmployeeUserId != actor.Id;
+        }
+
         private async Task<List<string>> GetDepartmentsAsync()
         {
             return await _context.Users
@@ -1941,7 +1965,7 @@ namespace TrainingSystem.Controllers
             });
         }
 
-        // إن اختيرت مهارة من المكتب��، يُشتقّ تصنيف الاحتياج ونوع الفجوة من تصنيف المهارة
+        // إن اختيرت مهارة من المكتب��، يُشتق�� تصنيف الاحتياج ونوع الفجوة من تصنيف المهارة
         private async Task AlignSkillCategoryAsync(TrainingNeed need)
         {
             // اشتقاق التصنيف من المهارة عند عدم تحديده
