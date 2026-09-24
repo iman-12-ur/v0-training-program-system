@@ -96,6 +96,35 @@
                     <dt class="col-sm-3 text-muted">التكلفة التقديرية</dt><dd class="col-sm-3">@Model.EstimatedCost.ToString("N0")</dd>
                     <dt class="col-sm-3 text-muted">التكلفة المخطّطة</dt><dd class="col-sm-3">@Model.PlannedCost.ToString("N0")</dd>
 
+                    @{
+                        var budgetVm = ViewBag.CurrentBudget as TrainingSystem.Models.TrainingBudget;
+                        var needCostVm = ViewBag.NeedBudgetCost as decimal? ?? 0m;
+                    }
+                    @if (budgetVm != null && needCostVm > 0)
+                    {
+                        var availableVm = (decimal)(ViewBag.AvailableBudget ?? budgetVm.RemainingBudget);
+                        var overBudget = ViewBag.BudgetOverrun as bool? ?? (needCostVm > availableVm);
+                        <dt class="col-sm-3 text-muted">حالة الميزانية</dt>
+                        <dd class="col-sm-9">
+                            @if (overBudget)
+                            {
+                                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>Over Budget — تجاوز الميزانية</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Available — ضمن الميزانية</span>
+                            }
+                            <span class="small text-muted ms-2">
+                                المتاح: <b>@availableVm.ToString("N0")</b> — التكلفة: <b>@needCostVm.ToString("N0")</b>
+                                (المخصص @budgetVm.AllocatedBudget.ToString("N0") − الملتزم @budgetVm.CommittedBudget.ToString("N0") − الفعلي @budgetVm.ActualSpending.ToString("N0"))
+                            </span>
+                            @if (overBudget)
+                            {
+                                <div class="small text-danger mt-1"><i class="bi bi-info-circle me-1"></i>لا يُرفض الطلب تلقائياً — يُحوَّل إلى «مراجعة الميزانية» ليقرّر المخوّل.</div>
+                            }
+                        </dd>
+                    }
+
                     <dt class="col-sm-3 text-muted">التكلفة الفعلية</dt><dd class="col-sm-3">@Model.ActualCost.ToString("N0")</dd>
                     <dt class="col-sm-3 text-muted">التاريخ المخطّط</dt><dd class="col-sm-3">@(Model.PlannedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
 

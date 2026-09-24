@@ -476,8 +476,19 @@ namespace TrainingSystem.Controllers
             }
 
             // حالة الميزانية المركزية للسنة المالية الحالية (للعرض ومقارنة تكلفة الطلب)
-            ViewBag.CurrentBudget = await GetOrmCurrentBudgetAsync();
-            ViewBag.NeedBudgetCost = GetNeedBudgetCost(need);
+            var currentBudget = await GetOrmCurrentBudgetAsync();
+            var needCost = GetNeedBudgetCost(need);
+            ViewBag.CurrentBudget = currentBudget;
+            ViewBag.NeedBudgetCost = needCost;
+
+            // حساب حالة الميزانية: Available Budget = Allocated - Committed - Actual
+            // ثم Estimated Cost <= Available ? Available : Over Budget (بلا رفض تلقائي)
+            if (currentBudget != null && needCost > 0)
+            {
+                var available = currentBudget.RemainingBudget;
+                ViewBag.AvailableBudget = available;
+                ViewBag.BudgetOverrun = needCost > available; // true = Over Budget
+            }
             return View(need);
         }
 
@@ -627,7 +638,7 @@ namespace TrainingSystem.Controllers
             need.ManagerUserId = actor?.Id;
             need.ManagerActionAt = DateTime.Now;
             need.ManagerComment = comment.Trim();
-            AddHistory(need, need.ApprovalStatus, "طلب تعديل من ��ل��دي�� المباشر", comment, actor);
+            AddHistory(need, need.ApprovalStatus, "طلب تعد��ل من ��ل��دي�� المباشر", comment, actor);
 
             if (!string.IsNullOrEmpty(need.CreatedByUserId))
                 NotificationHelper.Add(_context, need.CreatedByUserId,
@@ -1774,7 +1785,7 @@ namespace TrainingSystem.Controllers
             });
         }
 
-        // إن اختيرت مهارة من المكتبة، يُشتقّ تصنيف الاحتياج ونوع الفجوة من تصنيف المهارة
+        // إن اختيرت مهارة من المكتب��، يُشتقّ تصنيف الاحتياج ونوع الفجوة من تصنيف المهارة
         private async Task AlignSkillCategoryAsync(TrainingNeed need)
         {
             // اشتقاق التصنيف من المهارة عند عدم تحديده
